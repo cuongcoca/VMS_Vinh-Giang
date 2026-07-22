@@ -1,0 +1,56 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts",
+    ".next-xenang/types/**/*.ts",
+    ".next-xenang/dev/types/**/*.ts",
+    ".next-thukho/types/**/*.ts",
+    ".next-thukho/dev/types/**/*.ts",
+    ".next-kiemke/types/**/*.ts",
+    ".next-kiemke/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "vinh_giang_wms-main",
+    "e2e",
+    "playwright.config.ts",
+    "test-results",
+    "playwright-report",
+    "mobile",
+    "backups",
+    "prisma"
+  ]
+}

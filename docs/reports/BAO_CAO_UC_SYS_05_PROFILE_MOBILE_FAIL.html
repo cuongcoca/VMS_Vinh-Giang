@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo cáo tổng hợp lỗi — UC-SYS-05 Hồ sơ cá nhân</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: #f4f6f9; color: #1f2937; line-height: 1.55;
+    padding: 32px 16px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header.report {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    color: #fff; border-radius: 14px; padding: 28px 32px; margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(37,99,235,.25);
+  }
+  header.report h1 { font-size: 24px; margin-bottom: 6px; }
+  header.report .sub { opacity: .9; font-size: 14px; }
+  header.report .meta { margin-top: 14px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 18px; }
+  header.report .meta b { font-weight: 600; }
+
+  section { background: #fff; border-radius: 12px; padding: 22px 26px; margin-bottom: 22px; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+  h2 { font-size: 18px; color: #1e3a8a; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; }
+  h3 { font-size: 15px; margin: 18px 0 8px; color: #334155; }
+  p { margin-bottom: 8px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 14px; }
+  .card { border-radius: 10px; padding: 16px; text-align: center; color: #fff; }
+  .card .num { font-size: 30px; font-weight: 700; }
+  .card .lbl { font-size: 13px; opacity: .95; margin-top: 2px; }
+  .c-total { background: #475569; }
+  .c-pass  { background: #16a34a; }
+  .c-fail  { background: #dc2626; }
+  .c-warn  { background: #ea580c; }
+  .c-info  { background: #0891b2; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 6px; }
+  th, td { border: 1px solid #e5e7eb; padding: 9px 10px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; font-weight: 600; color: #334155; }
+  tbody tr:nth-child(even) { background: #fafbfc; }
+  td.id { font-weight: 600; white-space: nowrap; color: #1e3a8a; }
+
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+  .b-high { background: #fee2e2; color: #b91c1c; }
+  .b-med  { background: #fef3c7; color: #b45309; }
+  .b-low  { background: #e0f2fe; color: #075985; }
+  .b-mob  { background: #ede9fe; color: #6d28d9; }
+  .b-both { background: #fde2e4; color: #9d174d; }
+  .b-fixed { background: #dcfce7; color: #15803d; }
+  .b-dev   { background: #dbeafe; color: #1d4ed8; }
+  .b-open  { background: #f3f4f6; color: #4b5563; }
+
+  .group-title { display: flex; align-items: center; gap: 10px; margin: 22px 0 4px; }
+  .group-title .n { background: #1e3a8a; color: #fff; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+  .group-title h3 { margin: 0; font-size: 15.5px; color: #1e3a8a; }
+  .root { background: #fff7ed; border-left: 4px solid #ea580c; padding: 10px 14px; border-radius: 6px; font-size: 13.5px; margin: 8px 0 4px; }
+
+  ul.rec { margin: 6px 0 0 18px; }
+  ul.rec li { margin-bottom: 7px; }
+  .note { background: #eff6ff; border-left: 4px solid #2563eb; padding: 12px 16px; border-radius: 6px; font-size: 13.5px; }
+  footer { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="report">
+    <h1>BÁO CÁO TỔNG HỢP LỖI KIỂM THỬ</h1>
+    <div class="sub">UC-SYS-05 — Hồ sơ cá nhân (Profile)</div>
+    <div class="meta">
+      <span><b>Ngày lập:</b> 08/06/2026</span>
+      <span><b>Hệ thống:</b> WMS Vĩnh Giang</span>
+      <span><b>Phạm vi:</b> Web (PC) &amp; App di động (Mobile)</span>
+      <span><b>Tổng số case:</b> 23</span>
+    </div>
+  </header>
+
+  <!-- TỔNG QUAN -->
+  <section>
+    <h2>1. Tổng quan kết quả</h2>
+    <div class="cards">
+      <div class="card c-total"><div class="num">23</div><div class="lbl">Tổng test case</div></div>
+      <div class="card c-pass"><div class="num">18</div><div class="lbl">PC: Pass</div></div>
+      <div class="card c-fail"><div class="num">5</div><div class="lbl">PC: Fail</div></div>
+      <div class="card c-warn"><div class="num">22</div><div class="lbl">Mobile: Fail</div></div>
+      <div class="card c-info"><div class="num">1</div><div class="lbl">Mobile: Pass</div></div>
+    </div>
+    <p style="margin-top:16px;">
+      Bản <b>Web (PC)</b> đạt phần lớn yêu cầu (18/23 Pass). Ngược lại, bản <b>App di động</b>
+      <b style="color:#dc2626;">fail gần như toàn bộ (22/23 case)</b> do màn hình Hồ sơ cá nhân
+      trên mobile <b>chưa được xây dựng đầy đủ</b>: không xem được thông tin, không sửa được
+      tên / SĐT và nút Đổi mật khẩu không hoạt động.
+    </p>
+    <p>
+      Có <b>5 case fail trên cả PC lẫn Mobile</b>, tập trung ở 2 chức năng còn thiếu chung:
+      <b>Upload ảnh đại diện</b> (4 case) và <b>tự động cắt khoảng trắng tên</b> (1 case).
+    </p>
+  </section>
+
+  <!-- PHÂN NHÓM NGUYÊN NHÂN -->
+  <section>
+    <h2>2. Phân nhóm lỗi theo nguyên nhân gốc</h2>
+    <table>
+      <thead>
+        <tr><th style="width:42px;">Nhóm</th><th>Mô tả lỗi</th><th style="width:120px;">Môi trường</th><th style="width:70px;">Số case</th><th>Test case liên quan</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="id">1</td>
+          <td>Mobile <b>thiếu màn hình Hồ sơ</b> (không xem / không sửa được tên, SĐT)</td>
+          <td><span class="badge b-mob">Mobile</span></td>
+          <td style="text-align:center;font-weight:700;">11</td>
+          <td>TC01, TC02, TC03, TC04, TC08, TC09, TC10, TC11, TC19, TC21, TC23</td>
+        </tr>
+        <tr>
+          <td class="id">2</td>
+          <td>Mobile: nút <b>Đổi mật khẩu không chuyển màn / không đổi được</b></td>
+          <td><span class="badge b-mob">Mobile</span></td>
+          <td style="text-align:center;font-weight:700;">6</td>
+          <td>TC06, TC07, TC14, TC15, TC16, TC17</td>
+        </tr>
+        <tr>
+          <td class="id">3</td>
+          <td>Chức năng <b>Upload ảnh đại diện chưa xây dựng</b></td>
+          <td><span class="badge b-both">PC + Mobile</span></td>
+          <td style="text-align:center;font-weight:700;">4</td>
+          <td>TC05, TC12, TC13, TC24</td>
+        </tr>
+        <tr>
+          <td class="id">4</td>
+          <td>Không <b>tự động cắt khoảng trắng (trim)</b> đầu/cuối tên khi lưu</td>
+          <td><span class="badge b-both">PC + Mobile</span></td>
+          <td style="text-align:center;font-weight:700;">1</td>
+          <td>TC20</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- CHI TIẾT -->
+  <section>
+    <h2>3. Chi tiết các case fail</h2>
+
+    <div class="group-title"><span class="n">1</span><h3>Mobile thiếu màn hình Hồ sơ cá nhân</h3></div>
+    <div class="root"><b>Nguyên nhân gốc:</b> App di động (thủ kho / xe nâng / kiểm kê) chưa có màn hình xem &amp; chỉnh sửa hồ sơ — nên toàn bộ luồng cập nhật tên/SĐT và các case validate đi kèm đều không thực hiện được trên mobile.</div>
+    <table>
+      <thead><tr><th style="width:70px;">Case</th><th>Nội dung</th><th style="width:80px;">Mức độ</th><th style="width:100px;">Fail tại</th><th>Hiện trạng ghi nhận</th><th style="width:120px;">Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="id">TC01</td><td>Hiển thị màn hình Profile</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Mobile không hiển thị thông tin cá nhân</td><td><span class="badge b-fixed">Fixed*</span></td></tr>
+        <tr><td class="id">TC02</td><td>Cập nhật tên hợp lệ</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Mobile không có tính năng cập nhật</td><td><span class="badge b-fixed">Fixed*</span></td></tr>
+        <tr><td class="id">TC03</td><td>Cập nhật số điện thoại hợp lệ</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Mobile không có tính năng cập nhật</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC04</td><td>Cập nhật đồng thời tên và SĐT</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Mobile không có tính năng cập nhật</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC08</td><td>Bỏ trống tên → cần báo validate</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Mobile không cập nhật được nên không test được validate</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC09</td><td>SĐT chứa ký tự chữ → báo lỗi định dạng</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Mobile không cập nhật được</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC10</td><td>SĐT ngắn hơn quy định → báo lỗi</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Mobile không cập nhật được</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC11</td><td>SĐT dài hơn quy định → chặn lưu</td><td><span class="badge b-med">Medium</span></td><td><span class="badge b-mob">Mobile</span></td><td>Mobile không cập nhật được</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC19</td><td>Tên chứa ký tự đặc biệt (@,#,$,%)</td><td><span class="badge b-med">Medium</span></td><td><span class="badge b-mob">Mobile</span></td><td>Mobile chưa cập nhật được (đã fix dirty-check ở bản PC)</td><td><span class="badge b-dev">Dev-Completed*</span></td></tr>
+        <tr><td class="id">TC21</td><td>Refresh trang vẫn giữ dữ liệu đã sửa</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Mobile chưa cập nhật được</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC23</td><td>Nhập tên cực dài (edge case)</td><td><span class="badge b-med">Medium</span></td><td><span class="badge b-mob">Mobile</span></td><td>Mobile chưa cập nhật được</td><td><span class="badge b-open">Mở</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="group-title"><span class="n">2</span><h3>Mobile: nút Đổi mật khẩu không hoạt động</h3></div>
+    <div class="root"><b>Nguyên nhân gốc:</b> Trên mobile, bấm "Đổi mật khẩu" không điều hướng sang màn đổi mật khẩu → toàn bộ luồng đổi mật khẩu &amp; các case validate liên quan đều không thực hiện được.</div>
+    <table>
+      <thead><tr><th style="width:70px;">Case</th><th>Nội dung</th><th style="width:80px;">Mức độ</th><th style="width:100px;">Fail tại</th><th>Hiện trạng ghi nhận</th><th style="width:120px;">Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="id">TC06</td><td>Đổi mật khẩu thành công</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Click "Đổi mật khẩu" không chuyển sang màn đổi mật khẩu</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC07</td><td>Đăng nhập bằng mật khẩu mới sau khi đổi</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Chưa đổi được mật khẩu trên mobile</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC14</td><td>Mật khẩu cũ sai → báo lỗi</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Chưa đổi được mật khẩu trên mobile</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC15</td><td>Xác nhận mật khẩu không khớp → báo lỗi</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Chưa đổi được mật khẩu trên mobile</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC16</td><td>Mật khẩu mới quá ngắn → báo validate</td><td><span class="badge b-high">High</span></td><td><span class="badge b-mob">Mobile</span></td><td>Chưa đổi được mật khẩu trên mobile</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC17</td><td>Mật khẩu mới giống mật khẩu cũ → chặn</td><td><span class="badge b-med">Medium</span></td><td><span class="badge b-mob">Mobile</span></td><td>Chưa đổi được mật khẩu trên mobile</td><td><span class="badge b-open">Mở</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="group-title"><span class="n">3</span><h3>Upload ảnh đại diện chưa xây dựng (PC + Mobile)</h3></div>
+    <div class="root"><b>Nguyên nhân gốc:</b> Hệ thống chưa có chức năng đổi ảnh đại diện trên cả PC lẫn Mobile → không thể kiểm thử các case về định dạng / dung lượng / kích thước ảnh.</div>
+    <table>
+      <thead><tr><th style="width:70px;">Case</th><th>Nội dung</th><th style="width:80px;">Mức độ</th><th style="width:100px;">Fail tại</th><th>Hiện trạng ghi nhận</th><th style="width:120px;">Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="id">TC05</td><td>Upload ảnh đại diện hợp lệ (.jpg/.png)</td><td><span class="badge b-high">High</span></td><td><span class="badge b-both">PC + Mobile</span></td><td>Không có chức năng đổi ảnh</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC12</td><td>Upload ảnh sai định dạng (.exe/.txt) → chặn</td><td><span class="badge b-high">High</span></td><td><span class="badge b-both">PC + Mobile</span></td><td>Không có upload ảnh → không test được</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC13</td><td>Upload ảnh vượt dung lượng → báo lỗi</td><td><span class="badge b-med">Medium</span></td><td><span class="badge b-both">PC + Mobile</span></td><td>Không có upload ảnh → không test được</td><td><span class="badge b-open">Mở</span></td></tr>
+        <tr><td class="id">TC24</td><td>Upload ảnh kích thước rất nhỏ → không vỡ layout</td><td><span class="badge b-low">Low</span></td><td><span class="badge b-both">PC + Mobile</span></td><td>Không có upload ảnh → không test được</td><td><span class="badge b-open">Mở</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="group-title"><span class="n">4</span><h3>Không tự cắt khoảng trắng tên (PC + Mobile)</h3></div>
+    <div class="root"><b>Nguyên nhân gốc:</b> Khi lưu tên có khoảng trắng ở đầu/cuối, hệ thống không tự động trim → lưu nguyên khoảng trắng thừa.</div>
+    <table>
+      <thead><tr><th style="width:70px;">Case</th><th>Nội dung</th><th style="width:80px;">Mức độ</th><th style="width:100px;">Fail tại</th><th>Hiện trạng ghi nhận</th><th style="width:120px;">Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="id">TC20</td><td>Tên có khoảng trắng đầu/cuối → cần tự trim</td><td><span class="badge b-med">Medium</span></td><td><span class="badge b-both">PC + Mobile</span></td><td>Không trim đầu/cuối</td><td><span class="badge b-open">Mở</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- KHUYẾN NGHỊ -->
+  <section>
+    <h2>4. Nguyên nhân gốc &amp; khuyến nghị ưu tiên</h2>
+    <ul class="rec">
+      <li><b>Ưu tiên 1 — Xây dựng màn hình Hồ sơ trên app di động (giải quyết 17/22 case):</b>
+        bổ sung màn xem &amp; sửa tên/SĐT và điều hướng nút "Đổi mật khẩu" cho các app
+        <b>thủ kho / xe nâng / kiểm kê</b>. Đây là gốc của Nhóm 1 và Nhóm 2.</li>
+      <li><b>Ưu tiên 2 — Bổ sung chức năng Upload ảnh đại diện (Nhóm 3, 4 case):</b>
+        cho phép chọn ảnh .jpg/.png, kèm validate định dạng và dung lượng trên cả PC lẫn Mobile.</li>
+      <li><b>Ưu tiên 3 — Trim khoảng trắng tên khi lưu (Nhóm 4, TC20):</b>
+        xử lý ở cả frontend lẫn API trước khi ghi DB; áp dụng đồng thời cho PC &amp; Mobile.</li>
+      <li><b>Đồng bộ validate giữa 2 nền tảng:</b> các quy tắc validate tên/SĐT (rỗng, định dạng,
+        độ dài, ký tự đặc biệt) đã chạy đúng trên PC cần được áp dụng giống hệt cho bản Mobile.</li>
+    </ul>
+  </section>
+
+  <!-- GHI CHÚ -->
+  <section>
+    <h2>5. Ghi chú quan trọng</h2>
+    <div class="note">
+      Các case gắn dấu <b>*</b> (TC01, TC02 = <span class="badge b-fixed">Fixed</span>; TC19, TC22 = <span class="badge b-dev">Dev-Completed</span>)
+      đã được sửa &amp; xác nhận <b>trên bản PC/desktop</b>, nhưng cột kết quả <b>Mobile vẫn ghi Fail</b>.
+      Nghĩa là các fix này <b>chưa được kiểm chứng lại trên app di động</b> — cần re-test mobile
+      cho từng case trước khi đóng. Đây cũng là gap thường gặp: "Fixed (verified desktop)" nhưng
+      mobile vẫn thiếu.
+      <br><br>
+      Lưu ý: <b>TC22</b> (giữ dữ liệu sau đăng xuất/đăng nhập lại) đã fix ghi vào localStorage và
+      PC Pass; cột Mobile bỏ trống → cần xác nhận lại trên mobile. <b>TC18</b> không có trong danh sách kiểm thử.
+    </div>
+  </section>
+
+  <footer>Báo cáo tổng hợp lỗi UC-SYS-05 — WMS Vĩnh Giang — 08/06/2026</footer>
+
+</div>
+</body>
+</html>

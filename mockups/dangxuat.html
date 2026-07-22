@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-container": "#6e2f00",
+                    "on-primary-container": "#728cb6",
+                    "on-tertiary-fixed-variant": "#6b3a1f",
+                    "on-background": "#1a1c1e",
+                    "primary-fixed-dim": "#adc8f4",
+                    "on-error": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary-container": "#bb7c5c",
+                    "surface-container-high": "#e9e7eb",
+                    "primary-container": "#022448",
+                    "on-primary-fixed-variant": "#2d486d",
+                    "on-tertiary-fixed": "#341100",
+                    "error-container": "#ffdad6",
+                    "surface-container-low": "#f4f3f7",
+                    "secondary-container": "#ff914e",
+                    "on-primary-fixed": "#001c3b",
+                    "surface-variant": "#e3e2e5",
+                    "surface-tint": "#455f86",
+                    "surface-container": "#eeedf1",
+                    "primary-fixed": "#d5e3ff",
+                    "secondary-fixed": "#ffdbc9",
+                    "primary": "#000e24",
+                    "tertiary-fixed": "#ffdbcb",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed-variant": "#763300",
+                    "inverse-surface": "#2f3033",
+                    "outline-variant": "#c4c6cf",
+                    "surface-dim": "#dad9dd",
+                    "on-secondary-fixed": "#331200",
+                    "background": "#faf9fc",
+                    "tertiary": "#1f0700",
+                    "inverse-primary": "#adc8f4",
+                    "outline": "#74777f",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed-dim": "#feb693",
+                    "on-primary": "#ffffff",
+                    "surface-bright": "#faf9fc",
+                    "surface-container-highest": "#e3e2e5",
+                    "secondary": "#9b4500",
+                    "on-surface": "#1a1c1e",
+                    "surface": "#faf9fc",
+                    "on-surface-variant": "#43474e",
+                    "tertiary-container": "#401802",
+                    "error": "#ba1a1a",
+                    "secondary-fixed-dim": "#ffb68e",
+                    "inverse-on-surface": "#f1f0f4"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "lg": "24px",
+                    "gutter": "12px",
+                    "xs": "4px",
+                    "margin-mobile": "16px",
+                    "base": "4px",
+                    "sm": "8px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "headline-md": ["IBM Plex Sans"],
+                    "headline-lg": ["IBM Plex Sans"],
+                    "technical-lg": ["JetBrains Mono"],
+                    "headline-sm": ["IBM Plex Sans"],
+                    "body-md": ["IBM Plex Sans"],
+                    "body-sm": ["IBM Plex Sans"],
+                    "label-caps": ["IBM Plex Sans"],
+                    "technical-sm": ["JetBrains Mono"],
+                    "body-lg": ["IBM Plex Sans"],
+                    "technical-md": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "headline-md": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-lg": ["28px", {"lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "technical-lg": ["16px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "technical-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "technical-md": ["14px", {"lineHeight": "18px", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #faf9f6; /* Custom brand background requested */
+            background-image: 
+                radial-gradient(#e7e5e0 1px, transparent 1px),
+                radial-gradient(#e7e5e0 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+        }
+        .industrial-blur {
+            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.85);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-margin-mobile">
+<!-- Logout Confirmation Card -->
+<main class="w-full max-w-[420px] relative">
+<!-- Decorative Industrial Element (Accent Bar) -->
+<div class="absolute -top-1 left-1/2 -translate-x-1/2 w-16 h-1.5 bg-secondary rounded-full z-10"></div>
+<div class="bg-surface border border-outline-variant rounded-xl overflow-hidden shadow-sm flex flex-col items-center pt-xl pb-lg px-lg text-center industrial-blur">
+<!-- Branding Header -->
+<div class="flex flex-col items-center mb-lg">
+<div class="mb-sm flex items-center justify-center w-12 h-12 bg-primary-container rounded-lg">
+<span class="material-symbols-outlined text-on-primary-container text-[32px]" data-icon="warehouse">warehouse</span>
+</div>
+<h1 class="font-headline-md text-headline-md text-primary tracking-tight">Vĩnh Giang</h1>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase">Warehouse Management System</p>
+</div>
+<!-- Visual Confirmation -->
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-md border border-outline-variant/30">
+<div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-[28px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<!-- Message Section -->
+<div class="mb-xl">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-xs">Đã Đăng Xuất</h2>
+<p class="font-body-md text-body-md text-on-surface-variant px-md">
+                    Bạn đã đăng xuất thành công khỏi hệ thống quản lý kho Vĩnh Giang.
+                </p>
+</div>
+<!-- Action Section -->
+<div class="w-full space-y-sm">
+<a class="flex items-center justify-center w-full h-[48px] bg-primary text-on-primary rounded-[10px] font-body-lg font-semibold hover:opacity-90 transition-all active:scale-[0.98]" href="/login">
+                    Quay lại Đăng nhập
+                </a>
+<!-- Secondary Micro-action -->
+<div class="pt-sm border-t border-outline-variant/30 w-full mt-lg">
+<p class="font-technical-sm text-technical-sm text-outline">
+                        Phiên làm việc: <span class="text-on-surface">Kết thúc</span> • ID: <span class="text-on-surface">VG-982</span>
+</p>
+</div>
+</div>
+</div>
+<!-- System Status Footer (Aesthetic Detail) -->
+<div class="mt-md flex justify-between items-center px-sm">
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 rounded-full bg-[#15803d]"></div>
+<span class="font-technical-sm text-technical-sm text-on-surface-variant uppercase tracking-wider">Hệ thống đang hoạt động</span>
+</div>
+<span class="font-technical-sm text-technical-sm text-outline">v2.4.0-PRO</span>
+</div>
+</main>
+<!-- Contextual Graphic Background Component -->
+<div class="fixed bottom-0 left-0 w-full h-1/3 -z-10 opacity-10 pointer-events-none">
+<img class="w-full h-full object-cover filter grayscale" data-alt="A cinematic, high-angle view of a modern logistics warehouse interior with organized shelving units and subtle industrial lighting. The color palette consists of neutral grays, deep blues, and warm wood tones, matching a professional and rugged enterprise aesthetic. The atmosphere is clean, vast, and efficient, symbolizing a state-of-the-art management environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBK94bmn-10XSn7QOkR4eF2U_k5WPnrMVmWfLzL_qs_D-pySvfWvZAm7q63oC5R6i9L9-tFwgLACa9r4ITypc4tWt7lDaEL48RCEb56AxPHyqeQsLNmo0vOvUbqHIW5ID884Xst8z0_2uWrKvjPP-eJZQjga_03lYV8Z0lYO48kTF5YSKS7RMyO2fs89uxPCNP-Lq5cMbInTv-2R3IilxAp_zZ46d-s0Xtdj6Pn2RC5XQamVNABB_eDqDWYKJu5dazy4d7ZeW4cjs4"/>
+</div>
+<script>
+        // Simple micro-interaction for the button hover
+        const primaryBtn = document.querySelector('a');
+        primaryBtn.addEventListener('mouseenter', () => {
+            primaryBtn.style.boxShadow = '0 4px 12px rgba(0, 14, 36, 0.15)';
+        });
+        primaryBtn.addEventListener('mouseleave', () => {
+            primaryBtn.style.boxShadow = 'none';
+        });
+
+        // Suppression Logic Check (As per mandate, Shells are hidden for Transactional screens like this)
+        // This script purely confirms the design choice of a centered card without SideNav/TopNav.
+        console.log("Vĩnh Giang WMS: Logout successful. Navigation shells suppressed for focused journey.");
+    </script>
+</body></html>

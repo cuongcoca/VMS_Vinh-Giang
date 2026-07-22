@@ -1,0 +1,53 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bộ báo cáo kiểm thử WMS Vĩnh Giang</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#f1f5f9;color:#0f172a;line-height:1.6}
+.wrap{max-width:1000px;margin:0 auto;padding:28px}
+header{background:linear-gradient(135deg,#001e71,#0369a1);color:#fff;border-radius:18px;padding:30px 32px;box-shadow:0 12px 30px rgba(2,36,72,.25)}
+header h1{margin:0 0 6px;font-size:26px}header p{margin:6px 0 0;opacity:.95;font-size:14px}
+h2{font-size:18px;margin:26px 0 12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.card{display:block;text-decoration:none;color:inherit;background:#fff;border:1px solid #e2e8f0;border-left:6px solid var(--c);border-radius:14px;padding:18px 20px;transition:transform .1s,box-shadow .1s}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(2,36,72,.12)}
+.card .n{font-size:12px;font-weight:700;color:var(--c);letter-spacing:.4px}
+.card h3{margin:6px 0 6px;font-size:19px}
+.card p{margin:0;font-size:13px;color:#475569}
+.meta{font-size:12px;color:#64748b;margin-top:10px}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin-right:6px}
+.ok{background:#dcfce7;color:#15803d}.bug{background:#fee2e2;color:#b91c1c}.warn{background:#fef3c7;color:#b45309}
+.note{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px 20px;margin-top:20px;font-size:14px}
+.note b{color:#0f172a}
+.callout{border-radius:10px;padding:10px 14px;margin:8px 0;font-size:13.5px}
+.callout.bug{background:#fef2f2;border:1px solid #fecaca}.callout.warn{background:#fffbeb;border:1px solid #fde68a}
+footer{text-align:center;color:#64748b;font-size:12.5px;padding:24px}
+</style></head><body>
+<div class="wrap">
+<header>
+  <h1>Bộ báo cáo kiểm thử thực tế — WMS Vĩnh Giang</h1>
+  <p>Mô phỏng kho vận hành thật trên <b>https://188.166.210.73/wms</b> — 5 vai trò đăng nhập &amp; thao tác qua giao diện/API thật (không chèn SQL). Dữ liệu mới hoàn toàn do đúng luồng người dùng tạo.</p>
+</header>
+
+<h2>📂 5 báo cáo chi tiết theo vai trò</h2>
+<p style="color:#475569;font-size:13.5px;margin-top:-4px">Mỗi báo cáo: liệt kê toàn bộ chức năng → đào sâu từng chức năng (mục đích · thuộc luồng nào · ảnh hưởng ra sao · đọc/ghi bảng database nào + chuyển trạng thái · API · mọi trường hợp chuẩn &amp; lỗi/biên · ảnh chụp trang thật).</p>
+<div class="cards">
+  <a class="card" style="--c:#6d28d9" href="BAO_CAO_01_QUAN_LY.html"><div class="n">BÁO CÁO 01</div><h3>Quản lý</h3><p>Giám sát toàn kho + quản trị hệ thống (dashboard, tồn, audit, người dùng, RBAC, duyệt điều chỉnh).</p><div class="meta">13 chức năng · <span class="pill ok">4 lỗi ĐÃ FIX</span></div></a>
+  <a class="card" style="--c:#0369a1" href="BAO_CAO_02_KE_TOAN.html"><div class="n">BÁO CÁO 02</div><h3>Kế toán</h3><p>Danh mục, phiếu nhập (tạo→chốt), chuẩn hóa mã hàng/phiếu tạm, điều chỉnh, xuất kho.</p><div class="meta">12 chức năng · <span class="pill ok">đạt</span></div></a>
+  <a class="card" style="--c:#b45309" href="BAO_CAO_03_THU_KHO.html"><div class="n">BÁO CÁO 03</div><h3>Thủ kho</h3><p>Tiếp nhận &amp; đếm thực nhận, lập pallet + xác nhận, tạo nhanh mã hàng, nhập đột xuất.</p><div class="meta">6 chức năng · <span class="pill ok">đạt</span></div></a>
+  <a class="card" style="--c:#047857" href="BAO_CAO_04_XE_NANG.html"><div class="n">BÁO CÁO 04</div><h3>Xe nâng</h3><p>Xếp vị trí, chuyển vị trí, rút FEFO (nguyên/một phần), hoàn trả có sửa nội dung.</p><div class="meta">6 chức năng · <span class="pill ok">đạt</span></div></a>
+  <a class="card" style="--c:#be123c" href="BAO_CAO_05_KIEM_KE.html"><div class="n">BÁO CÁO 05</div><h3>Kiểm kê</h3><p>Tạo phiên, đếm thực tế &amp; ghi chênh lệch, quét đếm, lập phiếu điều chỉnh.</p><div class="meta">6 chức năng · <span class="pill ok">vòng đã khép kín</span></div></a>
+</div>
+
+<h2>📊 Báo cáo tổng hợp (toàn cảnh 5 luồng)</h2>
+<div class="cards">
+  <a class="card" style="--c:#334155" href="BAO_CAO_TEST_5_LUONG.html"><div class="n">TỔNG HỢP</div><h3>Toàn cảnh 5 luồng</h3><p>120 bước qua 8 mục: lỗi &amp; vấn đề, dữ liệu đã tạo, chi tiết từng luồng, kiểm thử biên (25/25), trang chi tiết, RBAC, giao diện theo vai trò.</p><div class="meta">119/120 đạt · 1 lỗi</div></a>
+</div>
+
+<div class="note">
+  <b>Kết luận nhanh (đã cập nhật sau khi sửa &amp; deploy lên VPS — 30/05/2026):</b>
+  <div class="callout ok">✅ <b>Đã khắc phục &amp; kiểm chứng trên VPS:</b> (1) Duyệt phiếu điều chỉnh tồn nay CẬP NHẬT tồn thực (đã test: BANH-OREO-120 20→18 thùng); (2) <code>GET /api/system/rbac</code> trả 200 — hết lỗi 401 trên mọi trang của cả 5 vai trò; (3) đã thêm <code>requireAuth</code> cho <code>locations/bulk</code> + <code>item-codes</code> (POST không token → 401, có token → 2xx).</div>
+  <div class="callout warn">⚠️ <b>Còn lại (khuyến nghị, không chặn vận hành):</b> bổ sung <code>requireAuth</code> cho các route tạo master-data còn lại (suppliers / units / product-groups / products) để đồng bộ enforcement hoàn toàn.</div>
+  <p style="margin:8px 0 0">Còn lại các luồng nhập / pallet / put-away / FEFO / hoàn trả / kiểm kê / xuất chạy đúng; <b>25/25</b> kịch bản nhập sai/trái luồng đều bị chặn đúng. Mở các file <code>.html</code> ở cùng thư mục này để xem chi tiết (ảnh chụp nhúng sẵn, không cần mạng).</p>
+</div>
+
+<footer>WMS Vĩnh Giang • Bộ báo cáo tạo tự động từ mô phỏng 5 vai trò trên ứng dụng thật</footer>
+</div></body></html>

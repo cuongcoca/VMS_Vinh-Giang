@@ -1,0 +1,12 @@
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+.env
+.env.local
+*.log
+ios/
+android/
+*.tsbuildinfo
+expo-env.d.ts

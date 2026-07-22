@@ -1,0 +1,26 @@
+-- Bảng OTP codes
+CREATE TABLE IF NOT EXISTS otp_codes (
+    id UUID NOT NULL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code VARCHAR(6) NOT NULL,
+    purpose VARCHAR(30) NOT NULL DEFAULT 'FORGOT_PASSWORD',
+    attempts INT NOT NULL DEFAULT 0,
+    max_attempts INT NOT NULL DEFAULT 5,
+    is_used BOOLEAN NOT NULL DEFAULT FALSE,
+    expires_at TIMESTAMP(3) NOT NULL,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Bảng password reset tokens
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id UUID NOT NULL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    is_used BOOLEAN NOT NULL DEFAULT FALSE,
+    expires_at TIMESTAMP(3) NOT NULL,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- GRANT quyền cho user wms_user
+GRANT ALL PRIVILEGES ON TABLE otp_codes TO wms_user;
+GRANT ALL PRIVILEGES ON TABLE password_reset_tokens TO wms_user;

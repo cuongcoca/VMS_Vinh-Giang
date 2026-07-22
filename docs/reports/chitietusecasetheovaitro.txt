@@ -1,0 +1,158 @@
+VAI TRÒ: QUẢN LÝ	2
+Đặc tả chi tiết Use Case — VAI TRÒ: QUẢN LÝ	4
+UC-AUTH-01 — Đăng nhập	4
+UC-AUTH-03 — Đổi mật khẩu	4
+UC-AUTH-04 — Quên mật khẩu	5
+UC-AUTH-05 — Phân quyền theo vai trò (RBAC)	5
+UC-MD-01 — Khai báo sản phẩm	6
+UC-MD-02 — Quản lý Mã hàng	7
+UC-MD-03 — Quản lý Nhóm hàng	7
+UC-MD-04 — Quản lý Đơn vị tính	8
+UC-MD-05 — Quản lý Vị trí kho	8
+UC-MD-06 — Quản lý Nhà cung cấp	9
+UC-PAL-01 — Tạo pallet	9
+UC-PAL-02 — Cập nhật pallet (thêm hàng)	10
+UC-PAL-03 — Quét mã hàng vào pallet	10
+UC-PAL-04 — Xác nhận pallet	11
+UC-PAL-05 — Sửa pallet sau xác nhận	11
+UC-PAL-06 — Xem lịch sử pallet	12
+UC-IN-01 — Lập phiếu yêu cầu nhập	12
+UC-IN-02 — Tiếp nhận phiếu nhập (Thủ kho)	13
+UC-IN-03 — Đối chiếu phiếu nhập	13
+UC-IN-04 — Chốt phiếu nhập	14
+UC-IN-05 — Theo dõi phiếu nhập	14
+UC-IN-06 — Nhập phiếu yêu cầu từ Excel hàng về ★	15
+UC-INTMP-01 — Tạo phiếu tồn tạm (Mobile)	15
+UC-INTMP-02 — Chuẩn hóa phiếu tạm (Desktop)	16
+UC-INTMP-03 — Xem tồn tạm	16
+UC-FK-01 — Danh sách pallet chờ xếp	17
+UC-FK-02 — Đưa pallet vào vị trí	17
+UC-FK-03 — Chuyển vị trí pallet	17
+UC-FK-04 — Chuyển pallet sang khu chờ xuất (FEFO)	18
+UC-FK-05 — Hoàn trả pallet về vị trí (Audit)	18
+UC-FK-06 — Lịch sử luân chuyển	19
+UC-OUT-01 — Xem khu chờ xuất	19
+UC-OUT-05 — Cân lại tồn khu chờ xuất ★	20
+UC-OUT-02 — Báo cáo xuất tương đối	20
+UC-OUT-03 — Tốc độ luân chuyển hàng hóa	21
+UC-OUT-04 — Gợi ý nhập hàng	21
+UC-INV-01 — Tồn kho theo mã hàng	22
+UC-INV-02 — Tồn kho theo vị trí	22
+UC-INV-03 — Tồn kho theo pallet	22
+UC-INV-04 — Tồn kho theo lô/ngày sản xuất (FEFO)	23
+UC-INV-05 — Cảnh báo HSD & tồn thấp	23
+UC-INV-06 — Kiểm kê theo vị trí	24
+UC-INV-07 — Kiểm kê theo mã hàng	24
+UC-INV-08 — Xử lý chênh lệch kiểm kê	25
+UC-INV-09 — Phiếu điều chỉnh tồn	25
+UC-DASH-01 — Dashboard theo vai trò	26
+UC-DASH-02 — KPI tổng quan	26
+UC-SYS-01 — Cấu hình chung	27
+UC-SYS-02 — Cấu hình mail	27
+UC-SYS-03 — Audit Log	27
+UC-SYS-04 — Quản lý người dùng	28
+UC-SYS-05 — Profile cá nhân	28
+UC-INT-01 — Quét barcode/QR Code	29
+UC-INT-02 — Chụp ảnh đính kèm chứng từ	29
+UC-INT-03 — Xuất Excel báo cáo	30
+VAI TRÒ: KẾ TOÁN KHO	31
+Đặc tả chi tiết Use Case — VAI TRÒ: KẾ TOÁN KHO	32
+UC-AUTH-01 — Đăng nhập	32
+UC-AUTH-03 — Đổi mật khẩu	33
+UC-AUTH-04 — Quên mật khẩu	33
+UC-MD-01 — Khai báo sản phẩm	34
+UC-MD-02 — Quản lý Mã hàng	34
+UC-MD-03 — Quản lý Nhóm hàng	35
+UC-MD-04 — Quản lý Đơn vị tính	36
+UC-MD-05 — Quản lý Vị trí kho	36
+UC-MD-06 — Quản lý Nhà cung cấp	37
+UC-PAL-05 – Sửa pallet sau xác nhận	37
+UC-PAL-06 — Xem lịch sử pallet	38
+UC-IN-01 — Lập phiếu yêu cầu nhập	38
+UC-IN-03 — Đối chiếu phiếu nhập	38
+UC-IN-04 — Chốt phiếu nhập	39
+UC-IN-05 — Theo dõi phiếu nhập	39
+UC-IN-06 — Nhập phiếu yêu cầu từ Excel hàng về ★	40
+UC-INTMP-02 — Chuẩn hóa phiếu tạm (Desktop)	40
+UC-INTMP-03 — Xem tồn tạm	41
+UC-FK-05 – Hoàn trả pallet về vị trí Audit	41
+UC-FK-06 — Lịch sử luân chuyển	42
+UC-OUT-01 — Xem khu chờ xuất	42
+UC-OUT-05 — Cân lại tồn khu chờ xuất ★	43
+UC-OUT-02 — Báo cáo xuất tương đối	43
+UC-OUT-03 — Tốc độ luân chuyển hàng hóa	43
+UC-OUT-04 — Gợi ý nhập hàng	44
+UC-INV-01 — Tồn kho theo mã hàng	44
+UC-INV-02 — Tồn kho theo vị trí	45
+UC-INV-03 Tồn kho theo pallet	45
+UC-INV-04 — Tồn kho theo lô/ngày sản xuất (FEFO)	45
+UC-INV-05 — Cảnh báo HSD & tồn thấp	46
+UC-INV-08 — Xử lý chênh lệch kiểm kê	46
+UC-INV-09 — Phiếu điều chỉnh tồn	47
+UC-DASH-01 — Dashboard theo vai trò	47
+UC-DASH-02 — KPI tổng quan	47
+UC-SYS-03 — Audit Log	48
+UC-SYS-05 — Profile cá nhân	48
+UC-INT-01— Quét barcode/QR Code	49
+UC-INT-02 — Chụp ảnh đính kèm chứng từ	49
+UC-INT-03 — Xuất Excel báo cáo	50
+VAI TRÒ: THỦ KHO	51
+Đặc tả chi tiết Use Case — VAI TRÒ: THỦ KHO	52
+UC-AUTH-01 — Đăng nhập	52
+UC-AUTH-03 — Đổi mật khẩu	52
+UC-AUTH-04 — Quên mật khẩu	53
+UC-MD-02 — Quản lý Mã hàng	53
+UC-PAL-01 — Tạo pallet	54
+UC-PAL-02 — Cập nhật pallet (thêm hàng)	54
+UC-PAL-03 — Quét mã hàng vào pallet	55
+UC-PAL-04 — Xác nhận pallet	55
+UC-PAL-05 — Sửa pallet sau xác nhận	56
+UC-PAL-06 — Xem lịch sử pallet	56
+UC-IN-02 — Tiếp nhận phiếu nhập (Thủ kho)	57
+UC-IN-05 — Theo dõi phiếu nhập	57
+UC-INTMP-01 — Tạo phiếu tồn tạm (Mobile)	58
+UC-INTMP-03 — Xem tồn tạm	58
+UC-FK-01 — Danh sách pallet chờ xếp	59
+UC-FK-04 — Chuyển pallet sang khu chờ xuất (FEFO)	59
+UC-FK-05 — Hoàn trả pallet về vị trí (Audit)	60
+UC-FK-06 — Lịch sử luân chuyển	60
+UC-OUT-01 — Xem khu chờ xuất	61
+UC-INV-01 — Tồn kho theo mã hàng	61
+UC-INV-03 — Tồn kho theo pallet	61
+UC-INV-06 — Kiểm kê theo vị trí	62
+UC-DASH-01 — Dashboard theo vai trò	62
+UC-SYS-05 — Profile cá nhân	63
+UC-INT-01 — Quét barcode/QR Code	63
+UC-INT-02 — Chụp ảnh đính kèm chứng từ	64
+VAI TRÒ: XE NÂNG	65
+Đặc tả chi tiết Use Case — VAI TRÒ: XE NÂNG	65
+UC-AUTH-01 — Đăng nhập	65
+UC-AUTH-03 — Đổi mật khẩu	66
+UC-AUTH-04 — Quên mật khẩu	66
+UC-PAL-06 — Xem lịch sử pallet	67
+UC-FK-01 — Danh sách pallet chờ xếp	67
+UC-FK-02 — Đưa pallet vào vị trí	68
+UC-FK-03 — Chuyển vị trí pallet	68
+UC-FK-04 — Chuyển pallet sang khu chờ xuất (FEFO)	69
+UC-FK-05 — Hoàn trả pallet về vị trí (Audit)	69
+UC-FK-06 — Lịch sử luân chuyển	70
+UC-INV-02 — Tồn kho theo vị trí	70
+UC-INV-03 — Tồn kho theo pallet	71
+UC-DASH-01 — Dashboard theo vai trò	71
+UC-SYS-05 — Profile cá nhân	71
+UC-INT-01 — Quét barcode/QR Code	72
+VAI TRÒ: NGƯỜI KIỂM KÊ	73
+Đặc tả chi tiết Use Case — VAI TRÒ: NGƯỜI KIỂM KÊ	73
+UC-AUTH-01 — Đăng nhập	73
+UC-AUTH-03 — Đổi mật khẩu	74
+UC-AUTH-04 — Quên mật khẩu	74
+UC-PAL-06 — Xem lịch sử pallet	75
+UC-FK-06 — Lịch sử luân chuyển	75
+UC-INV-01— Lập phiếu yêu cầu nhập	76
+UC-INV-02— Tồn kho theo vị trí	76
+UC-INV-06 — Kiểm kê theo vị trí	76
+UC-INV-07 — Kiểm kê theo mã hàng	77
+UC-DASH-01 — Dashboard theo vai trò	77
+UC-SYS-05 — Profile cá nhân	78
+UC-INT-01 — Quét barcode/QR Code	78
+

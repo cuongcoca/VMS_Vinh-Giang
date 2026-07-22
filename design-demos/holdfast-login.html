@@ -1,0 +1,369 @@
+<!doctype html>
+<!--
+  HOLDFAST WMS - login demo (standalone, throwaway)
+  Built to exercise the `design-taste-frontend` skill.
+  Design Read: internal warehouse-ops auth surface, industrial-utilitarian language,
+  charcoal base + single safety-amber accent, restrained motion.
+  Dials: VARIANCE 6 / MOTION 4 / DENSITY 3. Theme locked dark. Radius locked sharp (0). One accent.
+  Note: Google Fonts + Phosphor are loaded via CDN here only because this is a single-file demo,
+  not a production build (production would self-host via next/font).
+-->
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>HOLDFAST WMS - Đăng nhập</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+<style>
+  :root{
+    --bg:#131211;
+    --surface:#1b1916;
+    --surface-2:#211e1a;
+    --line:rgba(255,255,255,.10);
+    --line-strong:rgba(255,255,255,.20);
+    --text:#f4f1ea;
+    --muted:#b6ad9d;
+    --muted-soft:#867e70;
+    --accent:#e9a23c;
+    --accent-press:#ce8a2a;
+    --accent-ink:#1b1409;
+    --danger:#e0664c;
+    --ok:#7fb069;
+    --r:0px; /* radius lock: sharp */
+    --maxform:380px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Archivo",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* fixed grain overlay (atmosphere) - pointer-events none, never on scrolling container */
+  .grain{
+    position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.045;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .stage{
+    min-height:100dvh;
+    display:grid;
+    grid-template-columns:1.08fr 0.92fr;
+  }
+
+  /* ---------------- BRAND PANEL ---------------- */
+  .brand{
+    position:relative;
+    overflow:hidden;
+    padding:clamp(28px,4vw,56px);
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    isolation:isolate;
+  }
+  .brand::before{ /* photographic base + charcoal scrim for AA contrast */
+    content:"";position:absolute;inset:0;z-index:-2;
+    background:
+      linear-gradient(155deg, rgba(19,18,17,.66) 0%, rgba(19,18,17,.86) 52%, rgba(15,14,13,.97) 100%),
+      url("https://picsum.photos/seed/holdfast-warehouse-racking-aisle/1400/1800") center/cover no-repeat;
+    filter:grayscale(.35) contrast(1.04);
+  }
+  .brand::after{ /* single warm accent glow, top-left */
+    content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+    background:radial-gradient(60% 45% at 12% 8%, rgba(233,162,60,.16), transparent 60%);
+  }
+
+  .wordmark{display:flex;align-items:center;gap:12px;}
+  .wordmark .mark{
+    width:38px;height:38px;display:grid;place-items:center;
+    background:var(--accent);color:var(--accent-ink);font-size:22px;
+  }
+  .wordmark .name{font-weight:800;letter-spacing:-.02em;font-size:21px;line-height:1;}
+  .wordmark .tag{
+    font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.28em;
+    color:var(--muted);padding-left:12px;margin-left:4px;border-left:1px solid var(--line-strong);
+  }
+
+  .brand-mid{max-width:30ch;}
+  .brand-mid h1{
+    font-weight:800;letter-spacing:-.025em;line-height:1.02;
+    font-size:clamp(34px,4.4vw,58px);margin:0 0 18px;
+  }
+  .brand-mid p{
+    color:var(--muted);font-size:clamp(15px,1.2vw,17px);line-height:1.6;margin:0;max-width:42ch;
+  }
+
+  .brand-foot{
+    display:flex;align-items:center;gap:14px;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted-soft);
+  }
+  .stripe{ /* warehouse hazard striping - one purposeful instance */
+    height:8px;width:96px;
+    background:repeating-linear-gradient(45deg,var(--accent) 0 10px,transparent 10px 20px);
+    opacity:.9;
+  }
+
+  /* ---------------- AUTH PANEL ---------------- */
+  .auth{
+    background:var(--surface);
+    border-left:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    padding:clamp(28px,5vw,64px);
+    position:relative;
+  }
+  .auth::before{ /* hazard seam on the divider */
+    content:"";position:absolute;left:-1px;top:0;bottom:0;width:5px;
+    background:repeating-linear-gradient(180deg,var(--accent) 0 14px,transparent 14px 28px);
+    opacity:.5;
+  }
+  .panel{width:100%;max-width:var(--maxform);}
+
+  .panel h2{font-weight:700;letter-spacing:-.02em;font-size:27px;margin:0 0 6px;}
+  .panel .sub{color:var(--muted);font-size:14px;margin:0 0 30px;}
+
+  form{display:flex;flex-direction:column;gap:18px;}
+  .field{display:flex;flex-direction:column;gap:8px;}
+  .field label{
+    font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .control{position:relative;display:flex;align-items:center;}
+  .control > i{
+    position:absolute;left:14px;font-size:18px;color:var(--muted-soft);pointer-events:none;
+    transition:color .25s ease;
+  }
+  input[type=text],input[type=password]{
+    width:100%;height:50px;border-radius:var(--r);
+    background:var(--surface-2);
+    border:1px solid var(--line-strong);
+    border-bottom:2px solid var(--line-strong);
+    color:var(--text);font-size:15px;font-family:inherit;
+    padding:0 14px 0 44px;outline:none;
+    transition:border-color .25s ease,background .25s ease;
+  }
+  input::placeholder{color:#6f685c;}
+  input:focus{border-color:var(--accent);border-bottom-color:var(--accent);background:#241f19;}
+  .control:focus-within > i{color:var(--accent);}
+
+  .toggle{
+    position:absolute;right:6px;height:38px;width:38px;border:0;background:transparent;
+    color:var(--muted);cursor:pointer;display:grid;place-items:center;font-size:19px;border-radius:var(--r);
+    transition:color .2s ease,background .2s ease;
+  }
+  .toggle:hover{color:var(--text);background:rgba(255,255,255,.05);}
+  .toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  /* inline error + states */
+  .alert{
+    display:none;align-items:center;gap:10px;
+    font-size:13px;line-height:1.4;padding:11px 13px;border-radius:var(--r);
+    border:1px solid;font-family:"IBM Plex Mono",monospace;
+  }
+  .alert i{font-size:17px;flex:none;}
+  .alert.err{display:flex;color:#f0a895;border-color:rgba(224,102,76,.5);background:rgba(224,102,76,.10);}
+  .alert.ok{display:flex;color:#bce0a8;border-color:rgba(127,176,105,.5);background:rgba(127,176,105,.10);}
+  form.invalid input{border-color:var(--danger);border-bottom-color:var(--danger);}
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:-2px;}
+  .check{display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;font-size:13.5px;color:var(--muted);}
+  .check input{
+    appearance:none;width:18px;height:18px;border:1px solid var(--line-strong);background:var(--surface-2);
+    border-radius:var(--r);display:grid;place-items:center;cursor:pointer;transition:all .2s ease;
+  }
+  .check input:checked{background:var(--accent);border-color:var(--accent);}
+  .check input:checked::after{content:"";width:5px;height:9px;border:2px solid var(--accent-ink);border-top:0;border-left:0;transform:rotate(42deg) translateY(-1px);}
+  .check input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .link{color:var(--accent);text-decoration:none;font-size:13.5px;font-weight:500;}
+  .link:hover{text-decoration:underline;}
+
+  .submit{
+    position:relative;overflow:hidden;
+    height:52px;margin-top:6px;border:0;border-radius:var(--r);cursor:pointer;
+    background:var(--accent);color:var(--accent-ink);
+    font-family:inherit;font-weight:700;font-size:15px;letter-spacing:.01em;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    transition:transform .12s ease,background .2s ease,box-shadow .2s ease;
+    box-shadow:0 8px 22px rgba(233,162,60,.16);
+  }
+  .submit:hover{background:#f1ab46;box-shadow:0 10px 28px rgba(233,162,60,.24);}
+  .submit:active{transform:translateY(1px) scale(.992);}
+  .submit:focus-visible{outline:2px solid var(--text);outline-offset:3px;}
+  .submit i{font-size:18px;transition:transform .25s ease;}
+  .submit:hover i{transform:translateX(3px);}
+  .submit[disabled]{cursor:progress;color:rgba(27,20,9,.6);}
+  .submit .bar{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent-ink);opacity:.55;}
+  .submit.loading .bar{animation:load 1.4s ease-in-out forwards;}
+  .submit.loading i.arrow{display:none;}
+
+  .secure{
+    display:flex;align-items:flex-start;gap:9px;margin-top:22px;
+    color:var(--muted-soft);font-size:12px;line-height:1.5;
+  }
+  .secure i{font-size:16px;color:var(--accent);flex:none;margin-top:1px;}
+
+  /* ---------------- MOTION (gated by reduced-motion) ---------------- */
+  @media (prefers-reduced-motion:no-preference){
+    .reveal{animation:rise .7s cubic-bezier(.16,1,.3,1) both;animation-delay:var(--d,0ms);}
+    .stripe{transform-origin:left;animation:grow .9s cubic-bezier(.16,1,.3,1) .5s both;}
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+  @keyframes grow{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+  @keyframes load{0%{width:0;}65%{width:78%;}100%{width:100%;}}
+
+  /* ---------------- RESPONSIVE ---------------- */
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .brand{min-height:300px;gap:36px;}
+    .brand-mid h1{font-size:clamp(30px,8vw,42px);}
+    .auth{border-left:0;border-top:1px solid var(--line);}
+    .auth::before{display:none;}
+  }
+  @media (max-width:430px){
+    .wordmark .tag{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="stage">
+  <!-- BRAND -->
+  <aside class="brand">
+    <div class="wordmark reveal" style="--d:0ms">
+      <span class="mark"><i class="ph-fill ph-package"></i></span>
+      <span class="name">HOLDFAST</span>
+      <span class="tag">WMS</span>
+    </div>
+
+    <div class="brand-mid">
+      <h1 class="reveal" style="--d:90ms">Nắm chắc kho hàng từ sàn vận hành.</h1>
+      <p class="reveal" style="--d:180ms">Quản lý nhập, tồn và xuất kho cho đội vận hành tại sàn. Một hệ thống, đúng dữ liệu, đúng vị trí.</p>
+    </div>
+
+    <div class="brand-foot reveal" style="--d:260ms">
+      <span class="stripe" aria-hidden="true"></span>
+      <span>© 2026 HOLDFAST. Hệ thống quản lý kho nội bộ.</span>
+    </div>
+  </aside>
+
+  <!-- AUTH -->
+  <main class="auth">
+    <div class="panel">
+      <h2 class="reveal" style="--d:120ms">Đăng nhập</h2>
+      <p class="sub reveal" style="--d:170ms">Dùng tài khoản nội bộ được cấp cho nhân sự kho.</p>
+
+      <form id="loginForm" novalidate>
+        <div id="alert" class="alert" role="alert" aria-live="polite"></div>
+
+        <div class="field reveal" style="--d:220ms">
+          <label for="user">Tên đăng nhập</label>
+          <div class="control">
+            <i class="ph ph-user" aria-hidden="true"></i>
+            <input id="user" name="user" type="text" autocomplete="username" placeholder="ten.nhanvien" />
+          </div>
+        </div>
+
+        <div class="field reveal" style="--d:280ms">
+          <label for="pass">Mật khẩu</label>
+          <div class="control">
+            <i class="ph ph-lock-simple" aria-hidden="true"></i>
+            <input id="pass" name="pass" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu" />
+            <button class="toggle" type="button" id="toggle" aria-label="Hiện mật khẩu" aria-pressed="false">
+              <i class="ph ph-eye" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="row reveal" style="--d:330ms">
+          <label class="check">
+            <input type="checkbox" id="remember" />
+            <span>Ghi nhớ đăng nhập</span>
+          </label>
+          <a class="link" href="#">Quên mật khẩu?</a>
+        </div>
+
+        <button class="submit reveal" style="--d:380ms" type="submit" id="submit">
+          <span class="label">Đăng nhập</span>
+          <i class="ph-bold ph-arrow-right arrow" aria-hidden="true"></i>
+          <span class="bar" aria-hidden="true"></span>
+        </button>
+
+        <div class="secure reveal" style="--d:430ms">
+          <i class="ph-fill ph-shield-check" aria-hidden="true"></i>
+          <span>Kết nối được mã hoá. Phiên đăng nhập tự đóng sau 30 phút không hoạt động.</span>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script>
+  (function(){
+    var form   = document.getElementById('loginForm');
+    var alertB = document.getElementById('alert');
+    var btn    = document.getElementById('submit');
+    var label  = btn.querySelector('.label');
+    var user   = document.getElementById('user');
+    var pass   = document.getElementById('pass');
+    var toggle = document.getElementById('toggle');
+    var tIcon  = toggle.querySelector('i');
+
+    // password show / hide
+    toggle.addEventListener('click', function(){
+      var show = pass.type === 'password';
+      pass.type = show ? 'text' : 'password';
+      tIcon.className = show ? 'ph ph-eye-slash' : 'ph ph-eye';
+      toggle.setAttribute('aria-pressed', String(show));
+      toggle.setAttribute('aria-label', show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+      pass.focus();
+    });
+
+    function setAlert(kind, icon, msg){
+      alertB.className = 'alert ' + kind;
+      alertB.innerHTML = '<i class="' + icon + '"></i><span>' + msg + '</span>';
+    }
+    function clearInvalid(){ form.classList.remove('invalid'); }
+    user.addEventListener('input', clearInvalid);
+    pass.addEventListener('input', clearInvalid);
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      if(btn.classList.contains('loading')) return;
+
+      // empty / error state
+      if(!user.value.trim() || !pass.value.trim()){
+        form.classList.add('invalid');
+        setAlert('err','ph-fill ph-warning-circle','Nhập tên đăng nhập và mật khẩu để tiếp tục.');
+        (!user.value.trim() ? user : pass).focus();
+        return;
+      }
+
+      // loading state (no generic spinner: inline progress bar + label swap)
+      alertB.className = 'alert';
+      btn.classList.add('loading');
+      btn.disabled = true;
+      label.textContent = 'Đang xác thực';
+
+      setTimeout(function(){
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        label.textContent = 'Đăng nhập';
+        btn.querySelector('.bar').style.width = '0';
+        // demo success state
+        setAlert('ok','ph-fill ph-check-circle','Xác thực thành công. Đang mở bảng điều khiển kho (demo).');
+      }, 1500);
+    });
+  })();
+</script>
+</body>
+</html>

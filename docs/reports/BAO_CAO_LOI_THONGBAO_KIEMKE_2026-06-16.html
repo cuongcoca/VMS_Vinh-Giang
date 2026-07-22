@@ -1,0 +1,82 @@
+<!DOCTYPE html><html lang='vi'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Báo cáo lỗi: Vai trò Kiểm kê không nhận được thông báo</title><style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2433;--muted:#5b6473;--line:#e4e8ef;--primary:#3949ab;--crit:#e11d48;--high:#ea580c;--ok:#059669}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-size:14.5px;line-height:1.62;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:30px 18px 90px}
+header.top{background:linear-gradient(135deg,#6d28d9,#8b5cf6);color:#fff;border-radius:18px;padding:28px 30px;box-shadow:0 12px 30px rgba(109,40,217,.25)}
+header.top h1{margin:0 0 6px;font-size:23px}header.top p{margin:2px 0;opacity:.95;font-size:14px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.meta span{background:rgba(255,255,255,.2);padding:4px 11px;border-radius:999px;font-size:12px;font-weight:600}
+h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(16,24,40,.04)}
+.bad{border-left:5px solid var(--crit)}.warn{border-left:5px solid var(--high)}.good{border-left:5px solid var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0}
+th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+th{background:#eef1f7;font-size:12px;text-transform:uppercase;color:var(--muted)}
+code{font-family:Consolas,monospace;background:#eef1f6;color:#b4255f;padding:1px 6px;border-radius:4px;font-size:12px;word-break:break-word}
+pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:13px 15px;overflow-x:auto;font-size:12.5px;line-height:1.5;font-family:Consolas,monospace}
+.callout{background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:16px 19px;margin:16px 0}
+.callout h3{margin-top:0;color:#6d28d9}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px}
+.t-crit{background:#ffe4e6;color:var(--crit)}.t-warn{background:#ffedd5;color:var(--high)}
+ul{margin:8px 0;padding-left:22px}li{margin:6px 0}
+.footnote{color:var(--muted);font-size:12.5px;margin-top:28px;border-top:1px dashed var(--line);padding-top:14px}
+.flow{font-family:Consolas,monospace;font-size:12.5px;background:#f3f4f8;border-radius:10px;padding:12px 14px;margin:8px 0;line-height:1.7}
+</style></head><body><div class='wrap'><header class='top'><h1>Báo cáo lỗi — Vai trò Kiểm kê không nhận được thông báo nào</h1>
+<p>Chuông thông báo hoạt động (bấm được, không lỗi) nhưng không có thông báo nào được đẩy về cho người Kiểm kê</p>
+<div class='meta'><span>Ngày: 16/06/2026</span><span>Module: Thông báo (Notifications)</span><span>Mức độ: Cao</span></div></header><h2>1. Hiện tượng</h2>
+<div class='card bad'>
+<p>Trên mobile vai trò <b>Kiểm kê</b>, chuông thông báo <b>vẫn hoạt động</b> (gọi API đều, không báo lỗi) nhưng <b>danh sách luôn rỗng</b> — không có thông báo nào được tạo/đẩy về, kể cả khi có phiên kiểm kê mới.</p>
+</div><h2>2. Đường đi của thông báo (pipeline)</h2>
+<div class='card'>
+<div class='flow'>Nghiệp vụ xảy ra → gọi <b>notifyByRoles([vai trò], {...})</b> → tạo bản ghi notification cho từng user thuộc vai trò → (đẩy push FCM) <br>
+Chuông mobile: <b>NotificationBell</b> poll mỗi 60s → <b>GET /api/notifications?unread=true</b> → lọc theo <code>user_id</code> của người đang đăng nhập.</div>
+<p>Phần hiển thị (chuông + API GET) <b>chạy đúng</b>: <code>NotificationBell.tsx:170</code> poll, <code>api/notifications/route.ts:24</code> lọc đúng theo <code>user_id</code> của người đăng nhập. Vấn đề nằm ở <b>đầu vào</b> — không ai tạo thông báo cho người Kiểm kê.</p>
+</div><h2>3. Nguyên nhân gốc — Không có luồng nào gửi thông báo cho vai trò KIEM_KE</h2>
+<div class='card bad'>
+<p><span class='tag t-crit'>Gốc rễ</span></p>
+<p>Rà toàn bộ 30+ chỗ gọi <code>notifyByRoles(...)</code> trong <code>src/app/api</code>: vai trò nhận chỉ gồm <b>THU_KHO, KE_TOAN, XE_NANG, QUAN_LY</b> — <b>KHÔNG hề có KIEM_KE</b> ở bất kỳ đâu.</p>
+<p>Đặc biệt, loại thông báo <code>STOCKTAKE_CREATED</code> được <b>khai báo</b> trong <code>src/lib/notifications.ts:35</code> với chú thích "Tạo phiên KK → <b>KIEM_KE</b>, THU_KHO", nhưng <b>chưa bao giờ được phát ra</b>:</p>
+<ul>
+<li><code>src/app/api/stock-count/route.ts</code> (tạo phiên kiểm kê): có <code>import notifyByRoles</code> ở dòng 4 nhưng <b>không hề gọi</b> nó → tạo phiên xong KHÔNG báo cho ai cả.</li>
+<li><code>src/app/api/stock-count/quick-scan/route.ts</code> (tạo phiên từ mobile): <b>không có</b> lệnh thông báo nào.</li>
+</ul>
+<p>Các thông báo liên quan kiểm kê hiện có chỉ gửi cho vai trò khác:</p>
+<table><thead><tr><th>Sự kiện</th><th>File</th><th>Gửi cho</th></tr></thead><tbody>
+<tr><td>Tạo phiên kiểm kê</td><td>stock-count/route.ts</td><td><b>KHÔNG gửi ai</b> (thiếu lệnh)</td></tr>
+<tr><td>Quét &amp; đếm nhanh (mobile)</td><td>quick-scan/route.ts</td><td><b>KHÔNG gửi ai</b></td></tr>
+<tr><td>Hoàn tất kiểm kê (có chênh lệch)</td><td>complete/route.ts:32</td><td>KE_TOAN, THU_KHO</td></tr>
+<tr><td>Đóng phiên kiểm kê</td><td>complete/route.ts:41</td><td>THU_KHO</td></tr>
+<tr><td>Yêu cầu đếm lại</td><td>recount/route.ts:65</td><td>THU_KHO</td></tr>
+</tbody></table>
+<p>→ Người <b>Kiểm kê</b> không bao giờ là người nhận của bất kỳ thông báo nào ⇒ chuông luôn rỗng.</p>
+</div><h2>4. Lỗi phụ — Push (FCM) đang hỏng</h2>
+<div class='card warn'>
+<p><span class='tag t-warn'>Phụ</span> Trong log server lặp lại: <code>[Push] Error sending to token 0: The registration token is not a valid FCM registration token</code>. Tức là kể cả khi có thông báo, phần <b>đẩy push xuống điện thoại</b> (báo ngoài app) cũng đang lỗi token FCM. Tuy nhiên đây là vấn đề tách biệt: chuông trong app vẫn chạy không cần push — nhưng hiện tại còn chưa có thông báo nào để hiện.</p>
+</div><h2>5. Cách khắc phục</h2>
+<div class='card good'>
+<h3>A. Phát thông báo cho KIEM_KE khi có việc (gốc rễ)</h3>
+<ul>
+<li>Trong <code>stock-count/route.ts</code> (tạo phiên) và <code>quick-scan/route.ts</code>: gọi
+<pre>notifyByRoles(["KIEM_KE"], {
+  type: "STOCKTAKE_CREATED",
+  title: "Phiên kiểm kê mới",
+  body: `Phiên ${code} vừa được tạo — vui lòng tiến hành kiểm đếm`,
+  entity_type: "stocktake_session",
+  entity_id: session.id,
+  link_url: `/kiemke/tasks/${session.id}`,
+}).catch(...);</pre></li>
+<li>Cân nhắc cho <code>STOCKTAKE_RECOUNT_REQUESTED</code> (yêu cầu đếm lại) gửi thêm cho <b>KIEM_KE</b> (hiện chỉ THU_KHO) vì người đếm lại chính là Kiểm kê.</li>
+<li>Nếu sau này phiên có "người được giao" (assignee), nên dùng <code>createNotification(user_id)</code> để báo đúng người thay vì cả vai trò.</li>
+</ul>
+<h3>B. Sửa push FCM (để báo ngoài app)</h3>
+<ul>
+<li>Token đẩy đang không hợp lệ (token "0"). Cần kiểm tra luồng đăng ký push-token thật của thiết bị (<code>/api/push-tokens</code>) và cấu hình khoá FCM/VAPID. Việc này độc lập với mục A.</li>
+</ul>
+</div><h2>6. Tóm tắt</h2>
+<div class='card'>
+<table><thead><tr><th>#</th><th>Vấn đề</th><th>Vị trí</th><th>Sửa</th></tr></thead><tbody>
+<tr><td>1</td><td>Không có thông báo nào gửi cho KIEM_KE</td><td>toàn bộ notifyByRoles trong src/app/api</td><td>Thêm notifyByRoles(["KIEM_KE"]) khi tạo/giao phiên</td></tr>
+<tr><td>2</td><td>Tạo phiên kiểm kê không phát thông báo</td><td>stock-count/route.ts (import thừa, không gọi), quick-scan/route.ts</td><td>Gọi notifyByRoles với STOCKTAKE_CREATED</td></tr>
+<tr><td>3</td><td>Push FCM token không hợp lệ</td><td>push-service / push-tokens</td><td>Sửa đăng ký token + cấu hình FCM</td></tr>
+</tbody></table>
+<p><b>Khẳng định:</b> phần hiển thị (chuông + API) không hỏng — chỉ thiếu việc <b>tạo thông báo cho vai trò Kiểm kê</b> ở đầu vào. Thêm vài lệnh <code>notifyByRoles(["KIEM_KE"], ...)</code> ở các sự kiện kiểm kê là chuông sẽ có thông báo ngay (không cần push).</p>
+</div><p class='footnote'>Rà soát mã nguồn nhánh main 16/06/2026: src/lib/notifications.ts, src/app/api/stock-count/*, toàn bộ call site notifyByRoles, NotificationBell.tsx, api/notifications/route.ts. Mã theo file:dòng.</p></div></body></html>

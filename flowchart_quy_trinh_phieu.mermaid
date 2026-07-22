@@ -1,0 +1,56 @@
+flowchart TD
+    Start([Bắt đầu]) --> A[Tài xế chọn xe]
+    A --> B[Chụp đủ 4 ảnh]
+    B --> C[Hệ thống upload ảnh]
+
+    C --> UP{Upload thành công?}
+    UP -- Không --> URetry[Báo lỗi, thử lại upload]
+    URetry --> C
+    UP -- Có --> D[AI/OCR đọc dữ liệu]
+
+    D --> OCRok{OCR đọc được?<br/>độ tin cậy đạt ngưỡng}
+    OCRok -- Thất bại / độ tin cậy thấp --> OCRfail{Còn lượt chụp lại?}
+    OCRfail -- Có --> Recapture[Yêu cầu chụp lại ảnh rõ hơn]
+    Recapture --> B
+    OCRfail -- Hết lượt --> Manual[Tài xế nhập tay dữ liệu]
+    Manual --> E
+    OCRok -- Thành công --> E[Tài xế kiểm tra dữ liệu]
+
+    E --> F{Dữ liệu đúng?}
+    F -- Không --> G[Sửa dữ liệu]
+    G --> H[Gửi phiếu]
+    F -- Có --> H
+
+    H --> I[Kế toán kiểm tra]
+    I --> J{Có chỉnh sửa?}
+    J -- Có --> K[Lưu lịch sử thay đổi]
+    K --> L[Tạo cảnh báo cho giám đốc]
+    L --> M{Phiếu hợp lệ?}
+    J -- Không --> M
+
+    M -- Có --> N[Phê duyệt phiếu]
+    N --> O[Tính mức tiêu hao]
+    O --> P[Cập nhật báo cáo]
+    P --> End([Kết thúc])
+
+    M -- Không --> Q{Cần bổ sung?}
+    Q -- Không --> R[Từ chối phiếu]
+    R --> End
+
+    Q -- Có --> S[Yêu cầu bổ sung]
+    S --> T[Tài xế cập nhật phiếu]
+    T --> U[Gửi lại phiếu]
+    U --> V[Kế toán kiểm tra lại]
+    V --> W{Đã đủ thông tin?}
+    W -- Không --> LoopChk{Còn lượt bổ sung?}
+    LoopChk -- Có --> S
+    LoopChk -- Hết lượt --> R
+    W -- Có --> X[Phê duyệt phiếu]
+    X --> Y[Tính mức tiêu hao]
+    Y --> Z[Cập nhật báo cáo]
+    Z --> End
+
+    classDef ocr fill:#FFF2CC,stroke:#C55A11,stroke-width:2px;
+    classDef errnode fill:#FCE4E4,stroke:#C00000,stroke-width:1.5px;
+    class D,OCRok,Manual,Recapture ocr;
+    class OCRfail,URetry,R errnode;

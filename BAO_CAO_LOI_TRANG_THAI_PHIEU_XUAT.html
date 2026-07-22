@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo cáo lỗi — Trạng thái Phiếu yêu cầu xuất (PYX)</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2230; --muted:#5b6577;
+    --line:#e3e8f0; --primary:#2952cc; --primary-bg:#eef3ff;
+    --red:#c0392b; --red-bg:#fdecea; --amber:#b8860b; --amber-bg:#fff7e0;
+    --green:#1f8a52; --green-bg:#e7f6ee; --blue:#1f6fb8; --blue-bg:#e8f2fb;
+    --code-bg:#0f172a; --code-ink:#e2e8f0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;
+    line-height:1.6;font-size:15px}
+  .wrap{max-width:980px;margin:0 auto;padding:32px 22px 80px}
+  header.doc{background:linear-gradient(135deg,#22336b,#3457b2);color:#fff;
+    border-radius:16px;padding:30px 32px;box-shadow:0 10px 30px rgba(34,51,107,.25)}
+  header.doc .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    opacity:.85;font-weight:700}
+  header.doc h1{margin:6px 0 14px;font-size:27px;line-height:1.25}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 26px;font-size:13.5px;opacity:.95}
+  .meta b{opacity:.7;font-weight:600;margin-right:5px}
+  .sev{display:inline-block;background:var(--red);color:#fff;font-weight:800;
+    font-size:12px;letter-spacing:.06em;padding:5px 12px;border-radius:999px;
+    text-transform:uppercase;margin-top:4px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:24px 26px;margin-top:20px;box-shadow:0 2px 10px rgba(20,30,60,.04)}
+  h2{font-size:19px;margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--primary);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex:none}
+  h3{font-size:15.5px;margin:20px 0 8px;color:var(--ink)}
+  p{margin:9px 0}
+  code.inline{background:#eef1f7;border:1px solid #dfe4ee;border-radius:5px;
+    padding:1px 6px;font-family:'Consolas','SF Mono',Menlo,monospace;font-size:13px;color:#9b2c6f}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:15px 17px;
+    overflow-x:auto;font-family:'Consolas','SF Mono',Menlo,monospace;font-size:12.8px;
+    line-height:1.55;margin:12px 0}
+  pre .cm{color:#7c8aa5}
+  pre .bad{color:#ff9d9d;font-weight:700}
+  pre .ok{color:#9ae6b4}
+  pre .kw{color:#93c5fd}
+  .filetag{display:inline-block;font-family:'Consolas',monospace;font-size:12px;
+    background:var(--blue-bg);color:var(--blue);border:1px solid #c9e1f5;border-radius:6px;
+    padding:2px 9px;margin:8px 0 2px}
+  .callout{border-radius:12px;padding:15px 18px;margin:14px 0;border:1px solid}
+  .callout .t{font-weight:800;font-size:13.5px;text-transform:uppercase;letter-spacing:.04em;
+    display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .c-red{background:var(--red-bg);border-color:#f3c4bd}.c-red .t{color:var(--red)}
+  .c-amber{background:var(--amber-bg);border-color:#f0dca0}.c-amber .t{color:var(--amber)}
+  .c-green{background:var(--green-bg);border-color:#b6e2c7}.c-green .t{color:var(--green)}
+  .c-blue{background:var(--blue-bg);border-color:#bfdcf2}.c-blue .t{color:var(--blue)}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.7px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:#f0f3fa;font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+  tr:nth-child(even) td{background:#fafbfe}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700}
+  .p-pending{background:var(--amber-bg);color:var(--amber)}
+  .p-picking{background:var(--blue-bg);color:var(--blue)}
+  .p-shipped{background:var(--green-bg);color:var(--green)}
+  .p-bug{background:var(--red-bg);color:var(--red)}
+  /* flow diagram */
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:10px 0 4px}
+  .track{flex:1;min-width:280px;border:1px dashed #c4ccdb;border-radius:12px;padding:14px;margin:8px}
+  .track h4{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
+  .node{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;
+    margin:7px 0;font-size:13px;position:relative}
+  .arrow{text-align:center;color:var(--muted);font-size:16px;line-height:1;margin:-2px 0}
+  .node.st{border-left:5px solid}
+  .node.pending{border-left-color:var(--amber)}
+  .node.picking{border-left-color:var(--blue)}
+  .node.shipped{border-left-color:var(--green)}
+  .node.rel{border-left-color:#7a5cc4}
+  .disconnect{background:var(--red-bg);border:1.5px dashed var(--red);color:var(--red);
+    border-radius:10px;padding:8px 12px;margin:10px 8px;font-weight:700;font-size:13px;text-align:center}
+  ul.tight{margin:8px 0;padding-left:22px}ul.tight li{margin:5px 0}
+  .foot{margin-top:26px;text-align:center;color:var(--muted);font-size:12.5px}
+  .num{font-variant-numeric:tabular-nums;font-family:'Consolas',monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <div class="kicker">WMS Vĩnh Giang · Báo cáo phân tích lỗi</div>
+  <h1>Sai logic trạng thái &amp; số lượng — Luồng Phiếu yêu cầu xuất (PYX)</h1>
+  <div class="meta">
+    <span><b>Module:</b> Outbound / Phiếu yêu cầu xuất</span>
+    <span><b>Ngày:</b> 18/06/2026</span>
+    <span><b>Mã enum:</b> OutboundRequestStatus</span>
+    <span><b>Loại:</b> Logic nghiệp vụ + Toàn vẹn tồn kho</span>
+    <span><b>Phiên bản:</b> 3 — đã khắc phục RC1–RC6</span>
+  </div>
+  <div class="sev">Mức độ: Nghiêm trọng (High)</div>
+  <div class="sev" style="background:var(--green);margin-left:8px">✓ Đã sửa RC1–RC6 trong mã nguồn (chờ chạy migration &amp; build)</div>
+</header>
+
+<!-- 1. TÓM TẮT -->
+<section>
+  <h2><span class="n">1</span>Tóm tắt điều hành</h2>
+  <p>Phiếu yêu cầu xuất (PYX) sau khi xe nâng đã đưa đủ hàng ra khu chờ xuất và quản lý bấm “Xuất kho”
+  vẫn bị kẹt ở trạng thái <span class="pill p-picking">Đang lấy hàng</span> và các dòng hàng bị
+  báo <b>“⚠ Thiếu”</b>. Nguyên nhân không nằm ở một dòng code đơn lẻ, mà ở chỗ
+  <b>hệ thống đang có hai luồng xuất kho chạy song song nhưng không đồng bộ với nhau:</b></p>
+  <ul class="tight">
+    <li><b>Luồng A — vòng đời phiếu PYX</b> (PENDING → PICKING → SHIPPED): chỉ được cập nhật bởi nút
+    “Đánh dấu đã giao” trong trang chi tiết phiếu.</li>
+    <li><b>Luồng B — xuất kho theo pallet</b> (nút “Xuất kho” ở màn hình Khu chờ xuất → API
+    <code class="inline">/api/outbound/release</code>): đẩy pallet rời kho nhưng <b>không hề chạm tới phiếu PYX.</b></li>
+  </ul>
+  <p>Khi quản lý dùng nút “Xuất kho” ở Luồng B, hàng rời khu chờ xuất (pallet chuyển
+  <span class="pill p-shipped">RELEASED</span>) nhưng trạng thái phiếu không đổi → kẹt ở “Đang lấy hàng”.
+  Đồng thời số lượng “Tồn khu chờ” của phiếu được <b>tính lại trực tiếp (live)</b> từ pallet đang
+  <code class="inline">IN_STAGING</code> — vốn vừa bị Luồng B làm rỗng — nên mọi dòng lập tức nhảy sang “Thiếu”.
+  Ngoài ra, hành động “Đánh dấu đã giao” ở Luồng A <b>không kiểm tra số lượng đã lấy</b> và <b>không thực sự trừ tồn</b>
+  của các pallet mà xe nâng đã chuyển, vi phạm quy tắc “chưa đủ số lượng thì không được xuất kho”.</p>
+  <div class="callout c-red"><div class="t">⛔ Bổ sung phiên bản 2 — 2 lỗi mới</div>
+  <b>RC5 — Xuất dư:</b> khi pallet ở khu chờ xuất có nhiều hơn số phiếu yêu cầu (ví dụ pallet 10 thùng, phiếu cần 5),
+  hệ thống xuất <b>nguyên pallet</b> (cả 10) thay vì chỉ trừ 5 và giữ lại 5.<br>
+  <b>RC6 — Tranh chấp tồn:</b> hai phiếu (5 và 10) cùng nhìn vào 5 thùng duy nhất ở khu chờ; không có cơ chế
+  “giữ chỗ” nên đếm chồng và có thể xuất ảo vượt tồn thực. Chi tiết ở mục 4 (RC5, RC6).</div>
+</section>
+
+<!-- 1B. ĐÃ KHẮC PHỤC -->
+<section style="border:2px solid var(--green);box-shadow:0 4px 16px rgba(31,138,82,.12)">
+  <h2 style="border-color:#b6e2c7"><span class="n" style="background:var(--green)">✓</span>Đã khắc phục — Tóm tắt thay đổi (phiên bản 3 · 18/06/2026)</h2>
+  <p>Toàn bộ <b>RC1–RC6</b> đã được sửa trực tiếp trong mã nguồn theo đúng yêu cầu nghiệp vụ:
+  <b>đủ mới cho xuất; xuất xong chuyển “Đã xuất kho”; chỉ trừ đúng số lượng phiếu; nhiều phiếu không tranh nhau một lượng tồn.</b>
+  Hướng đã chọn: <b>phiếu PYX là hành động xuất kho chính thức</b> (quản lý xác nhận trên phiếu → hệ thống tự trừ tồn khu chờ theo FEFO và chốt trạng thái).</p>
+
+  <table>
+    <tr><th style="width:46px">Lỗi</th><th>Đã sửa thế nào</th><th style="width:90px">Trạng thái</th><th style="width:150px">File</th></tr>
+    <tr>
+      <td><b>RC1</b></td>
+      <td>Hợp nhất luồng: nút <b>“Xuất kho”</b> trên phiếu nay tự phân bổ pallet khu chờ theo <b>FEFO</b>, trừ tồn thật, giải phóng pallet rỗng và đặt <span class="pill p-shipped">SHIPPED</span>. Không còn cảnh phiếu kẹt “Đang lấy hàng”.</td>
+      <td><span class="pill p-shipped">✓ Đã sửa</span></td>
+      <td><code class="inline">requests/[id]/route.ts</code></td>
+    </tr>
+    <tr>
+      <td><b>RC2</b></td>
+      <td>Khi đã xuất, badge đối chiếu theo <code class="inline">qty_shipped</code> → hiện <b>“✓ Đã xuất đủ”</b> (không còn báo thiếu sai). Thêm cột <b>“Khả dụng”</b>; nhãn trạng thái đổi thành “Đã xuất kho”.</td>
+      <td><span class="pill p-shipped">✓ Đã sửa</span></td>
+      <td><code class="inline">requests/[id]/page.tsx</code>, <code class="inline">requests/page.tsx</code></td>
+    </tr>
+    <tr>
+      <td><b>RC3</b></td>
+      <td>Thêm <b>chốt chặn</b>: nếu tồn khu chờ khả dụng &lt; SL yêu cầu → chặn xuất, báo lỗi rõ (“Chưa đủ số lượng… cần X, khả dụng Y”).</td>
+      <td><span class="pill p-shipped">✓ Đã sửa</span></td>
+      <td><code class="inline">requests/[id]/route.ts</code></td>
+    </tr>
+    <tr>
+      <td><b>RC4</b></td>
+      <td>Bỏ <b>hardcode</b> badge trên màn xe nâng — nay đọc đúng theo <code class="inline">data.status</code>.</td>
+      <td><span class="pill p-shipped">✓ Đã sửa</span></td>
+      <td><code class="inline">forklift/outbound/[id]/page.tsx</code></td>
+    </tr>
+    <tr>
+      <td><b>RC5</b></td>
+      <td>Khi xuất chỉ trừ <code class="inline">min(tồn_pallet, còn_cần)</code> → pallet 10, phiếu 5 ⇒ <b>trừ 5, giữ 5</b> ở khu chờ (hết xuất dư nguyên pallet).</td>
+      <td><span class="pill p-shipped">✓ Đã sửa</span></td>
+      <td><code class="inline">requests/[id]/route.ts</code></td>
+    </tr>
+    <tr>
+      <td><b>RC6</b></td>
+      <td>Thêm cột <code class="inline">qty_reserved</code> + cơ chế <b>giữ chỗ FCFS</b> khi bắt đầu lấy hàng; tồn khả dụng = tồn − phần phiếu khác giữ; giải phóng giữ chỗ khi xuất xong/huỷ.</td>
+      <td><span class="pill p-shipped">✓ Đã sửa</span></td>
+      <td><code class="inline">schema.prisma</code>, <code class="inline">migration SQL</code>, <code class="inline">requests/[id]/*</code></td>
+    </tr>
+    <tr>
+      <td><b>Q4</b></td>
+      <td><b>Hard block</b>: cấm “xuất lẻ” pallet chứa mã đang được giữ chỗ cho phiếu PICKING (báo lỗi 409, hướng dẫn xuất qua phiếu). Nút release lẻ đổi nhãn “Xuất lẻ” + cảnh báo.</td>
+      <td><span class="pill p-shipped">✓ Đã sửa</span></td>
+      <td><code class="inline">outbound/release/route.ts</code>, <code class="inline">outbound/page.tsx</code></td>
+    </tr>
+  </table>
+
+  <h3>Trước → Sau (các tình huống chính)</h3>
+  <table>
+    <tr><th style="width:30%">Tình huống</th><th>Trước (lỗi)</th><th>Sau (đã sửa)</th></tr>
+    <tr>
+      <td>Xe nâng đủ hàng, quản lý bấm Xuất kho</td>
+      <td>Phiếu kẹt <span class="pill p-picking">Đang lấy hàng</span>, dòng báo “⚠ Thiếu”.</td>
+      <td>Kiểm tra đủ → trừ tồn → <span class="pill p-shipped">Đã xuất kho</span>, dòng “✓ Đã xuất đủ”.</td>
+    </tr>
+    <tr>
+      <td>Pallet 10 thùng, phiếu cần 5</td>
+      <td>Xuất hết cả 10 (xuất dư).</td>
+      <td>Trừ đúng 5, giữ 5 thùng ở khu chờ.</td>
+    </tr>
+    <tr>
+      <td>2 phiếu (5 và 10), khu chờ có 5</td>
+      <td>Cả hai cùng thấy 5; có thể ghi xuất ảo 15.</td>
+      <td>Phiếu A giữ 5/5; phiếu B giữ 0/10 (cảnh báo ngay) và bị chặn xuất. Tổng xuất ≤ 5.</td>
+    </tr>
+    <tr>
+      <td>Bấm xuất khi chưa đủ</td>
+      <td>Vẫn cho xuất (qty_shipped gán cứng = yêu cầu).</td>
+      <td>Chặn, báo lỗi “Chưa đủ số lượng ở khu chờ xuất”.</td>
+    </tr>
+  </table>
+
+  <h3>Danh sách file đã thay đổi</h3>
+  <table>
+    <tr><th>File</th><th>Thay đổi</th></tr>
+    <tr><td><code class="inline">prisma/schema.prisma</code></td><td>Thêm cột <code class="inline">qty_reserved</code> vào <code class="inline">OutboundRequestLine</code> (RC6).</td></tr>
+    <tr><td><code class="inline">prisma/migrations/2026-06-18_outbound_qty_reserved.sql</code></td><td>Migration thêm cột + backfill cho phiếu đang PICKING (mới tạo).</td></tr>
+    <tr><td><code class="inline">src/app/api/outbound/requests/[id]/route.ts</code></td><td>Viết lại SHIP (FEFO + chốt chặn + trừ đúng SL + giải phóng giữ chỗ); START_PICKING giữ chỗ FCFS; CANCEL giải phóng; GET trả tồn khả dụng.</td></tr>
+    <tr><td><code class="inline">src/app/outbound/requests/[id]/page.tsx</code></td><td>Badge theo SL đã xuất; cột “Khả dụng”; nút “Xuất kho”; nhãn “Đã xuất kho”.</td></tr>
+    <tr><td><code class="inline">src/app/outbound/requests/page.tsx</code></td><td>Đồng bộ nhãn “Đã xuất kho”.</td></tr>
+    <tr><td><code class="inline">src/app/forklift/outbound/[id]/page.tsx</code></td><td>Badge trạng thái theo <code class="inline">data.status</code> (bỏ hardcode).</td></tr>
+    <tr><td><code class="inline">src/app/api/outbound/release/route.ts</code></td><td>Hard block xuất lẻ pallet đang được giữ chỗ.</td></tr>
+    <tr><td><code class="inline">src/app/outbound/page.tsx</code></td><td>Nút release lẻ đổi nhãn “Xuất lẻ” + cảnh báo không cập nhật phiếu.</td></tr>
+  </table>
+
+  <div class="callout c-amber"><div class="t">⚙ Cần chạy trước khi dùng (bắt buộc)</div>
+  Vì RC6 thêm cột CSDL mới, phải chạy 4 bước sau ở máy có mã nguồn + kết nối DB:
+  <ol style="margin:8px 0 0;padding-left:22px">
+    <li><code class="inline">npx prisma db push</code> — hoặc apply file <code class="inline">prisma/migrations/2026-06-18_outbound_qty_reserved.sql</code> vào DB.</li>
+    <li><code class="inline">npx prisma generate</code> — sinh lại Prisma Client để nhận <code class="inline">qty_reserved</code>.</li>
+    <li><code class="inline">npm run build</code> — kiểm tra biên dịch (typecheck).</li>
+    <li>Test luồng: 2 phiếu cùng mã (5 và 10), khu chờ có 5 → kiểm tra giữ chỗ + chặn xuất + trạng thái.</li>
+  </ol></div>
+
+  <div class="callout c-blue"><div class="t">✓ Đã kiểm tra · ⚠ Còn lại</div>
+  <b>Đã kiểm tra:</b> hai file backend qua được syntax-check (Node strip-types); đọc soát lại toàn bộ vùng sửa, logic mạch lạc; logic giữ chỗ giữ bất biến “tổng giữ chỗ ≤ tồn thực”.<br>
+  <b>Chưa làm được trong môi trường này:</b> chạy <code class="inline">next build</code>/test đầy đủ (thiếu node_modules + mạng) → cần chạy ở máy bạn.<br>
+  <b>Tạm hoãn (tinh chỉnh sau, không ảnh hưởng tính đúng):</b> gợi ý pallet FEFO cho xe nâng chưa trừ phần giữ chỗ; chưa hỗ trợ xuất một phần (partial ship).</div>
+
+  <p style="font-size:12.5px;color:var(--muted)">Ghi chú git: working copy đang lệch line-ending với HEAD trên nhiều file (có sẵn từ trước, không do đợt sửa này). Khi commit nên <code class="inline">git add</code> đúng các file ở bảng trên để tránh dính nhiễu.</p>
+</section>
+
+<!-- 2. HIỆN TƯỢNG -->
+<section>
+  <h2><span class="n">2</span>Hiện tượng &amp; Kỳ vọng nghiệp vụ</h2>
+  <table>
+    <tr><th style="width:50%">Hiện tượng đang gặp (Lỗi)</th><th>Hành vi đúng theo nghiệp vụ kho</th></tr>
+    <tr>
+      <td>Xe nâng đã nhập/chuyển đủ số lượng ra khu chờ xuất; quản lý đã bấm “Xuất kho”.</td>
+      <td>Sau khi xác nhận xuất kho thành công, nghiệp vụ coi như hoàn tất một chu trình.</td>
+    </tr>
+    <tr>
+      <td>Phiếu vẫn hiển thị <span class="pill p-picking">Đang lấy hàng</span> (PICKING) — trạng thái không cập nhật.</td>
+      <td>Trạng thái phải chuyển sang <span class="pill p-shipped">Đã xuất kho / Hoàn thành</span> (SHIPPED).</td>
+    </tr>
+    <tr>
+      <td>Các dòng hàng báo <b>“⚠ Thiếu”</b> dù thực tế đã lấy đủ.</td>
+      <td>Số lượng phải hiển thị <b>đủ</b>; số đã lấy = số xuất thực tế = số yêu cầu.</td>
+    </tr>
+    <tr>
+      <td>Có thể bấm xuất kho ngay cả khi số lượng chưa đủ.</td>
+      <td>Nếu số lượng chưa đủ thì <b>không được phép</b> xuất kho (phải chặn).</td>
+    </tr>
+    <tr>
+      <td>Pallet khu chờ có 10 thùng nhưng phiếu cần 5 → xuất hết cả 10 (xuất dư).</td>
+      <td>Chỉ trừ đúng 5 thùng theo phiếu, giữ 5 thùng còn lại ở khu chờ xuất.</td>
+    </tr>
+    <tr>
+      <td>2 phiếu (5 và 10) cùng thấy 5 thùng tồn → cùng trừ một lô, có thể xuất ảo 15.</td>
+      <td>Mỗi phiếu được giữ chỗ riêng; tổng xuất không vượt tồn thực tế (≤ 5).</td>
+    </tr>
+  </table>
+</section>
+
+<!-- 3. KIẾN TRÚC -->
+<section>
+  <h2><span class="n">3</span>Kiến trúc luồng hiện tại — hai “cỗ máy trạng thái” tách rời</h2>
+  <p>Gốc rễ của lỗi là hai máy trạng thái độc lập, không có cơ chế đồng bộ:</p>
+  <div class="flow">
+    <div class="track">
+      <h4 style="color:var(--blue)">Luồng A · Vòng đời phiếu PYX</h4>
+      <div class="node st pending">Phiếu tạo mới → <b>PENDING</b> <span class="pill p-pending">Chờ lấy hàng</span></div>
+      <div class="arrow">▼ &nbsp;<small>nút “Bắt đầu lấy hàng” (START_PICKING)</small></div>
+      <div class="node st picking">→ <b>PICKING</b> <span class="pill p-picking">Đang lấy hàng</span></div>
+      <div class="arrow">▼ &nbsp;<small>nút “Đánh dấu đã giao” (SHIP)</small></div>
+      <div class="node st shipped">→ <b>SHIPPED</b> <span class="pill p-shipped">Đã giao</span></div>
+    </div>
+    <div class="track">
+      <h4 style="color:#7a5cc4">Luồng B · Vòng đời pallet vật lý</h4>
+      <div class="node st picking">Pallet <b>IN_STORAGE</b> (trong kho)</div>
+      <div class="arrow">▼ &nbsp;<small>xe nâng: /api/forklift/stage-out</small></div>
+      <div class="node st picking">→ <b>IN_STAGING</b> (khu chờ xuất)</div>
+      <div class="arrow">▼ &nbsp;<small>nút “Xuất kho”: /api/outbound/release</small></div>
+      <div class="node st rel">→ <b>RELEASED</b> (đã rời kho, trừ tồn)</div>
+    </div>
+  </div>
+  <div class="disconnect">⛔ KHÔNG có liên kết giữa hai luồng — release pallet không cập nhật phiếu; stage-out không cập nhật phiếu.</div>
+  <p style="font-size:13px;color:var(--muted)">Đã kiểm chứng bằng tìm kiếm toàn bộ mã nguồn: hai route
+  <code class="inline">stage-out</code> và <code class="inline">release</code> không chứa bất kỳ tham chiếu nào tới
+  <code class="inline">outboundRequest</code> / <code class="inline">outbound_request</code>.</p>
+</section>
+
+<!-- 4. NGUYÊN NHÂN GỐC -->
+<section>
+  <h2><span class="n">4</span>Phân tích nguyên nhân gốc (Root Cause)</h2>
+
+  <h3>RC1 — Nút “Xuất kho” mà quản lý bấm không hề cập nhật phiếu PYX</h3>
+  <p>Màn hình <i>Khu chờ xuất</i> có nút lớn “Xuất kho” cho từng pallet. Nút này gọi API
+  <code class="inline">/api/outbound/release</code> — chỉ chuyển pallet sang <code class="inline">RELEASED</code>,
+  giải phóng vị trí và ghi Movement <code class="inline">SHIP</code>. Nó <b>không đụng tới</b> bảng phiếu PYX.</p>
+  <span class="filetag">src/app/outbound/page.tsx · dòng 49–62 (handleRelease)</span>
+<pre><span class="cm">// Nút “Xuất kho” trên màn Khu chờ xuất chỉ release 1 pallet</span>
+<span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="ok">"/wms/api/outbound/release"</span>, {
+  method: <span class="ok">"POST"</span>,
+  body: JSON.stringify({ pallet_id: palletId }), <span class="bad">// ❌ không có outbound_request_id</span>
+});</pre>
+  <span class="filetag">src/app/api/outbound/release/route.ts — toàn bộ handler chỉ thao tác trên pallet/location/movement</span>
+  <div class="callout c-red"><div class="t">⛔ Hệ quả</div>
+  Vì không có code nào chuyển phiếu sang SHIPPED khi pallet được release, phiếu PYX <b>kẹt vĩnh viễn ở
+  “Đang lấy hàng”</b>. Nơi duy nhất đổi phiếu sang SHIPPED là nút “Đánh dấu đã giao” trong trang chi tiết phiếu
+  (Luồng A) — một nút khác, ở màn hình khác với cái quản lý đang bấm.</div>
+
+  <h3>RC2 — “Số lượng báo thiếu” được tính LIVE từ tồn khu chờ, không phải từ số đã lấy/đã xuất</h3>
+  <p>API chi tiết phiếu tính <code class="inline">staging_qty</code> cho mỗi dòng = <b>tổng qty_box hiện tại</b> của các pallet
+  đang <code class="inline">IN_STAGING</code> theo mã hàng (gộp toàn hệ thống, không gắn riêng cho phiếu này).</p>
+  <span class="filetag">src/app/api/outbound/requests/[id]/route.ts · dòng 28–39 &amp; 138 (GET)</span>
+<pre><span class="kw">const</span> grouped = <span class="kw">await</span> prisma.palletLine.groupBy({
+  by: [<span class="ok">"item_code_id"</span>],
+  where: { item_code_id: { in: itemIds }, pallet: { status: <span class="ok">"IN_STAGING"</span> } },
+  _sum: { qty_box: <span class="kw">true</span> },
+});
+<span class="cm">// ...gắn vào từng dòng:</span>
+lines: request.lines.map((l) =&gt; ({ ...l, staging_qty: stagingMap.get(l.item_code_id) ?? 0 })),</pre>
+  <span class="filetag">src/app/outbound/requests/[id]/page.tsx · dòng 160–184 (badge Khớp/Thiếu)</span>
+<pre><span class="kw">const</span> requested = Number(l.qty_requested);
+<span class="kw">const</span> staging   = Number(l.staging_qty ?? 0); <span class="cm">// tồn khu chờ LIVE</span>
+<span class="kw">const</span> isShort   = staging &lt; requested;        <span class="bad">// ❌ &lt; → hiện "⚠ Thiếu"</span>
+<span class="cm">// Badge KHÔNG dùng qty_shipped — không phản ánh việc đã xuất kho</span></pre>
+  <div class="callout c-amber"><div class="t">⚠ Hệ quả</div>
+  Ngay khi hàng rời khu chờ xuất (bị release ở Luồng B, hoặc bị phiếu khác lấy, hoặc di chuyển đi),
+  <code class="inline">staging_qty</code> tụt xuống → mọi dòng nhảy sang <b>“⚠ Thiếu”</b> dù hàng đã thực sự được xuất.
+  Vì <code class="inline">staging_qty</code> gộp theo mã hàng trên <b>toàn hệ thống</b>, hai phiếu cùng SKU còn
+  đếm chồng/triệt tiêu lẫn nhau.</div>
+
+  <h3>RC3 — Hành động “Xuất kho” (SHIP) không kiểm tra số lượng &amp; không thực sự trừ tồn</h3>
+  <p>Trong handler PATCH, nhánh <code class="inline">SHIP</code> chỉ kiểm tra trạng thái phải là PICKING, rồi
+  <b>gán cứng</b> <code class="inline">qty_shipped = qty_requested</code> cho mọi dòng — <b>không</b> so sánh số đã lấy với số yêu cầu.</p>
+  <span class="filetag">src/app/api/outbound/requests/[id]/route.ts · dòng 179–195 (PATCH · action SHIP)</span>
+<pre>} <span class="kw">else if</span> (action === <span class="ok">"SHIP"</span>) {
+  <span class="kw">if</span> (request.status !== <span class="ok">"PICKING"</span>) <span class="kw">return</span> ...;
+  <span class="bad">// ❌ THIẾU: không kiểm tra số lượng đã lấy/tồn khu chờ &gt;= qty_requested</span>
+  ...
+  <span class="kw">for</span> (<span class="kw">const</span> line <span class="kw">of</span> request.lines) {
+    <span class="kw">await</span> tx.outboundRequestLine.update({
+      where: { id: line.id },
+      data: { qty_shipped: line.qty_requested }, <span class="bad">// gán cứng = yêu cầu, không theo thực tế</span>
+    });
+    <span class="kw">if</span> (line.pallet_id) { <span class="cm">/* trừ tồn + release pallet... */</span> }
+    <span class="cm">//   ▲ chỉ chạy khi line.pallet_id có giá trị</span>
+  }
+}</pre>
+  <p>Phần trừ tồn thật sự nằm trong khối <code class="inline">if (line.pallet_id)</code>. Nhưng trường
+  <code class="inline">OutboundRequestLine.pallet_id</code> <b>không bao giờ được điền</b>: form tạo phiếu và file import
+  đều không gửi <code class="inline">pallet_id</code>, và không có code nào cập nhật nó về sau (chỉ
+  <code class="inline">qty_shipped</code> được update).</p>
+  <span class="filetag">src/app/outbound/requests/new/page.tsx · dòng 90 (payload tạo phiếu)</span>
+<pre>lines: validLines.map(l =&gt; ({
+  item_code_id: l.item_code_id, qty_requested: l.qty_requested, note: l.note || <span class="kw">null</span>
+})), <span class="bad">// ❌ không có pallet_id → line.pallet_id luôn = null</span></pre>
+  <div class="callout c-red"><div class="t">⛔ Hệ quả nghiêm trọng (toàn vẹn tồn kho)</div>
+  Với phiếu PYX thực tế, khối trừ tồn là <b>code chết</b>: SHIP chỉ đánh dấu giấy tờ là “đã giao” và đặt
+  <code class="inline">qty_shipped</code>, nhưng <b>không trừ một thùng nào</b> khỏi pallet mà xe nâng đã chuyển ra.
+  “Số lượng đã lấy / số xuất thực tế” chưa bao giờ được đối soát với pallet vật lý → có nguy cơ
+  <b>xuất kho ảo</b> (tồn kho không khớp thực tế).</div>
+
+  <h3>RC4 — Xe nâng xác nhận “đủ” cũng không đẩy phiếu tiến lên; màn xe nâng hardcode trạng thái</h3>
+  <p>Trang xe nâng chỉ gọi <code class="inline">stage-out</code> (chuyển pallet ra khu chờ). Không có hành động
+  “lấy hàng xong” để báo phiếu sẵn sàng, cũng không có trường lưu “số đã lấy” theo dòng. Badge trạng thái
+  trên màn xe nâng còn bị <b>ghi cứng</b> là “Đang lấy hàng”, bất kể trạng thái thật.</p>
+  <span class="filetag">src/app/forklift/outbound/[id]/page.tsx · dòng 156–158</span>
+<pre>&lt;span className=<span class="ok">"...rounded-full text-xs font-bold"</span>&gt;
+  Đang lấy hàng   <span class="bad">// ❌ hardcode, không đọc data.status</span>
+&lt;/span&gt;</pre>
+
+  <h3>RC5 — Xuất kho trừ NGUYÊN pallet thay vì chỉ trừ số lượng theo phiếu (xuất dư)</h3>
+  <p>Tình huống: khu chờ xuất có 1 pallet <b>10 thùng</b>, phiếu chỉ yêu cầu <b>5 thùng</b>. Khi bấm “Xuất kho”,
+  cả 10 thùng đều rời kho. Đúng nghiệp vụ: chỉ trừ <b>5 thùng</b> theo phiếu, <b>giữ lại 5 thùng</b> ở khu chờ xuất.</p>
+  <p>Nguyên nhân: API <code class="inline">/api/outbound/release</code> chỉ nhận <code class="inline">pallet_id</code> —
+  <b>không có tham số số lượng</b>. Nó cộng tổng toàn pallet rồi chuyển <b>nguyên pallet</b> sang
+  <code class="inline">RELEASED</code>, không hề đọc <code class="inline">qty_requested</code> của phiếu và không tách phần dư.</p>
+  <span class="filetag">src/app/api/outbound/release/route.ts · dòng 16, 35, 41–56</span>
+<pre><span class="kw">const</span> { pallet_id } = body;        <span class="bad">// ❌ chỉ có pallet_id, KHÔNG có quantity</span>
+<span class="kw">const</span> totalQty = pallet.lines.reduce((s, l) =&gt; s + Number(l.qty_box), 0); <span class="cm">// CẢ pallet</span>
+...
+<span class="kw">await</span> tx.pallet.update({
+  where: { id: pallet_id },
+  data: { status: <span class="ok">"RELEASED"</span> },   <span class="bad">// ❌ release NGUYÊN pallet, không split phần dư</span>
+});
+<span class="cm">// Movement SHIP ghi qty_box = totalQty → toàn bộ 10 thùng rời kho</span></pre>
+  <p>Lưu ý: nhánh SHIP trong phiếu (RC3) có công thức trừ một phần
+  <code class="inline">newQtyBox = max(0, qty_box − qty_requested)</code>, về lý thuyết chỉ trừ đúng số yêu cầu —
+  nhưng nó nằm trong khối <code class="inline">if (line.pallet_id)</code> (luôn null) nên <b>không bao giờ chạy</b>,
+  và cũng chỉ xử lý một pallet, không phân bổ qua nhiều pallet. Hành vi thực tế người dùng thấy là release nguyên pallet.</p>
+  <div class="callout c-red"><div class="t">⛔ Hệ quả</div>
+  Xuất dư: 10 thùng rời kho cho phiếu chỉ cần 5 → sổ sách/khách hàng lệch, 5 thùng đáng lẽ còn lại biến mất khỏi tồn.
+  Thiếu cơ chế “tách phần dư (split)” khi tồn pallet &gt; số yêu cầu.</div>
+
+  <h3>RC6 — Nhiều phiếu tranh chấp cùng tồn khu chờ: không “giữ chỗ”, đếm chồng &amp; xuất ảo</h3>
+  <p><b>Câu hỏi:</b> Phiếu A yêu cầu <b>5</b>, Phiếu B yêu cầu <b>10</b>, khu chờ xuất chỉ có <b>5 thùng</b> mã đó.
+  Hệ thống xử lý thế nào?</p>
+  <p>Hệ thống <b>không có cơ chế giữ chỗ (reservation)</b>. Model <code class="inline">OutboundRequestLine</code> chỉ có
+  <code class="inline">qty_requested</code> và <code class="inline">qty_shipped</code> — không có
+  <code class="inline">qty_reserved</code>/<code class="inline">qty_allocated</code>. Và
+  <code class="inline">staging_qty</code> là tổng tồn <code class="inline">IN_STAGING</code> theo mã hàng trên
+  <b>toàn hệ thống</b>. Vì vậy <b>cả hai phiếu cùng nhìn thấy đúng 5 thùng đó</b>; danh sách pallet gợi ý (FEFO) của cả hai
+  phiếu đều trỏ vào cùng pallet 5 thùng — không ai “đặt giữ” phần nào cho riêng mình.</p>
+  <table>
+    <tr><th>Phiếu</th><th>Yêu cầu</th><th>staging_qty thấy</th><th>Badge dòng</th><th>Bấm “Xuất kho” (không có chốt chặn — RC3)</th></tr>
+    <tr><td>A</td><td class="num">5</td><td class="num">5</td><td><span class="pill p-shipped">✓ Khớp</span></td><td>qty_shipped = 5 → <span class="pill p-shipped">SHIPPED</span></td></tr>
+    <tr><td>B</td><td class="num">10</td><td class="num">5</td><td><span class="pill p-bug">⚠ Thiếu 5</span></td><td>vẫn cho qty_shipped = 10 → <span class="pill p-shipped">SHIPPED</span> (ảo)</td></tr>
+    <tr><td colspan="5" style="background:var(--red-bg);color:var(--red)"><b>Tổng hệ thống ghi nhận xuất 5 + 10 = 15 thùng</b> trong khi thực tế chỉ có <b>5 thùng</b> → <b>thừa 10 thùng ảo</b>.</td></tr>
+  </table>
+  <p>Thêm nữa, nếu A release pallet 5 thùng trước (Luồng B), <code class="inline">staging_qty</code> của B tụt về 0 →
+  B nhảy sang “⚠ Thiếu 10”; nhưng B vẫn có thể bị “Đánh dấu đã giao” vì SHIP không kiểm tra tồn (RC3).
+  Đây là lỗi <b>tranh chấp / đếm chồng (double-allocation)</b> điển hình do thiếu reservation và thiếu khoá tồn khả dụng.</p>
+  <div class="callout c-red"><div class="t">⛔ Hệ quả</div>
+  Không xác định được phiếu nào “được” 5 thùng; hai phiếu cùng trừ một lô hàng; hệ thống có thể ghi xuất nhiều hơn tồn thực.
+  Cần cơ chế giữ chỗ theo phiếu + tính tồn khả dụng = tồn − đã giữ chỗ, kèm chốt chặn số lượng khi xuất.</div>
+</section>
+
+<!-- 5. BẢNG ĐỐI CHIẾU -->
+<section>
+  <h2><span class="n">5</span>Bảng đối chiếu trạng thái &amp; số lượng</h2>
+  <table>
+    <tr>
+      <th>Thời điểm</th><th>Pallet (vật lý)</th><th>Phiếu PYX (status)</th>
+      <th>staging_qty hiển thị</th><th>Badge dòng</th>
+    </tr>
+    <tr>
+      <td>Xe nâng chuyển đủ hàng ra khu chờ</td>
+      <td>IN_STAGING (đủ)</td><td><span class="pill p-picking">PICKING</span></td>
+      <td class="num">= yêu cầu</td><td><span class="pill p-shipped">✓ Khớp</span></td>
+    </tr>
+    <tr>
+      <td>Quản lý bấm “Xuất kho” (Luồng B · release)</td>
+      <td>RELEASED (rời kho)</td>
+      <td><span class="pill p-bug">PICKING — KẸT ❌</span></td>
+      <td class="num" style="color:var(--red)">= 0 (đã rời staging)</td>
+      <td><span class="pill p-bug">⚠ Thiếu ❌</span></td>
+    </tr>
+    <tr>
+      <td><b>Kỳ vọng đúng</b></td>
+      <td>RELEASED</td><td><span class="pill p-shipped">SHIPPED ✓</span></td>
+      <td class="num">hiển thị theo qty_shipped</td><td><span class="pill p-shipped">✓ Đủ</span></td>
+    </tr>
+  </table>
+  <p><b>Tóm tắt trong một câu:</b> máy trạng thái của phiếu (PENDING→PICKING→SHIPPED) và máy trạng thái của
+  pallet (IN_STORAGE→IN_STAGING→RELEASED) chạy trên hai đường ray tách biệt; thao tác “Xuất kho” vật lý đẩy pallet
+  rời kho nhưng không đẩy phiếu, trong khi cột “đủ/thiếu” của phiếu lại tính lại trực tiếp từ tồn khu chờ vừa bị
+  làm rỗng — nên phiếu kẹt ở “Đang lấy hàng” kèm báo “Thiếu”.</p>
+</section>
+
+<!-- 6. TÁC ĐỘNG -->
+<section>
+  <h2><span class="n">6</span>Tác động</h2>
+  <ul class="tight">
+    <li><b>Nghiệp vụ:</b> phiếu không bao giờ đạt trạng thái hoàn thành → báo cáo xuất, KPI, đối soát công nợ
+    khách hàng sai; nhân viên tưởng phiếu chưa xong, dễ xuất trùng.</li>
+    <li><b>Toàn vẹn tồn kho (nặng nhất):</b> nếu phiếu được “SHIP” qua Luồng A, tồn không bị trừ
+    (RC3) → tồn kho hệ thống cao hơn thực tế. Nếu xuất qua Luồng B, tồn bị trừ nhưng phiếu không ghi nhận →
+    không truy vết được phiếu nào đã xuất pallet nào.</li>
+    <li><b>Kiểm soát:</b> thiếu chốt chặn “chưa đủ không cho xuất” → cho phép xuất kho khi hàng chưa sẵn sàng.</li>
+    <li><b>Trải nghiệm:</b> cảnh báo “Thiếu” sai khiến quản lý mất niềm tin vào số liệu, phải đối chiếu thủ công.</li>
+  </ul>
+</section>
+
+<!-- 7. KHUYẾN NGHỊ -->
+<section>
+  <h2><span class="n">7</span>Khuyến nghị khắc phục (ưu tiên)</h2>
+  <table>
+    <tr><th style="width:34px">#</th><th>Hành động</th><th style="width:120px">Vị trí</th><th style="width:90px">Ưu tiên</th></tr>
+    <tr>
+      <td>1</td>
+      <td><b>Hợp nhất hai luồng xuất kho.</b> Lấy hành động SHIP của phiếu làm điểm “Xuất kho” duy nhất:
+      khi xác nhận, vừa release/trừ tồn các pallet đã gom cho phiếu, vừa đặt status = SHIPPED + qty_shipped.
+      Hoặc tối thiểu: khi pallet gắn với phiếu bị release ở Luồng B thì cập nhật ngược dòng/trạng thái phiếu.</td>
+      <td>release/route.ts · requests/[id]/route.ts</td>
+      <td><span class="pill p-bug">Cao</span></td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><b>Lưu phân bổ thực tế.</b> Khi xe nâng gom hàng cho phiếu, ghi pallet/số lượng trở lại
+      <code class="inline">OutboundRequestLine</code> (điền <code class="inline">pallet_id</code>, thêm trường
+      <code class="inline">qty_picked</code>) để SHIP có dữ liệu thật, thay vì dựa vào pallet_id luôn null.</td>
+      <td>stage-out/route.ts · schema.prisma</td>
+      <td><span class="pill p-bug">Cao</span></td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><b>Thêm chốt chặn số lượng.</b> Trong PATCH SHIP, nếu tổng đã lấy &lt; yêu cầu thì chặn, trả lỗi rõ ràng
+      (“Chưa đủ số lượng, không thể xuất kho”). Thực thi đúng quy tắc nghiệp vụ.</td>
+      <td>requests/[id]/route.ts (SHIP)</td>
+      <td><span class="pill p-bug">Cao</span></td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><b>Sửa hiển thị “đủ/thiếu”.</b> Khi status = SHIPPED, badge dòng phải so
+      <code class="inline">qty_shipped</code> với <code class="inline">qty_requested</code> (đủ khi qty_shipped ≥ yêu cầu),
+      không dùng <code class="inline">staging_qty</code> live. Khi PICKING, so theo số đã lấy đã lưu (qty_picked).</td>
+      <td>requests/[id]/page.tsx</td>
+      <td><span class="pill p-picking">Trung bình</span></td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td><b>Giới hạn phạm vi staging_qty theo phiếu</b> (không gộp toàn hệ thống theo mã hàng) để tránh hai phiếu
+      cùng SKU đếm chồng lẫn nhau.</td>
+      <td>requests/[id]/route.ts (GET)</td>
+      <td><span class="pill p-picking">Trung bình</span></td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td><b>Bỏ hardcode badge</b> trên màn xe nâng — đọc theo <code class="inline">data.status</code>.</td>
+      <td>forklift/outbound/[id]/page.tsx</td>
+      <td><span class="pill p-pending">Thấp</span></td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td><b>Xuất theo số lượng phiếu, tách phần dư (RC5).</b> Khi xuất, nếu tồn pallet &gt; số yêu cầu thì chỉ trừ đúng
+      <code class="inline">qty_requested</code> và <b>split</b> phần dư giữ lại ở khu chờ xuất (tái dùng logic tách pallet đã có
+      trong <code class="inline">stage-out</code>). Thêm tham số số lượng cho API release.</td>
+      <td>release/route.ts · requests/[id]/route.ts (SHIP)</td>
+      <td><span class="pill p-bug">Cao</span></td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td><b>Cơ chế giữ chỗ (reservation) chống tranh chấp (RC6).</b> Thêm <code class="inline">qty_reserved</code> theo dòng phiếu;
+      khi gom hàng cho phiếu thì giữ chỗ lượng tương ứng; tính <b>tồn khả dụng = tồn − đã giữ chỗ</b>; phân bổ FEFO trừ dần
+      tồn khả dụng giữa các phiếu để hai phiếu không cùng trừ một lô.</td>
+      <td>schema.prisma · requests/[id]/route.ts · stage-out/route.ts</td>
+      <td><span class="pill p-bug">Cao</span></td>
+    </tr>
+  </table>
+  <div class="callout c-green"><div class="t">✓ Kết quả kỳ vọng sau khi sửa</div>
+  Xe nâng gom đủ → số đã lấy được lưu theo dòng. Quản lý bấm “Xuất kho” → hệ thống kiểm tra đủ/thiếu;
+  nếu đủ thì trừ tồn các pallet của phiếu, đặt status = <span class="pill p-shipped">SHIPPED</span>,
+  <code class="inline">qty_shipped = qty_requested</code>, và các dòng hiển thị <b>“✓ Đủ”</b>. Nếu thiếu → chặn, báo lỗi rõ.</div>
+</section>
+
+<!-- 8. PHỤ LỤC -->
+<section>
+  <h2><span class="n">8</span>Phụ lục — Các tệp liên quan</h2>
+  <table>
+    <tr><th>Tệp</th><th>Vai trò trong lỗi</th></tr>
+    <tr><td><code class="inline">prisma/schema.prisma</code> (678–723)</td><td>Định nghĩa enum OutboundRequestStatus và model OutboundRequest / OutboundRequestLine (trường pallet_id, qty_shipped). Thiếu trường qty_reserved → không giữ chỗ được (RC6).</td></tr>
+    <tr><td><code class="inline">src/app/api/outbound/requests/[id]/route.ts</code></td><td>GET tính staging_qty live (RC2); PATCH SHIP gán cứng qty_shipped, thiếu chốt chặn, trừ tồn là code chết (RC3).</td></tr>
+    <tr><td><code class="inline">src/app/outbound/requests/[id]/page.tsx</code></td><td>Badge “Khớp/Thiếu” tính từ staging_qty, bỏ qua qty_shipped (RC2).</td></tr>
+    <tr><td><code class="inline">src/app/outbound/page.tsx</code></td><td>Nút “Xuất kho” màn Khu chờ xuất → release, không cập nhật phiếu (RC1).</td></tr>
+    <tr><td><code class="inline">src/app/api/outbound/release/route.ts</code></td><td>Release pallet đơn lẻ; không tham chiếu phiếu PYX (RC1); chỉ nhận pallet_id, xuất nguyên pallet, không trừ theo số lượng phiếu (RC5).</td></tr>
+    <tr><td><code class="inline">src/app/api/forklift/stage-out/route.ts</code></td><td>Xe nâng chuyển pallet ra khu chờ; không cập nhật phiếu/không lưu phân bổ (RC4).</td></tr>
+    <tr><td><code class="inline">src/app/outbound/requests/new/page.tsx</code></td><td>Form tạo phiếu không gửi pallet_id → pallet_id luôn null (RC3).</td></tr>
+    <tr><td><code class="inline">src/app/forklift/outbound/[id]/page.tsx</code></td><td>Badge trạng thái hardcode “Đang lấy hàng” (RC4).</td></tr>
+  </table>
+  <p style="font-size:12.5px;color:var(--muted);margin-top:14px">Ghi chú: số dòng tham chiếu theo phiên bản mã nguồn tại thời điểm phân tích (18/06/2026). Báo cáo này
+  chỉ phân tích nguyên nhân; chưa thực hiện thay đổi mã nguồn nào.</p>
+</section>
+
+<div class="foot">WMS Vĩnh Giang · Báo cáo phân tích lỗi luồng Phiếu yêu cầu xuất · 18/06/2026</div>
+
+</div>
+</body>
+</html>

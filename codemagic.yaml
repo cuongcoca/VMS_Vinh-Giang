@@ -1,0 +1,22 @@
+workflows:
+  android-workflow:
+    name: Android Build
+    max_build_duration: 120
+    environment:
+      node: 20
+      java: 17
+    scripts:
+      - name: Cài đặt thư viện
+        script: |
+          cd mobile
+          npm install
+      - name: Chuyển đổi mã Expo sang Android (Prebuild)
+        script: |
+          cd mobile
+          npx expo prebuild --platform android
+      - name: Build file APK
+        script: |
+          cd mobile/android
+          ./gradlew assembleRelease
+    artifacts:
+      - mobile/android/app/build/outputs/**/*.apk

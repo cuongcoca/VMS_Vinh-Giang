@@ -1,0 +1,56 @@
+name: wms-v2
+
+# WMS Vĩnh Giang v2 — single Next.js 16 + Postgres
+# Deploy at https://khohangvinhgiang.io.vn/wms/ (basePath /wms)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: wms-postgres
+    restart: unless-stopped
+    command: >
+      postgres
+        -c max_connections=200
+        -c shared_buffers=256MB
+        -c effective_cache_size=1GB
+        -c work_mem=8MB
+    environment:
+      POSTGRES_USER: wms
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: wms
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wms -d wms"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [wmsnet]
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wms-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://wms:${DB_PASSWORD}@postgres:5432/wms?schema=public&connection_limit=20"
+      JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      # Persist uploaded attachments across container rebuilds
+      - uploads_data:/app/public/uploads
+    ports:
+      - "127.0.0.1:4200:3000"
+    networks: [wmsnet]
+
+networks:
+  wmsnet:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  uploads_data:

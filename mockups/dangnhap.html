@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<title>Đăng nhập | Vĩnh Giang WMS</title>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#6e2f00",
+                        "on-primary-container": "#728cb6",
+                        "on-tertiary-fixed-variant": "#6b3a1f",
+                        "on-background": "#1a1c1e",
+                        "primary-fixed-dim": "#adc8f4",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#bb7c5c",
+                        "surface-container-high": "#e9e7eb",
+                        "primary-container": "#022448",
+                        "on-primary-fixed-variant": "#2d486d",
+                        "on-tertiary-fixed": "#341100",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f4f3f7",
+                        "secondary-container": "#ff914e",
+                        "on-primary-fixed": "#001c3b",
+                        "surface-variant": "#e3e2e5",
+                        "surface-tint": "#455f86",
+                        "surface-container": "#eeedf1",
+                        "primary-fixed": "#d5e3ff",
+                        "secondary-fixed": "#ffdbc9",
+                        "primary": "#000e24",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed-variant": "#763300",
+                        "inverse-surface": "#2f3033",
+                        "outline-variant": "#c4c6cf",
+                        "surface-dim": "#dad9dd",
+                        "on-secondary-fixed": "#331200",
+                        "background": "#faf9fc",
+                        "tertiary": "#1f0700",
+                        "inverse-primary": "#adc8f4",
+                        "outline": "#74777f",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#feb693",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#faf9fc",
+                        "surface-container-highest": "#e3e2e5",
+                        "secondary": "#9b4500",
+                        "on-surface": "#1a1c1e",
+                        "surface": "#faf9fc",
+                        "on-surface-variant": "#43474e",
+                        "tertiary-container": "#401802",
+                        "error": "#ba1a1a",
+                        "secondary-fixed-dim": "#ffb68e",
+                        "inverse-on-surface": "#f1f0f4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "10px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "lg": "24px",
+                        "gutter": "12px",
+                        "xs": "4px",
+                        "margin-mobile": "16px",
+                        "base": "4px",
+                        "sm": "8px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["IBM Plex Sans"],
+                        "headline-lg": ["IBM Plex Sans"],
+                        "technical-lg": ["JetBrains Mono"],
+                        "headline-sm": ["IBM Plex Sans"],
+                        "body-md": ["IBM Plex Sans"],
+                        "body-sm": ["IBM Plex Sans"],
+                        "label-caps": ["IBM Plex Sans"],
+                        "technical-sm": ["JetBrains Mono"],
+                        "body-lg": ["IBM Plex Sans"],
+                        "technical-md": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg": ["28px", {"lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "technical-lg": ["16px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "technical-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "technical-md": ["14px", {"lineHeight": "18px", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    display: inline-block;
+    vertical-align: middle
+    }
+.warehouse-bg {
+    background-image: linear-gradient(rgba(2, 36, 72, 0.85), rgba(2, 36, 72, 0.95)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuCWwb1QcYEGokHciXQr6RNcJTy401VCBMMm6qX0jGk5h5AFnNhYvogUIGeyHkrj1L_HMb_LAoJNd7n5xRv18Lk0aTcs6appmXhchZ4bdAwoH5XXzrTHXfX31bTCkFU9r1UCJxZKqR7igtnnaKhFzvFuFEkoXurV_8XTNglFk_o3kYw875HJJaJa8GtSRTIrdTm03IYJQFiO9MxeLR5rMREM_riVJcOzJ5_64k-cjYYAEAr0vXjIld8vBZ_YB2OlXna_3wcbwV7XtFE);
+    background-size: cover;
+    background-position: center
+    }
+.scanner-focus:focus-within {
+    border-color: #9b4500 !important;
+    border-width: 2px !important
+    }
+input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px white inset !important
+    }</style>
+</head>
+<body class="bg-background font-body-md text-on-background min-h-screen flex items-center justify-center warehouse-bg p-margin-mobile">
+<div class="w-full max-w-[440px] bg-white rounded-xl border border-outline-variant shadow-[0_8px_32px_rgba(2,36,72,0.1)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+<!-- Brand Header Area -->
+<div class="px-xl pt-xl pb-lg text-center border-b border-surface-variant bg-surface-bright">
+<div class="flex flex-col items-center gap-xs">
+<div class="w-16 h-16 bg-primary-container rounded-lg flex items-center justify-center mb-sm shadow-md">
+<span class="material-symbols-outlined text-white text-[40px]" data-icon="warehouse">warehouse</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">Vĩnh Giang</h1>
+<p class="font-label-caps text-label-caps text-secondary uppercase tracking-[0.1em]">Warehouse Management System</p>
+</div>
+</div>
+<div class="p-xl space-y-lg">
+<form class="space-y-md" id="loginForm" onsubmit="return handleLogin(event)">
+<!-- Username Field -->
+<div class="space-y-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant flex justify-between" for="username">
+                        TÊN ĐĂNG NHẬP
+                        <span class="text-error">*</span>
+</label>
+<div class="relative scanner-focus transition-all duration-200 border border-outline rounded-lg bg-white overflow-hidden">
+<div class="absolute inset-y-0 left-0 pl-md flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]" data-icon="person">person</span>
+</div>
+<input class="block w-full pl-[44px] pr-xl py-[14px] bg-transparent border-none focus:ring-0 font-body-md text-on-surface placeholder:text-outline" id="username" name="username" placeholder="Nhập tên đăng nhập hoặc mã NV" required="" type="text"/>
+<div class="absolute inset-y-0 right-0 pr-md flex items-center">
+<span class="material-symbols-outlined text-primary-container cursor-pointer hover:text-secondary transition-colors" data-icon="barcode_scanner">barcode_scanner</span>
+</div>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant flex justify-between" for="password">
+                        MẬT KHẨU
+                        <span class="text-error">*</span>
+</label>
+<div class="relative scanner-focus transition-all duration-200 border border-outline rounded-lg bg-white overflow-hidden">
+<div class="absolute inset-y-0 left-0 pl-md flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]" data-icon="lock">lock</span>
+</div>
+<input class="block w-full pl-[44px] pr-[44px] py-[14px] bg-transparent border-none focus:ring-0 font-body-md text-on-surface placeholder:text-outline" id="password" name="password" placeholder="Nhập mật khẩu truy cập" required="" type="password"/>
+<button class="absolute inset-y-0 right-0 pr-md flex items-center" onclick="togglePassword()" type="button">
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary-container transition-colors" data-icon="visibility" id="passwordIcon">visibility</span>
+</button>
+</div>
+</div>
+<!-- Utilities Row -->
+<div class="flex items-center justify-between pt-xs">
+<label class="flex items-center gap-sm cursor-pointer group">
+<div class="relative flex items-center">
+<input class="peer h-5 w-5 rounded border-outline text-primary-container focus:ring-primary-container/20 transition-all" type="checkbox"/>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Ghi nhớ đăng nhập</span>
+</label>
+<a class="font-body-sm text-body-sm text-secondary font-semibold hover:underline underline-offset-4" href="#">Quên mật khẩu?</a>
+</div>
+<!-- Login Button -->
+<button class="w-full h-[52px] bg-primary-container text-white font-headline-sm text-headline-sm rounded-xl flex items-center justify-center gap-sm hover:bg-primary transition-all active:scale-[0.98] shadow-sm relative overflow-hidden group" id="loginBtn" type="submit">
+<span id="btnText">Đăng nhập</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" data-icon="arrow_forward" id="btnIcon">arrow_forward</span>
+<!-- Loading state hidden by default -->
+<div class="hidden absolute inset-0 bg-primary-container flex items-center justify-center" id="loader">
+<div class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+</div>
+</button>
+</form>
+<!-- Additional Links / Footer -->
+<div class="pt-lg flex flex-col items-center gap-md border-t border-surface-variant">
+<div class="flex items-center gap-sm px-md py-xs bg-surface-container-low rounded-full">
+<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+<span class="font-technical-sm text-technical-sm text-on-surface-variant">Hệ thống đang hoạt động ổn định</span>
+</div>
+<div class="flex gap-lg">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Hỗ trợ kỹ thuật</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Hướng dẫn</a>
+</div>
+</div>
+</div>
+</div>
+<!-- Background Image Prompt Meta (Hidden) -->
+<div data-alt="A wide-angle perspective of a massive, state-of-the-art industrial logistics warehouse with high-tech automated shelving systems and clean concrete floors. The scene is bathed in professional, cool-toned lighting with deep navy and steel gray accents, conveying a sense of premium enterprise efficiency. Soft volumetric light filters through high windows, creating a cinematic atmosphere. The overall aesthetic is rugged yet ultra-modern and digitally integrated." style="display:none;"></div>
+<script>
+        function togglePassword() {
+            const pwd = document.getElementById('password');
+            const icon = document.getElementById('passwordIcon');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                icon.textContent = 'visibility_off';
+            } else {
+                pwd.type = 'password';
+                icon.textContent = 'visibility';
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const loader = document.getElementById('loader');
+            const btnText = document.getElementById('btnText');
+            const btnIcon = document.getElementById('btnIcon');
+
+            // Show loading animation
+            loader.classList.remove('hidden');
+            btnText.classList.add('opacity-0');
+            btnIcon.classList.add('opacity-0');
+            btn.disabled = true;
+
+            // Simulate server delay
+            setTimeout(() => {
+                // Success visual feedback
+                loader.innerHTML = '<span class="material-symbols-outlined text-white animate-bounce" style="font-variation-settings: \'FILL\' 1;">check_circle</span>';
+                setTimeout(() => {
+                    alert('Đăng nhập thành công! Đang chuyển hướng đến Dashboard...');
+                    // Reset for demo
+                    loader.classList.add('hidden');
+                    loader.innerHTML = '<div class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>';
+                    btnText.classList.remove('opacity-0');
+                    btnIcon.classList.remove('opacity-0');
+                    btn.disabled = false;
+                }, 1000);
+            }, 1500);
+
+            return false;
+        }
+
+        // Apply focus styles for inputs based on design system
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', () => {
+                input.closest('.scanner-focus').style.boxShadow = '0 0 0 4px rgba(155, 69, 0, 0.1)';
+            });
+            input.addEventListener('blur', () => {
+                input.closest('.scanner-focus').style.boxShadow = 'none';
+            });
+        });
+    </script>
+</body></html>

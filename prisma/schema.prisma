@@ -1,0 +1,856 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+  QUAN_LY
+  KE_TOAN
+  THU_KHO
+  XE_NANG
+  KIEM_KE
+}
+
+model User {
+  id                    String    @id @default(uuid()) @db.Uuid
+  email                 String?   @unique @db.VarChar(100)
+  phone                 String?   @unique @db.VarChar(15)
+  username              String?   @unique @db.VarChar(50)
+  password_hash         String    @db.VarChar(255)
+  full_name             String    @db.VarChar(100)
+  avatar_url            String?   @db.Text
+  role                  Role      @default(STAFF)
+  is_locked             Boolean   @default(false)
+  must_change_password  Boolean   @default(false)
+  failed_login_attempts Int       @default(0)
+  last_login_at         DateTime?
+  password_changed_at   DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  sessions              Session[]
+  otpCodes              OtpCode[]
+  resetTokens           PasswordResetToken[]
+  createdItemCodes      ItemCode[] @relation("item_code_creator")
+  standardizedItemCodes ItemCode[] @relation("item_code_standardizer")
+  createdPallets        Pallet[]   @relation("pallet_creator")
+  notifications         Notification[]
+  deviceTokens          DeviceToken[]
+
+  @@map("users")
+}
+
+model Session {
+  id          String   @id @default(uuid()) @db.Uuid
+  user_id     String   @db.Uuid
+  token       String   @unique
+  device_info String   @db.VarChar(255)
+  ip_address  String?  @db.VarChar(45)
+  location    String?  @db.VarChar(100)
+  is_active   Boolean  @default(true)
+  last_active DateTime @default(now())
+  created_at  DateTime @default(now())
+
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model OtpCode {
+  id           String   @id @default(uuid()) @db.Uuid
+  user_id      String   @db.Uuid
+  code         String   @db.VarChar(6)
+  purpose      String   @default("FORGOT_PASSWORD") @db.VarChar(30)
+  attempts     Int      @default(0)
+  max_attempts Int      @default(5)
+  is_used      Boolean  @default(false)
+  expires_at   DateTime
+  created_at   DateTime @default(now())
+
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("otp_codes")
+}
+
+model PasswordResetToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  token      String   @unique @db.VarChar(255)
+  is_used    Boolean  @default(false)
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+// Phase 7.2 — Notification Kế toán → Thủ kho (TC_IN_REQ_027/_028)
+model Notification {
+  id          String    @id @default(uuid()) @db.Uuid
+  user_id     String    @db.Uuid
+  type        String    @db.VarChar(50)   // INBOUND_REQUEST_CREATED | ...
+  title       String    @db.VarChar(255)
+  body        String?   @db.Text
+  entity_type String?   @db.VarChar(50)
+  entity_id   String?   @db.Uuid
+  link_url    String?   @db.VarChar(500)
+  read_at     DateTime?
+  created_at  DateTime  @default(now())
+
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, read_at])
+  @@index([created_at])
+  @@index([entity_type, entity_id])
+  @@map("notifications")
+}
+
+model ProductGroup {
+  id          String    @id @default(uuid()) @db.Uuid
+  code        String?   @unique @db.VarChar(20)
+  name        String    @unique @db.VarChar(100)
+  description String?   @db.VarChar(255)
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  products    Product[]
+  itemCodes   ItemCode[]
+
+  @@map("product_groups")
+}
+
+model UnitOfMeasure {
+  id         String    @id @default(uuid()) @db.Uuid
+  code       String?   @unique @db.VarChar(20)
+  name       String    @unique @db.VarChar(50)
+  symbol     String?   @db.VarChar(10)
+  is_active  Boolean   @default(true)
+  created_at DateTime  @default(now())
+
+  products   Product[]
+  itemCodes  ItemCode[]
+
+  @@map("units_of_measure")
+}
+
+model Product {
+  id               String         @id @default(uuid()) @db.Uuid
+  sku              String         @unique @db.VarChar(50)
+  barcode          String?        @unique @db.VarChar(100)
+  name             String         @db.VarChar(200)
+  short_name       String?        @db.VarChar(100)
+  group_id         String?        @db.Uuid
+  unit_id          String?        @db.Uuid
+  specification    String?        @db.VarChar(200)
+  units_per_box    Int            @default(1)                 // Số đơn vị lẻ trong 1 thùng (vd: 24 chai/thùng)
+  weight_per_box   Decimal?       @db.Decimal(10, 3)
+  volume_per_box   Decimal?       @db.Decimal(10, 3)
+  manage_lot       Boolean        @default(false)
+  manage_expiry    Boolean        @default(false)
+  min_stock        Int            @default(0)
+  max_stock        Int?
+  is_active        Boolean        @default(true)
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
+
+  group            ProductGroup?  @relation(fields: [group_id], references: [id])
+  unit             UnitOfMeasure? @relation(fields: [unit_id], references: [id])
+  itemCodes        ItemCode[]
+
+  @@map("products")
+}
+
+model ItemCode {
+  id               String         @id @default(uuid()) @db.Uuid
+  code             String         @unique @db.VarChar(100)   // Mã hàng theo chứng từ NCC
+  barcode          String?        @db.VarChar(100)           // Mã vạch (Barcode)
+  short_name       String         @db.VarChar(100)           // Tên rút gọn (Thủ kho)
+  full_name        String?        @db.VarChar(200)           // Tên đầy đủ (Kế toán bổ sung)
+  unit_id          String?        @db.Uuid                   // ĐVT
+  specification    String?        @db.VarChar(200)           // Mô tả kích thước (optional)
+  units_per_box    Int            @default(1)                // Số đơn vị lẻ / thùng (vd: 24 chai/thùng)
+  weight_per_box   Decimal?       @db.Decimal(10, 3)         // Trọng lượng/thùng
+  group_id         String?        @db.Uuid                   // Nhóm hàng (Kế toán)
+  product_id       String?        @db.Uuid                   // Liên kết SKU chuẩn (Kế toán)
+  photo_url        String?        @db.Text                   // Ảnh hàng
+  note             String?        @db.Text                   // Ghi chú
+  status           String         @default("pending") @db.VarChar(20) // pending | standardized
+  created_by       String?        @db.Uuid                   // Thủ kho tạo
+  standardized_by  String?        @db.Uuid                   // Kế toán chuẩn hóa
+  standardized_at  DateTime?                                 // Ngày chuẩn hóa
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
+
+  unit             UnitOfMeasure? @relation(fields: [unit_id], references: [id])
+  group            ProductGroup?  @relation(fields: [group_id], references: [id])
+  product          Product?       @relation(fields: [product_id], references: [id])
+  creator          User?          @relation("item_code_creator", fields: [created_by], references: [id])
+  standardizer     User?          @relation("item_code_standardizer", fields: [standardized_by], references: [id])
+  palletLines       PalletLine[]
+  inboundLines      InboundLine[]
+  inboundTempLines  InboundTempLine[]
+  stocktake_counts  StocktakeCount[]
+  adjustment_lines  AdjustmentLine[]
+  movements         Movement[]
+  outboundRequestLines OutboundRequestLine[]
+  outboundRebalanceLines OutboundRebalanceLine[]
+
+  @@map("item_codes")
+}
+
+enum LocationType {
+  STORAGE
+  INBOUND_STAGING
+  OUTBOUND_STAGING
+  STOCKTAKE
+}
+
+enum LocationStatus {
+  EMPTY
+  USING
+  FULL
+  PARTIAL
+  MAINTENANCE
+  RESERVED
+  WAITING_OUTBOUND
+  NEEDS_CHECK
+  CHECK_AGAIN
+}
+
+model Location {
+  id            String         @id @default(uuid()) @db.Uuid
+  code          String         @unique @db.VarChar(20)     // VD: A-03-02
+  zone          String         @db.VarChar(10)
+  rack          String         @db.VarChar(10)
+  level         String         @db.VarChar(10)
+  type          LocationType   @default(STORAGE)
+  status        LocationStatus @default(EMPTY)
+  max_weight_kg Decimal?       @db.Decimal(10, 2)
+  max_pallets   Int?           @db.SmallInt
+  note          String?        @db.Text
+  is_active     Boolean        @default(true)
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+
+  pallets          Pallet[]
+  movements_from   Movement[]       @relation("movement_from")
+  movements_to     Movement[]       @relation("movement_to")
+  stocktake_counts StocktakeCount[]
+
+  @@index([type, is_active])
+  @@index([zone, rack, level])
+  @@map("locations")
+}
+
+model Supplier {
+  id              String    @id @default(uuid()) @db.Uuid
+  code            String    @unique @db.VarChar(40)
+  name            String    @db.VarChar(255)
+  tax_code        String?   @unique @db.VarChar(20)
+  contact_person  String?   @db.VarChar(120)
+  phone           String?   @db.VarChar(20)
+  email           String?   @db.VarChar(255)
+  address         String?   @db.Text
+  note            String?   @db.Text
+  is_active       Boolean   @default(true)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  pallets          Pallet[]
+  inboundRequests  InboundRequest[]
+  inboundTemps     InboundTemp[]
+
+  @@map("suppliers")
+}
+
+enum PalletStatus {
+  EMPTY
+  COUNTING
+  CONFIRMED
+  IN_STORAGE
+  IN_STAGING
+  RELEASED
+  CANCELLED
+}
+
+model Pallet {
+  id                 String        @id @default(uuid()) @db.Uuid
+  code               String        @unique @db.VarChar(20)
+  code_date          DateTime      @db.Date
+  code_seq           Int           @db.SmallInt
+  status             PalletStatus  @default(EMPTY)
+  supplier_id        String?       @db.Uuid
+  location_id        String?       @db.Uuid                // Vị trí hiện tại
+  inbound_request_id String?       @db.Uuid                // UC-PAL-01: link PHN
+  inbound_temp_id    String?       @db.Uuid                // LEGACY: pallet tạo trực tiếp từ phiếu nhập tạm — giữ để không mất nguồn gốc của các pallet cũ (chưa standardize sang PHN)
+  inbound_date       DateTime?     @db.Date
+  parent_pallet_id   String?       @db.Uuid                // UC-FK-04: pallet cha khi split (rút 1 phần)
+  split_seq          Int?          @db.SmallInt            // UC-FK-04: số thứ tự con (1, 2, 3...)
+  note               String?       @db.Text
+  total_lines        Int           @default(0) @db.SmallInt
+  total_weight_kg    Decimal       @default(0) @db.Decimal(10, 2)
+  confirmed_at       DateTime?
+  confirmed_by       String?       @db.Uuid
+  created_by         String?       @db.Uuid
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
+
+  supplier           Supplier?       @relation(fields: [supplier_id], references: [id])
+  location           Location?       @relation(fields: [location_id], references: [id])
+  inbound_request    InboundRequest? @relation(fields: [inbound_request_id], references: [id])
+  inbound_temp       InboundTemp?    @relation("pallet_legacy_temp", fields: [inbound_temp_id], references: [id])
+  creator            User?           @relation("pallet_creator", fields: [created_by], references: [id])
+  parent             Pallet?         @relation("pallet_split", fields: [parent_pallet_id], references: [id], onDelete: SetNull)
+  children           Pallet[]        @relation("pallet_split")
+  lines              PalletLine[]
+  movements          Movement[]
+  adjustmentLines    AdjustmentLine[]
+  outboundRebalanceLines OutboundRebalanceLine[]
+  outboundRequestLines   OutboundRequestLine[]
+
+  @@unique([code_date, code_seq])
+  @@index([status])
+  @@index([supplier_id])
+  @@index([location_id])
+  @@index([inbound_request_id])
+  @@index([inbound_temp_id])
+  @@index([parent_pallet_id])
+  @@map("pallets")
+}
+
+model PalletLine {
+  id                String    @id @default(uuid()) @db.Uuid
+  pallet_id         String    @db.Uuid
+  item_code_id      String    @db.Uuid
+  qty_box           Decimal   @db.Decimal(10, 2)
+  qty_unit          Decimal   @default(0) @db.Decimal(14, 3)
+  lot               String?   @db.VarChar(40)
+  expiry_date       DateTime? @db.Date
+  manufactured_date DateTime? @db.Date
+  weight_kg         Decimal   @default(0) @db.Decimal(10, 2)
+  note              String?   @db.Text
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  pallet            Pallet    @relation(fields: [pallet_id], references: [id], onDelete: Cascade)
+  item_code         ItemCode  @relation(fields: [item_code_id], references: [id])
+
+  @@index([pallet_id])
+  @@index([item_code_id, expiry_date])
+  @@index([lot, expiry_date])
+  @@map("pallet_lines")
+}
+
+model AuditLog {
+  id                String   @id @default(uuid()) @db.Uuid
+  entity_type       String   @db.VarChar(50)
+  entity_id         String   @db.Uuid
+  action            String   @db.VarChar(50)
+  old_value         Json?
+  new_value         Json?
+  reason            String?  @db.Text
+  performed_by      String?  @db.Uuid
+  performed_by_role String?  @db.VarChar(40)
+  ip_address        String?  @db.VarChar(45)
+  user_agent        String?  @db.VarChar(255)
+  performed_at      DateTime @default(now())
+
+  @@index([entity_type, entity_id])
+  @@index([performed_at])
+  @@index([performed_by])
+  @@map("audit_logs")
+}
+
+// ═══════════════════════════════════════
+// PHASE 4: XE NÂNG (Movement)
+// ═══════════════════════════════════════
+
+enum MovementType {
+  PUT_AWAY     // Xếp pallet vào vị trí
+  RELOCATE     // Chuyển vị trí
+  STAGE_OUT    // Đưa ra khu chờ xuất
+  RETURN       // Hoàn trả
+  SHIP         // Xuất kho (rời kho) — UC-FK-06_TC19 / UC-OUT-05
+}
+
+model Movement {
+  id               String       @id @default(uuid()) @db.Uuid
+  pallet_id        String       @db.Uuid
+  movement_type    MovementType
+  from_location_id String?      @db.Uuid
+  to_location_id   String?      @db.Uuid
+  item_code_id     String?      @db.Uuid                     // khi rút theo SKU
+  qty_box          Decimal?     @db.Decimal(10, 2)
+  qty_unit         Decimal?     @db.Decimal(14, 3)
+  lot              String?      @db.VarChar(40)
+  expiry_date      DateTime?    @db.Date
+  mode             String?      @db.VarChar(10)              // FULL | PARTIAL (UC-FK-04)
+  reason_code      String?      @db.VarChar(40)              // PARTIAL_PICKED_RETURN | PALLET_SPLIT | WRONG_DETECT | OTHER
+  reason           String?      @db.Text
+  audit_log_id     String?      @db.Uuid                     // bắt buộc khi UC-FK-05 (return có sửa nội dung)
+  performed_by     String?      @db.Uuid
+  performed_at     DateTime     @default(now())
+
+  pallet           Pallet       @relation(fields: [pallet_id], references: [id])
+  from_location    Location?    @relation("movement_from", fields: [from_location_id], references: [id])
+  to_location      Location?    @relation("movement_to", fields: [to_location_id], references: [id])
+  item_code        ItemCode?    @relation(fields: [item_code_id], references: [id])
+
+  @@index([pallet_id])
+  @@index([performed_at])
+  @@index([movement_type])
+  @@index([item_code_id])
+  @@map("movements")
+}
+
+enum InboundStatus {
+  DRAFT           // Mới tạo, chưa gửi
+  PENDING         // Đã gửi, chờ Thủ kho tiếp nhận
+  RECEIVING       // Thủ kho đang nhập SL thực nhận
+  RECONCILING     // Kế toán đang đối chiếu
+  COMPLETED       // Đã chốt
+  CANCELLED       // Đã hủy
+}
+
+model InboundRequest {
+  id                     String         @id @default(uuid()) @db.Uuid
+  code                   String         @unique @db.VarChar(20) // PNK-2026-0001
+  code_year              Int            @db.SmallInt
+  code_seq               Int            @db.SmallInt
+  supplier_id            String?        @db.Uuid
+  expected_date          DateTime?      @db.Date
+  order_date             DateTime?      @db.Date     // UC-IN-06: ngày đặt theo file
+  status                 InboundStatus  @default(DRAFT)
+  import_type            String?        @db.VarChar(50)
+  invoice_no             String?        @db.VarChar(50)    // UC-IN-01: số hoá đơn (kế toán nhập lúc lập phiếu, bắt buộc ở tầng app)
+  warehouse              String?        @db.VarChar(100)
+  source                 String?        @db.VarChar(20)    // MANUAL | EXCEL_SIMPLE | EXCEL_NCC | TEMP_STANDARDIZED
+  source_file_url        String?        @db.Text           // UC-IN-06: link file Excel gốc
+  source_file_name       String?        @db.VarChar(255)
+  prep_zone_ready        Boolean        @default(false)    // UC-IN-02: checklist khu vực dỡ hàng
+  discrepancy_decision   String?        @db.VarChar(40)    // UC-IN-04: ACCEPT | REVIEW_AGAIN | CREATE_ADJUSTMENT
+  close_note             String?        @db.Text
+  note                   String?        @db.Text
+  created_by             String?        @db.Uuid
+  received_by            String?        @db.Uuid      // Thủ kho tiếp nhận
+  reconciled_by          String?        @db.Uuid      // Kế toán đối chiếu
+  closed_by              String?        @db.Uuid      // UC-IN-04: kế toán chốt
+  received_at            DateTime?
+  reconciled_at          DateTime?
+  completed_at           DateTime?
+  closed_at              DateTime?
+  created_at             DateTime       @default(now())
+  updated_at             DateTime       @updatedAt
+
+  supplier               Supplier?      @relation(fields: [supplier_id], references: [id])
+  lines                  InboundLine[]
+  pallets                Pallet[]
+  standardizedFromTemps  InboundTemp[]  @relation("temp_standardized_to_request")
+
+  @@unique([code_year, code_seq])
+  @@index([status])
+  @@index([supplier_id])
+  @@map("inbound_requests")
+}
+
+model InboundLine {
+  id                 String          @id @default(uuid()) @db.Uuid
+  inbound_request_id String          @db.Uuid
+  item_code_id       String          @db.Uuid
+  qty_expected       Decimal         @db.Decimal(10, 2)  // SL dự kiến (thùng)
+  qty_received       Decimal?        @db.Decimal(10, 2)  // SL thực nhận
+  qty_accepted       Decimal?        @db.Decimal(10, 2)  // SL chấp nhận sau đối chiếu
+  lot                String?         @db.VarChar(40)
+  expiry_date        DateTime?       @db.Date
+  note               String?         @db.Text
+  discrepancy_note   String?         @db.Text             // Ghi chú chênh lệch
+  created_at         DateTime        @default(now())
+  updated_at         DateTime        @updatedAt
+
+  inbound_request    InboundRequest  @relation(fields: [inbound_request_id], references: [id], onDelete: Cascade)
+  item_code          ItemCode        @relation(fields: [item_code_id], references: [id])
+
+  @@index([inbound_request_id])
+  @@map("inbound_lines")
+}
+
+// ═══════════════════════════════════════
+// PHASE 3: TỒN TẠM (InboundTemp)
+// ═══════════════════════════════════════
+
+enum InboundTempStatus {
+  PENDING         // Mới tạo, chờ chuẩn hóa
+  STANDARDIZED    // Đã chuyển thành phiếu nhập chính thức
+  REJECTED        // Từ chối
+}
+
+model InboundTemp {
+  id              String              @id @default(uuid()) @db.Uuid
+  code            String              @unique @db.VarChar(20)    // PNT-260506-003 (new) hoặc PTT-2026-0001 (legacy)
+  code_year       Int                 @db.SmallInt
+  code_seq        Int                 @db.SmallInt
+  supplier_id     String?             @db.Uuid
+  status          InboundTempStatus   @default(PENDING)
+  source_type     String?             @db.VarChar(20)  // SUPPLIER | RETURN | OTHER
+  delivered_by    String?             @db.VarChar(120) // tên người/đơn vị giao
+  received_at     DateTime?                            // ngày giờ nhận
+  reason          String?             @db.VarChar(40)  // EARLY | NOT_READY | UNNOTIFIED_RETURN | NEW_SUPPLIER | OTHER
+  reason_detail   String?             @db.Text         // bắt buộc khi reason=OTHER
+  photo_urls      String[]                             // mảng MinIO/URL ảnh chứng từ
+  note            String?             @db.Text
+  created_by      String?             @db.Uuid
+  standardized_by String?             @db.Uuid
+  standardized_at DateTime?
+  // Phase 4.2 — TC_STD_TMP_023: lưu lý do từ chối khi reject
+  reject_reason   String?             @db.Text
+  rejected_at     DateTime?
+  rejected_by     String?             @db.Uuid
+  inbound_request_id String?          @db.Uuid                   // Link to phiếu nhập chính thức
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @updatedAt
+
+  supplier            Supplier?           @relation(fields: [supplier_id], references: [id])
+  standardizedTo      InboundRequest?     @relation("temp_standardized_to_request", fields: [inbound_request_id], references: [id])
+  pallets             Pallet[]            @relation("pallet_legacy_temp")
+  lines               InboundTempLine[]
+
+  @@unique([code_year, code_seq])
+  @@index([status])
+  @@map("inbound_temps")
+}
+
+model InboundTempLine {
+  id               String       @id @default(uuid()) @db.Uuid
+  inbound_temp_id  String       @db.Uuid
+  item_code_id     String       @db.Uuid
+  qty_box          Decimal      @db.Decimal(10, 2)
+  lot              String?      @db.VarChar(40)
+  expiry_date      DateTime?    @db.Date
+  note             String?      @db.Text
+  created_at       DateTime     @default(now())
+
+  inbound_temp     InboundTemp  @relation(fields: [inbound_temp_id], references: [id], onDelete: Cascade)
+  item_code        ItemCode     @relation(fields: [item_code_id], references: [id])
+
+  @@index([inbound_temp_id])
+  @@map("inbound_temp_lines")
+}
+
+// ═══════ KIỂM KÊ ═══════
+
+enum StocktakeType {
+  BY_LOCATION
+  BY_ITEM
+}
+
+enum StocktakeStatus {
+  OPEN
+  COUNTING
+  RECONCILING
+  CLOSED
+}
+
+model StocktakeSession {
+  id             String          @id @default(uuid()) @db.Uuid
+  code           String          @unique @db.VarChar(20)
+  type           StocktakeType
+  status         StocktakeStatus @default(OPEN)
+  note           String?         @db.Text
+  created_by     String?         @db.Uuid
+  started_at     DateTime?
+  completed_at   DateTime?
+  created_at     DateTime        @default(now())
+
+  counts         StocktakeCount[]
+
+  @@map("stocktake_sessions")
+}
+
+model StocktakeCount {
+  id             String           @id @default(uuid()) @db.Uuid
+  session_id     String           @db.Uuid
+  location_id    String?          @db.Uuid
+  item_code_id   String?          @db.Uuid
+  system_qty     Decimal          @db.Decimal(10, 2)
+  actual_qty     Decimal?         @db.Decimal(10, 2)
+  discrepancy    Decimal?         @db.Decimal(10, 2)
+  lot_actual     String?          @db.VarChar(40)        // Lô người đếm ghi nhận (có thể khác lô gốc)
+  expiry_actual  DateTime?        @db.Date               // HSD người đếm ghi nhận
+  is_outside_system Boolean       @default(false)        // UC-INV-06: pallet phát hiện NGOÀI hệ thống khi kiểm kê
+  found_pallet_code String?       @db.VarChar(20)        // Mã pallet người đếm đọc trên hiện trường (nếu có nhãn)
+  pallet_id      String?          @db.Uuid               // Pallet thật được tạo sau khi duyệt (idempotency)
+  note           String?          @db.Text
+  counted_by     String?          @db.Uuid
+  counted_at     DateTime?
+  created_at     DateTime         @default(now())
+
+  session        StocktakeSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  location       Location?        @relation(fields: [location_id], references: [id])
+  item_code      ItemCode?        @relation(fields: [item_code_id], references: [id])
+
+  @@index([session_id])
+  @@map("stocktake_counts")
+}
+
+// ═══════ ĐIỀU CHỈNH TỒN ═══════
+
+enum AdjustmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model AdjustmentVoucher {
+  id                     String           @id @default(uuid()) @db.Uuid
+  code                   String           @unique @db.VarChar(20)
+  stocktake_session_id   String?          @db.Uuid
+  type                   String?          @db.VarChar(20)  // DECREASE | INCREASE | STOCKTAKE_RESOLVE
+  reason_code            String?          @db.VarChar(40)  // BROKEN | LOST | STOCKTAKE | OTHER
+  reason                 String           @db.Text
+  status                 AdjustmentStatus @default(PENDING)
+  created_by             String?          @db.Uuid
+  approved_by            String?          @db.Uuid
+  approved_at            DateTime?
+  rejected_reason        String?          @db.Text
+  applied_at             DateTime?
+  audit_log_id           String?          @db.Uuid
+  created_at             DateTime         @default(now())
+
+  lines                  AdjustmentLine[]
+
+  @@map("adjustment_vouchers")
+}
+
+model AdjustmentLine {
+  id             String             @id @default(uuid()) @db.Uuid
+  voucher_id     String             @db.Uuid
+  item_code_id   String             @db.Uuid
+  pallet_id      String?            @db.Uuid
+  location_id    String?            @db.Uuid
+  lot            String?            @db.VarChar(40)
+  qty_before     Decimal            @db.Decimal(10, 2)
+  qty_adjust     Decimal            @db.Decimal(10, 2)
+  qty_after      Decimal            @db.Decimal(10, 2)
+  is_outside_system Boolean         @default(false)      // UC-INV-06: dòng tạo Pallet mới (pallet ngoài hệ thống)
+  found_pallet_code String?         @db.VarChar(20)
+  expiry_date    DateTime?          @db.Date             // HSD để dựng PalletLine khi tạo pallet ngoài HT
+  note           String?            @db.Text
+
+  voucher        AdjustmentVoucher  @relation(fields: [voucher_id], references: [id], onDelete: Cascade)
+  item_code      ItemCode           @relation(fields: [item_code_id], references: [id])
+  pallet         Pallet?            @relation(fields: [pallet_id], references: [id])
+
+  @@index([voucher_id])
+  @@map("adjustment_lines")
+}
+
+// ═══════ HỆ THỐNG ═══════
+
+model SystemConfig {
+  id    String @id @default(uuid()) @db.Uuid
+  key   String @unique @db.VarChar(100)
+  value String @db.Text
+  label String? @db.VarChar(200)
+  updated_at DateTime @updatedAt
+  @@map("system_configs")
+}
+
+model Attachment {
+  id          String   @id @default(uuid()) @db.Uuid
+  entity_type String   @db.VarChar(50)
+  entity_id   String   @db.Uuid
+  file_url    String   @db.Text
+  file_name   String   @db.VarChar(255)
+  file_size   Int
+  mime_type   String   @db.VarChar(50)
+  note        String?  @db.Text
+  uploaded_by String?  @db.Uuid
+  created_at  DateTime @default(now())
+  @@map("attachments")
+}
+
+// ═══════ XUẤT KHO — UC-OUT-05 ═══════
+
+// Phiếu yêu cầu xuất (PYX) — UC-OUT-05 cách 2
+enum OutboundRequestStatus {
+  PENDING       // Chờ xuất
+  PICKING       // Đang lấy hàng
+  SHIPPED       // Đã xuất
+  CANCELLED
+}
+
+model OutboundRequest {
+  id              String                 @id @default(uuid()) @db.Uuid
+  code            String                 @unique @db.VarChar(20)  // PYX-2026-0034
+  code_year       Int                    @db.SmallInt
+  code_seq        Int                    @db.SmallInt
+  customer        String?                @db.VarChar(255)
+  ship_date       DateTime?              @db.Date
+  status          OutboundRequestStatus  @default(PENDING)
+  created_by      String?                @db.Uuid
+  shipped_by      String?                @db.Uuid
+  shipped_at      DateTime?
+  note            String?                @db.Text
+  audit_log_id    String?                @db.Uuid                // khi SHIPPED
+  created_at      DateTime               @default(now())
+  updated_at      DateTime               @updatedAt
+
+  lines           OutboundRequestLine[]
+
+  @@unique([code_year, code_seq])
+  @@index([status])
+  @@map("outbound_requests")
+}
+
+model OutboundRequestLine {
+  id                   String  @id @default(uuid()) @db.Uuid
+  outbound_request_id  String  @db.Uuid
+  item_code_id         String  @db.Uuid
+  pallet_id            String? @db.Uuid                 // pallet ở khu chờ xuất (gợi ý)
+  qty_requested        Decimal @db.Decimal(14, 3)
+  qty_shipped          Decimal? @db.Decimal(14, 3)
+  qty_reserved         Decimal  @default(0) @db.Decimal(14, 3)  // RC6: SL đã giữ chỗ cho phiếu (chống tranh chấp tồn khu chờ)
+  note                 String?  @db.Text
+
+  outbound_request     OutboundRequest @relation(fields: [outbound_request_id], references: [id], onDelete: Cascade)
+  item_code            ItemCode        @relation(fields: [item_code_id], references: [id])
+  pallet               Pallet?         @relation(fields: [pallet_id], references: [id])
+
+  @@index([outbound_request_id])
+  @@map("outbound_request_lines")
+}
+
+// Cân lại tồn — UC-OUT-05 cách 1
+enum OutboundRebalanceStatus {
+  PARSED
+  PREVIEWED
+  APPLIED
+  REJECTED
+}
+
+model OutboundRebalance {
+  id                String                  @id @default(uuid()) @db.Uuid
+  code              String                  @unique @db.VarChar(20)  // RBL-2026-0021
+  code_year         Int                     @db.SmallInt
+  code_seq          Int                     @db.SmallInt
+  method            String                  @db.VarChar(30)  // EXPORTED_QTY_FILE | OUTBOUND_REQUEST_FILE
+  file_url          String?                 @db.Text
+  file_name         String?                 @db.VarChar(255)
+  ship_date         DateTime?               @db.Date
+  status            OutboundRebalanceStatus @default(PARSED)
+  total_lines       Int                     @default(0)
+  matched_lines     Int                     @default(0)
+  warning_lines     Int                     @default(0)
+  applied_at        DateTime?
+  applied_by        String?                 @db.Uuid
+  audit_log_id      String?                 @db.Uuid
+  note              String?                 @db.Text
+  created_by        String?                 @db.Uuid
+  created_at        DateTime                @default(now())
+  updated_at        DateTime                @updatedAt
+
+  lines             OutboundRebalanceLine[]
+
+  @@unique([code_year, code_seq])
+  @@index([status])
+  @@map("outbound_rebalances")
+}
+
+model OutboundRebalanceLine {
+  id                  String  @id @default(uuid()) @db.Uuid
+  rebalance_id        String  @db.Uuid
+  item_code_id        String  @db.Uuid
+  pallet_id           String? @db.Uuid
+  qty_unit_before     Decimal @db.Decimal(14, 3)
+  qty_unit_exported   Decimal @db.Decimal(14, 3)
+  qty_unit_after      Decimal @db.Decimal(14, 3)
+  status              String  @default("MATCHED") @db.VarChar(20)  // MATCHED | OVER_STOCK | EXHAUSTED
+  note                String? @db.Text
+
+  rebalance           OutboundRebalance @relation(fields: [rebalance_id], references: [id], onDelete: Cascade)
+  item_code           ItemCode          @relation(fields: [item_code_id], references: [id])
+  pallet              Pallet?           @relation(fields: [pallet_id], references: [id])
+
+  @@index([rebalance_id])
+  @@map("outbound_rebalance_lines")
+}
+
+// ═══════ MAIL — UC-SYS-02 ═══════
+
+model MailSettings {
+  id                    String   @id @default(uuid()) @db.Uuid
+  provider              String   @db.VarChar(20)              // SMTP | MAILGUN | SENDGRID
+  host                  String?  @db.VarChar(120)
+  port                  Int?
+  security              String   @default("TLS") @db.VarChar(10)  // TLS | SSL | NONE
+  username              String?  @db.VarChar(255)
+  password_enc          String?  @db.Text
+  api_key_enc           String?  @db.Text
+  from_email            String   @db.VarChar(255)
+  from_name             String   @db.VarChar(120)
+  reply_to_email        String?  @db.VarChar(255)
+  rate_limit_per_hour   Int?     @default(100)
+  is_active             Boolean  @default(false)
+  last_tested_at        DateTime?
+  last_test_result      String?  @db.Text
+  updated_at            DateTime @updatedAt
+
+  @@map("mail_settings")
+}
+
+model MailLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  to_email    String   @db.VarChar(255)
+  subject     String   @db.VarChar(255)
+  template    String?  @db.VarChar(60)
+  status      String   @db.VarChar(20)  // QUEUED | SENT | FAILED
+  error       String?  @db.Text
+  sent_at     DateTime?
+  created_at  DateTime @default(now())
+
+  @@index([status, created_at])
+  @@map("mail_logs")
+}
+
+// ═══════ CẢNH BÁO — UC-INV-05 ═══════
+
+model AlertSetting {
+  id            String   @id @default(uuid()) @db.Uuid
+  alert_type    String   @db.VarChar(40)  // HSD_7D | HSD_30D | STOCK_LOW | STOCK_OVER | OLD_STOCK
+  frequency     String   @db.VarChar(20)  // DAILY_6AM | WEEKLY | MONTHLY
+  recipients    String[]                  // mảng email
+  is_active     Boolean  @default(true)
+  updated_at    DateTime @updatedAt
+
+  @@unique([alert_type])
+  @@map("alert_settings")
+}
+
+// ═══════ PUSH NOTIFICATION — Device Tokens ═══════
+
+model DeviceToken {
+  id          String   @id @default(uuid()) @db.Uuid
+  user_id     String   @db.Uuid
+  token       String   @db.Text             // FCM registration token
+  platform    String   @db.VarChar(10)      // IOS | ANDROID
+  device_name String?  @db.VarChar(100)     // "iPhone 15 Pro", "Samsung S24"
+  app_version String?  @db.VarChar(20)      // "1.0.0"
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, token])
+  @@index([user_id, is_active])
+  @@map("device_tokens")
+}

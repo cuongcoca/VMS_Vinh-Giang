@@ -1,0 +1,85 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/.next-*/
+/out/
+*.log
+*.bundle
+_perm_test_123
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# project-specific temp/scratch files
+compare.ps1
+compare_report.json
+scratch/
+vaitro/
+quanly.txt
+scratch_test.ts
+/vinh_giang_wms-main
+/vinh_giang_wms-main/
+*.docx
+~$*.docx
+
+# VPS code snapshot (downloaded by vps-deploy.js for offline diff, not source code)
+vps-snapshot/
+
+# DB backups
+backups/
+
+# Secrets (Google API key, etc.) — NEVER commit
+.secrets/
+
+# Automation state + logs
+scripts/auto-fix-state.json
+scripts/auto-fix-log.jsonl
+
+
+# --- cleanup: artifacts not source code ---
+.compare3/
+.qa-sim/
+.db-backups/
+.vps-snapshot/
+.vps-company-snapshot/
+*.tgz
+~$*
+gitleaks-report.json
+_audit.js
+_mark.js
+_nextfix.js
+_plan_*.json

@@ -1,0 +1,92 @@
+name: Deploy
+
+# Tu dong deploy len VPS cong ty khi code vao main (sau khi PR merge).
+# Push thang vao main bi chan boi branch protection -> chi deploy code da qua CI.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false   # khong huy deploy dang chay giua chung
+
+jobs:
+  deploy:
+    name: Deploy to production (42.96.16.197)
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH backup, sync, build, restart
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 42.96.16.197
+          username: root
+          password: ${{ secrets.COMPANY_VPS_PASSWORD }}
+          command_timeout: 30m
+          script: |
+            set -e
+            cd /var/www/wms-vinhgiang
+
+            echo "== 1/6 Backup DB =="
+            mkdir -p backups
+            DB_URL=$(grep -m1 '^DATABASE_URL=' .env | sed -E 's/^DATABASE_URL=//; s/^"//; s/"$//; s/\?.*$//')
+            pg_dump "$DB_URL" | gzip > "backups/wms-predeploy-$(date +%Y%m%d-%H%M%S).sql.gz"
+
+            echo "== 2/6 Sync main (reset hard so VPS equals origin/main) =="
+            OLD_SHA=$(git rev-parse HEAD 2>/dev/null || echo "")
+            git fetch origin
+            git checkout main
+            git reset --hard origin/main
+            NEW_SHA=$(git rev-parse HEAD)
+            echo "Deploy: ${OLD_SHA:-none} to $NEW_SHA"
+            if [ -n "$OLD_SHA" ] && [ "$OLD_SHA" != "$NEW_SHA" ]; then
+              CHANGED=$(git diff --name-only "$OLD_SHA" "$NEW_SHA" || true)
+            else
+              CHANGED=""
+            fi
+            printf 'Changed files:\n%s\n' "${CHANGED:-none}"
+
+            echo "== 3/6 Install deps when lockfile changed or node_modules missing =="
+            NEED_PRISMA_GEN=0
+            if [ ! -d node_modules ] || echo "$CHANGED" | grep -qx 'package-lock.json'; then
+              echo "run npm ci"
+              npm ci --no-audit --no-fund
+              NEED_PRISMA_GEN=1
+            else
+              echo "skip npm ci (package-lock.json unchanged)"
+            fi
+
+            echo "== 4/6 Prisma generate when needed, db push only when schema changed =="
+            SCHEMA_CHANGED=0
+            if echo "$CHANGED" | grep -qx 'prisma/schema.prisma'; then SCHEMA_CHANGED=1; fi
+            if [ ! -d node_modules/.prisma/client ]; then NEED_PRISMA_GEN=1; fi
+            if [ "$NEED_PRISMA_GEN" = "1" ] || [ "$SCHEMA_CHANGED" = "1" ]; then
+              npx prisma generate
+            else
+              echo "skip prisma generate"
+            fi
+            if [ "$SCHEMA_CHANGED" = "1" ]; then
+              npx prisma db push
+            else
+              echo "skip db push (schema unchanged)"
+            fi
+
+            echo "== 5/6 Build 4 instances and keep .next caches for speed =="
+            build_one() {
+              bp="$1"
+              echo "build BASE_PATH=$bp"
+              if ! BASE_PATH="$bp" npm run build; then
+                echo "build $bp failed, clearing cache and retrying once"
+                if [ "$bp" = "/wms" ]; then DIR=".next"; else DIR=".next-${bp#/}"; fi
+                rm -rf "$DIR/cache"
+                BASE_PATH="$bp" npm run build
+              fi
+            }
+            build_one /wms
+            build_one /xenang
+            build_one /thukho
+            build_one /kiemke
+
+            echo "== 6/6 Restart PM2 =="
+            pm2 restart wms-vinhgiang wms-xenang wms-thukho wms-kiemke
+            pm2 save
+            pm2 list

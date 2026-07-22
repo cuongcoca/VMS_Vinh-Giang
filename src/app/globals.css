@@ -1,0 +1,312 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #faf9f6;
+  --color-surface: #ffffff;
+  --color-surface-low: #f4f3f1;
+  --color-surface-mid: #efeeeb;
+  --color-surface-high: #e9e8e5;
+  --color-surface-variant: #e3e2e0;
+  
+  --color-primary: #000e24;
+  --color-primary-hover: #081a36;
+  --color-primary-container: #022448;
+  --color-on-primary-container: #728cb6;
+  
+  --color-secondary: #455f87;
+  --color-on-secondary-container: #3e5980;
+  --color-secondary-container: #b5d0fd;
+  
+  --color-on-surface: #1a1c1a;
+  --color-on-surface-variant: #43474e;
+  
+  --color-outline: #74777f;
+  --color-outline-variant: #c4c6cf;
+  
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  
+  --color-success: #3b9d56;
+  --color-success-container: #95f8a7;
+  
+  --color-warning: #f0ad4e;
+  --color-warning-container: #fff0d6;
+  --color-warning-on-container: #8a5a00;
+  --color-success-on-container: #1e6b35;
+
+  /* Role colors (mobile) */
+  --color-forklift: #ea580c;
+  --color-forklift-container: #fed7aa;
+  --color-kiemke: #7c3aed;
+  --color-kiemke-container: #ddd6fe;
+  --color-thukho: #000e24;
+  --color-thukho-container: #022448;
+
+  /* Typography mobile */
+  --text-headline-md-mobile: 18px;
+  --text-body-lg: 16px;
+  /* Thang chu nho chuan hoa (thay cho text-[9px]/[10px]/[11px] rai rac) */
+  --text-caption: 11px;
+  --text-label: 12px;
+
+  --spacing-sidebar: 64px;
+  --spacing-subnav: 224px;
+  --spacing-header: 64px;
+  
+  --spacing-margin-mobile: 16px;
+  --spacing-bottom-nav: 72px;
+  --spacing-xl: 32px;
+  --spacing-xs: 4px;
+  --spacing-gutter: 12px;
+  --spacing-base: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+
+  --max-width-xs: 20rem;
+  --max-width-sm: 24rem;
+  --max-width-md: 28rem;
+  --max-width-lg: 32rem;
+  --max-width-xl: 36rem;
+  --max-width-2xl: 42rem;
+  --max-width-3xl: 48rem;
+  --max-width-4xl: 56rem;
+  --max-width-5xl: 64rem;
+  --max-width-6xl: 72rem;
+  --max-width-7xl: 80rem;
+
+  --font-sans: var(--font-ibm-plex-sans), sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), monospace;
+  --font-jetbrains: var(--font-jetbrains-mono), monospace;
+}
+
+/* Custom Utilities */
+@layer utilities {
+  .label-caps {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  
+  .data-mono {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  
+  .headline-lg {
+    font-size: 32px;
+    line-height: 40px;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+  
+  .headline-md {
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 500;
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  .warehouse-bg {
+    background-image: linear-gradient(rgba(2, 36, 72, 0.85), rgba(2, 36, 72, 0.95)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuCWwb1QcYEGokHciXQr6RNcJTy401VCBMMm6qX0jGk5h5AFnNhYvogUIGeyHkrj1L_HMb_LAoJNd7n5xRv18Lk0aTcs6appmXhchZ4bdAwoH5XXzrTHXfX31bTCkFU9r1UCJxZKqR7igtnnaKhFzvFuFEkoXurV_8XTNglFk_o3kYw875HJJaJa8GtSRTIrdTm03IYJQFiO9MxeLR5rMREM_riVJcOzJ5_64k-cjYYAEAr0vXjIld8vBZ_YB2OlXna_3wcbwV7XtFE);
+    background-size: cover;
+    background-position: center;
+  }
+
+  .scanner-focus:focus-within {
+    border-color: #9b4500 !important;
+    border-width: 2px !important;
+  }
+
+  /* Components CSS extracted from HTML */
+  .industrial-card {
+    background: #fff;
+    border: 1px solid #e7e5e0;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .industrial-card:hover {
+    border-color: #c4c6cf;
+  }
+
+  .sidebar-icon {
+    transition: all 0.2s ease;
+    color: var(--color-on-primary-container);
+  }
+  .sidebar-icon:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .sidebar-icon.active {
+    color: #fff;
+    background: var(--color-secondary);
+  }
+  .sidebar-icon.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    background: #fff;
+    border-radius: 0 2px 2px 0;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .chip-success { background: #d6f5dd; color: #1e6b35; }
+  .chip-warning { background: #fff0d6; color: #8a5a00; }
+  .chip-error { background: #ffdad6; color: #93000a; }
+  .chip-info { background: #dbe7fb; color: #1d3a6b; }
+  .chip-neutral { background: #e3e2e0; color: #43474e; }
+  
+  .bar-chart {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+    height: 100%;
+  }
+  .bar {
+    flex: 1;
+    background: linear-gradient(180deg, var(--color-secondary) 0%, #2d486d 100%);
+    border-radius: 2px 2px 0 0;
+    transition: opacity 0.2s ease;
+    min-height: 4px;
+  }
+  .bar:hover { opacity: 0.8; }
+  .bar-light { background: linear-gradient(180deg, #adc8f4 0%, #8aaee0 100%); }
+
+  .scroll-container::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scroll-container::-webkit-scrollbar-track { background: transparent; }
+  .scroll-container::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: 3px; }
+  .scroll-container::-webkit-scrollbar-thumb:hover { background: var(--color-outline); }
+
+  .live-pulse {
+    animation: pulse 2s ease-in-out infinite;
+  }
+}
+
+@layer base {
+  /* MT-03/MT-04: nen tang cu chi cam ung */
+  html, body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg);
+    color: var(--color-on-surface);
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+  }
+  
+  /* A11y (SH-22): khong xoa trang chi bao focus. Bo outline cho thao tac
+     chuot (:focus) nhung GIU vong focus ro rang cho ban phim (:focus-visible). */
+  input:focus, select:focus, textarea:focus, button:focus, a:focus {
+    outline: none;
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible,
+  button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* MT-02: chong iOS tu phong to khi focus o nhap — ep co chu >=16px tren mobile.
+     (Tren desktop tu md tro len giu nguyen kich thuoc Tailwind) */
+  @media (max-width: 767px) {
+    input, select, textarea { font-size: 16px; }
+    /* Chan keo trai/phai + chan keo qua da (overscroll) CHI tren mobile.
+       KHONG ap dung cho desktop vi se chan luon cuon doc bang lan chuot. */
+    html, body {
+      overscroll-behavior: none;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+    /* Cac vung overflow-x-auto long ben trong (tab/bang) van cuon binh thuong */
+    main { overflow-x: hidden; }
+  }
+
+  /* Dong bo o ngay native (type=date/time) giua web & mobile:
+     chieu cao deu, can trai gia tri, hien nut lich → khong con trong tron tren iOS */
+  input[type="date"], input[type="datetime-local"], input[type="time"] {
+    min-height: 44px;
+    line-height: 1.2;
+  }
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="datetime-local"]::-webkit-date-and-time-value,
+  input[type="time"]::-webkit-date-and-time-value {
+    text-align: left;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    opacity: 0.55;
+  }
+}
+
+@layer utilities {
+  /* SH-03: tien ich safe-area cho thanh nav/day tren iOS */
+  .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-area-top { padding-top: env(safe-area-inset-top); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* UI overhaul Phase 2: animations cho Modal/Toast/ConfirmDialog */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@layer utilities {
+  .animate-fade-in { animation: fade-in 0.2s ease-out; }
+  .animate-scale-in { animation: scale-in 0.2s ease-out; }
+  .animate-slide-in-right { animation: slide-in-right 0.2s ease-out; }
+
+  /* Sidebar scroll: dark mode subtle scrollbar */
+  .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+  .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}

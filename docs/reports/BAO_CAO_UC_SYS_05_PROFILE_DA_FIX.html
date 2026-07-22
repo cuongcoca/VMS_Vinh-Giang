@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo cáo test case đã FIX — UC-SYS-05 Hồ sơ cá nhân (mobile)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", Roboto, Arial, sans-serif; background: #f4f6f9; color: #1f2937; line-height: 1.55; padding: 32px 16px; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header.report { background: linear-gradient(135deg, #065f46, #16a34a); color: #fff; border-radius: 14px; padding: 28px 32px; margin-bottom: 24px; box-shadow: 0 8px 24px rgba(22,163,74,.25); }
+  header.report h1 { font-size: 24px; margin-bottom: 6px; }
+  header.report .sub { opacity: .92; font-size: 14px; }
+  header.report .meta { margin-top: 14px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 18px; }
+  section { background: #fff; border-radius: 12px; padding: 22px 26px; margin-bottom: 22px; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+  h2 { font-size: 18px; color: #065f46; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; }
+  h3 { font-size: 15.5px; margin: 18px 0 8px; color: #334155; }
+  p { margin-bottom: 8px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 14px; }
+  .card { border-radius: 10px; padding: 16px; text-align: center; color: #fff; }
+  .card .num { font-size: 30px; font-weight: 700; }
+  .card .lbl { font-size: 13px; opacity: .95; margin-top: 2px; }
+  .c-green { background: #16a34a; }
+  .c-blue  { background: #2563eb; }
+  .c-slate { background: #475569; }
+  .c-amber { background: #d97706; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 6px; }
+  th, td { border: 1px solid #e5e7eb; padding: 9px 10px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; font-weight: 600; color: #334155; }
+  tbody tr:nth-child(even) { background: #fafbfc; }
+  td.id { font-weight: 600; white-space: nowrap; color: #065f46; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+  .b-fixed { background: #dcfce7; color: #15803d; }
+  .b-old   { background: #fee2e2; color: #b91c1c; }
+  .b-open  { background: #f3f4f6; color: #4b5563; }
+  .b-mob   { background: #ede9fe; color: #6d28d9; }
+  .group-title { display: flex; align-items: center; gap: 10px; margin: 22px 0 4px; }
+  .group-title .n { background: #16a34a; color: #fff; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+  .group-title h3 { margin: 0; font-size: 15.5px; color: #065f46; }
+  .root { background: #ecfdf5; border-left: 4px solid #16a34a; padding: 10px 14px; border-radius: 6px; font-size: 13.5px; margin: 8px 0 4px; }
+  code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 12.5px; font-family: "JetBrains Mono", Consolas, monospace; }
+  ul.li { margin: 6px 0 0 18px; } ul.li li { margin-bottom: 7px; }
+  .note { background: #fffbeb; border-left: 4px solid #d97706; padding: 12px 16px; border-radius: 6px; font-size: 13.5px; }
+  .note.blue { background: #eff6ff; border-left-color: #2563eb; }
+  footer { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="report">
+    <h1>BÁO CÁO CÁC TEST CASE ĐÃ FIX</h1>
+    <div class="sub">UC-SYS-05 — Hồ sơ cá nhân (mobile) · Ưu tiên 1: Xây dựng màn Hồ sơ trên app di động</div>
+    <div class="meta">
+      <span><b>Ngày:</b> 08/06/2026</span>
+      <span><b>Hệ thống:</b> WMS Vĩnh Giang</span>
+      <span><b>Phạm vi:</b> App di động Thủ kho · Xe nâng · Kiểm kê</span>
+      <span><b>Kết quả test:</b> 18/18 PASS</span>
+    </div>
+  </header>
+
+  <!-- TỔNG QUAN -->
+  <section>
+    <h2>1. Tổng quan</h2>
+    <div class="cards">
+      <div class="card c-green"><div class="num">17</div><div class="lbl">TC Ưu tiên 1 đã fix</div></div>
+      <div class="card c-blue"><div class="num">+1</div><div class="lbl">TC20 (trim) — bonus mobile</div></div>
+      <div class="card c-slate"><div class="num">18/18</div><div class="lbl">Assertion tự động PASS</div></div>
+      <div class="card c-amber"><div class="num">3</div><div class="lbl">App áp dụng chung</div></div>
+    </div>
+    <p style="margin-top:16px;">
+      Đã xây dựng đầy đủ chức năng <b>xem &amp; sửa Họ tên / Số điện thoại</b> và <b>Đổi mật khẩu</b>
+      ngay trong màn Hồ sơ của cả 3 app di động (thủ kho, xe nâng, kiểm kê). Toàn bộ
+      <b>17 test case thuộc Ưu tiên 1</b> (Nhóm 1 + Nhóm 2 trong báo cáo lỗi trước) đã được fix và
+      <b>kiểm thử tự động đạt 18/18</b>. TC20 (tự cắt khoảng trắng tên) cũng được khắc phục luôn trên bản mobile.
+    </p>
+  </section>
+
+  <!-- CÁCH FIX -->
+  <section>
+    <h2>2. Nguyên nhân &amp; cách khắc phục</h2>
+
+    <div class="group-title"><span class="n">A</span><h3>Trước khi fix</h3></div>
+    <ul class="li">
+      <li>3 trang Hồ sơ mobile chỉ <b>hiển thị tên + vai trò</b>, không có form sửa Họ tên / SĐT → mọi case cập nhật &amp; validate đều fail.</li>
+      <li>Nút "Đổi mật khẩu" trỏ đường dẫn cứng <code>/wms/system/change-password</code> (thủ kho, kiểm kê) hoặc <code>/auth/change-password</code> <b>không tồn tại</b> (xe nâng). Trên các build standalone mobile (basePath <code>/thukho</code>, <code>/kiemke</code>, <code>/xenang</code>) bấm vào <b>không chuyển màn</b>.</li>
+    </ul>
+
+    <div class="group-title"><span class="n">B</span><h3>Giải pháp</h3></div>
+    <div class="root">
+      Tạo 1 component dùng chung <code>MobileAccountSettings</code> đặt <b>ngay trong trang Hồ sơ</b> (inline),
+      không điều hướng chéo instance → tránh hoàn toàn lỗi basePath. Component gọi API theo basePath của
+      chính build hiện tại nên mỗi app tự gọi API của mình (cùng 1 cơ sở dữ liệu).
+    </div>
+    <ul class="li">
+      <li><b>Thông tin cá nhân:</b> nút "Chỉnh sửa" → sửa Họ tên + SĐT → "Lưu". Có kiểm tra rỗng, định dạng SĐT (10 số bắt đầu bằng 0), độ dài tên, tự cắt khoảng trắng, và lưu vào <code>localStorage</code> để giữ dữ liệu sau refresh.</li>
+      <li><b>Đổi mật khẩu:</b> mở form ngay tại chỗ (mật khẩu hiện tại / mới / xác nhận), validate khớp + độ dài, gọi API đổi mật khẩu, thành công thì đăng xuất để đăng nhập lại bằng mật khẩu mới.</li>
+    </ul>
+    <p style="margin-top:10px;"><b>File thay đổi:</b></p>
+    <ul class="li">
+      <li><code>src/components/mobile/MobileAccountSettings.tsx</code> (mới — dùng chung)</li>
+      <li><code>src/app/thukho/profile/page.tsx</code>, <code>src/app/forklift/profile/page.tsx</code>, <code>src/app/kiemke/profile/page.tsx</code> (gắn component, bỏ link đổi mật khẩu hỏng)</li>
+    </ul>
+  </section>
+
+  <!-- CHI TIẾT TC -->
+  <section>
+    <h2>3. Chi tiết test case đã fix</h2>
+
+    <div class="group-title"><span class="n">1</span><h3>Nhóm 1 — Xem &amp; sửa Họ tên / Số điện thoại</h3></div>
+    <table>
+      <thead><tr><th style="width:70px;">Case</th><th>Nội dung</th><th style="width:130px;">Trước</th><th style="width:130px;">Sau</th><th>Kết quả test</th></tr></thead>
+      <tbody>
+        <tr><td class="id">TC01</td><td>Hiển thị màn Hồ sơ (tên, SĐT, vai trò, nút đổi MK)</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Hiển thị đủ + có nút Chỉnh sửa &amp; Đổi mật khẩu</td></tr>
+        <tr><td class="id">TC02</td><td>Cập nhật tên hợp lệ</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Lưu thành công, DB cập nhật đúng</td></tr>
+        <tr><td class="id">TC03</td><td>Cập nhật SĐT hợp lệ</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Lưu thành công</td></tr>
+        <tr><td class="id">TC04</td><td>Cập nhật đồng thời tên + SĐT</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Lưu cả 2 thành công</td></tr>
+        <tr><td class="id">TC08</td><td>Bỏ trống tên → báo lỗi</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Báo "Tên không được để trống."</td></tr>
+        <tr><td class="id">TC09</td><td>SĐT chứa ký tự chữ → báo lỗi</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Báo "Số điện thoại không hợp lệ"</td></tr>
+        <tr><td class="id">TC10</td><td>SĐT quá ngắn → báo lỗi</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Báo lỗi định dạng SĐT</td></tr>
+        <tr><td class="id">TC11</td><td>SĐT quá dài → chặn lưu</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Không cho lưu + báo lỗi</td></tr>
+        <tr><td class="id">TC19</td><td>Tên chứa ký tự đặc biệt → chấp nhận</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Chấp nhận và lưu đúng</td></tr>
+        <tr><td class="id">TC21</td><td>Refresh trang vẫn giữ dữ liệu</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Sau refresh vẫn hiển thị dữ liệu mới</td></tr>
+        <tr><td class="id">TC23</td><td>Tên cực dài → báo lỗi giới hạn</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Chặn &gt; 100 ký tự + báo lỗi</td></tr>
+      </tbody>
+    </table>
+
+    <div class="group-title"><span class="n">2</span><h3>Nhóm 2 — Đổi mật khẩu</h3></div>
+    <table>
+      <thead><tr><th style="width:70px;">Case</th><th>Nội dung</th><th style="width:130px;">Trước</th><th style="width:130px;">Sau</th><th>Kết quả test</th></tr></thead>
+      <tbody>
+        <tr><td class="id">TC06</td><td>Đổi mật khẩu thành công</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Đổi thành công + báo thông báo</td></tr>
+        <tr><td class="id">TC07</td><td>Đăng nhập bằng mật khẩu mới</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Đăng nhập MK mới OK, MK cũ bị từ chối</td></tr>
+        <tr><td class="id">TC14</td><td>Mật khẩu cũ sai → báo lỗi</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Báo "Mật khẩu hiện tại không đúng."</td></tr>
+        <tr><td class="id">TC15</td><td>Xác nhận mật khẩu không khớp</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Báo "Mật khẩu xác nhận không khớp."</td></tr>
+        <tr><td class="id">TC16</td><td>Mật khẩu mới quá ngắn → báo lỗi</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Báo "Mật khẩu phải có ít nhất 8 ký tự."</td></tr>
+        <tr><td class="id">TC17</td><td>Mật khẩu mới trùng mật khẩu cũ → chặn</td><td><span class="badge b-old">Fail (mobile)</span></td><td><span class="badge b-fixed">Đã fix</span></td><td>Báo "Mật khẩu mới không được trùng mật khẩu cũ."</td></tr>
+      </tbody>
+    </table>
+
+    <div class="group-title"><span class="n">+</span><h3>Bonus — fix luôn trên mobile</h3></div>
+    <table>
+      <thead><tr><th style="width:70px;">Case</th><th>Nội dung</th><th style="width:130px;">Trước</th><th style="width:130px;">Sau</th><th>Kết quả test</th></tr></thead>
+      <tbody>
+        <tr><td class="id">TC20</td><td>Tên có khoảng trắng đầu/cuối → tự cắt</td><td><span class="badge b-old">Fail</span></td><td><span class="badge b-fixed">Đã fix (mobile)</span></td><td>Lưu <code>"  Tài Xế  "</code> → DB lưu <code>"Tài Xế"</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- KIỂM CHỨNG -->
+  <section>
+    <h2>4. Cách kiểm chứng</h2>
+    <ul class="li">
+      <li><b>Kiểm thử tự động (Playwright headless):</b> đăng nhập tài khoản thật, chạy lần lượt 18 kịch bản trên component dùng chung (qua app Xe nâng) → <b>18/18 PASS</b>.</li>
+      <li><b>Kiểm tra render 3 app:</b> truy cập <code>/thukho/profile</code>, <code>/forklift/profile</code>, <code>/kiemke/profile</code> → đều trả về HTTP 200 và nạp component đúng.</li>
+      <li>Vì cả 3 app dùng <b>cùng 1 component</b> với cùng cách gắn, hành vi đã kiểm chứng áp dụng đồng nhất cho cả 3 vai trò.</li>
+    </ul>
+    <div class="note blue" style="margin-top:12px;">
+      <b>Lưu ý môi trường:</b> kiểm thử chạy trên môi trường <b>local</b> (DB local). Để bản QA trên VPS công ty ghi nhận
+      "Pass", cần <b>deploy code lên VPS</b> rồi QA test lại trên app mobile thật.
+    </div>
+  </section>
+
+  <!-- CÒN LẠI -->
+  <section>
+    <h2>5. Phạm vi còn lại (chưa thuộc Ưu tiên 1)</h2>
+    <table>
+      <thead><tr><th style="width:42px;">Nhóm</th><th>Nội dung</th><th style="width:130px;">Test case</th><th style="width:110px;">Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td class="id">3</td><td>Upload ảnh đại diện (chưa xây dựng — PC + Mobile)</td><td>TC05, TC12, TC13, TC24</td><td><span class="badge b-open">Còn mở</span></td></tr>
+        <tr><td class="id">4</td><td>Tự cắt khoảng trắng tên — phía bản PC/desktop</td><td>TC20 (PC)</td><td><span class="badge b-open">Còn mở (mobile đã fix)</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:10px;">Đây là 2 nhóm thuộc Ưu tiên 2 &amp; 3 trong báo cáo lỗi trước, sẽ xử lý ở đợt tiếp theo nếu cần.</p>
+  </section>
+
+  <footer>Báo cáo test case đã fix — UC-SYS-05 (mobile) — WMS Vĩnh Giang — 08/06/2026</footer>
+
+</div>
+</body>
+</html>

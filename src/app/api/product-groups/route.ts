@@ -1,0 +1,82 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+// GET: Danh sách nhóm hàng (có search)
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const q = searchParams.get("q") || "";
+
+    const groups = await prisma.productGroup.findMany({
+      where: {
+        is_active: true,
+        ...(q && {
+          OR: [
+            { name: { contains: q, mode: "insensitive" as const } },
+            { description: { contains: q, mode: "insensitive" as const } },
+          ],
+        }),
+      },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        description: true,
+        is_active: true,
+        created_at: true,
+        _count: { select: { products: true, itemCodes: true } },
+      },
+    });
+
+    return NextResponse.json({ success: true, data: groups });
+  } catch (error) {
+    console.error("GET /api/product-groups error:", error);
+    return NextResponse.json(
+      { success: false, error: "Lỗi hệ thống." },
+      { status: 500 }
+    );
+  }
+}
+
+// POST: Thêm nhóm hàng mới
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { name, description } = body;
+
+    // Validate
+    if (!name || !name.trim()) {
+      return NextResponse.json(
+        { success: false, error: "Tên nhóm hàng là bắt buộc." },
+        { status: 400 }
+      );
+    }
+
+    // Check trùng tên
+    const existing = await prisma.productGroup.findFirst({
+      where: { name: name.trim(), is_active: true },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { success: false, error: `Nhóm hàng "${name.trim()}" đã tồn tại.` },
+        { status: 400 }
+      );
+    }
+
+    const group = await prisma.productGroup.create({
+      data: {
+        name: name.trim(),
+        description: description?.trim() || null,
+      },
+    });
+
+    return NextResponse.json({ success: true, data: group }, { status: 201 });
+  } catch (error) {
+    console.error("POST /api/product-groups error:", error);
+    return NextResponse.json(
+      { success: false, error: "Lỗi hệ thống." },
+      { status: 500 }
+    );
+  }
+}

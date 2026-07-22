@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo cáo lỗi vỡ giao diện mobile — Màn hình Xe nâng</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --ink:#1d2433; --muted:#5b6473;
+    --line:#e4e8ef; --primary:#3949ab; --rose:#e11d48; --amber:#d97706;
+    --emerald:#059669; --code-bg:#0f172a; --code-ink:#e2e8f0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    line-height:1.6;font-size:15px}
+  .wrap{max-width:980px;margin:0 auto;padding:32px 20px 80px}
+  header.top{background:linear-gradient(135deg,#3949ab,#5c6bc0);color:#fff;
+    border-radius:18px;padding:28px 30px;box-shadow:0 10px 30px rgba(57,73,171,.25)}
+  header.top h1{margin:0 0 6px;font-size:25px;letter-spacing:-.3px}
+  header.top p{margin:2px 0;opacity:.92;font-size:14px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .meta span{background:rgba(255,255,255,.18);padding:4px 11px;border-radius:999px;font-size:12px;font-weight:600}
+  h2{font-size:20px;margin:38px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h3{font-size:16px;margin:22px 0 8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin:16px 0;box-shadow:0 1px 3px rgba(16,24,40,.04)}
+  .bug{border-left:5px solid var(--rose)}
+  .bug.fixed-src{border-left-color:var(--amber)}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;
+    text-transform:uppercase;letter-spacing:.4px;vertical-align:middle}
+  .tag.crit{background:#ffe4e6;color:var(--rose)}
+  .tag.warn{background:#fef3c7;color:var(--amber)}
+  .tag.ok{background:#d1fae5;color:var(--emerald)}
+  .file{font-family:"SF Mono",Consolas,monospace;font-size:12.5px;background:#eef1f6;
+    color:#334155;padding:2px 7px;border-radius:5px;border:1px solid #dbe1ea}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:14px 16px;
+    overflow-x:auto;font-size:12.5px;line-height:1.55;margin:10px 0;
+    font-family:"SF Mono",Consolas,Menlo,monospace}
+  pre .c{color:#64748b}            /* comment */
+  pre .bad{color:#fb7185;font-weight:600}
+  pre .good{color:#34d399;font-weight:600}
+  pre .k{color:#93c5fd}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f0f2f7;font-size:12px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted)}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:4px 0}
+  .why{background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 15px;margin:10px 0;font-size:13.5px}
+  .fix{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:12px 15px;margin:10px 0;font-size:13.5px}
+  .why b,.fix b{color:var(--ink)}
+  .callout{background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;padding:16px 18px;margin:18px 0}
+  .callout h3{margin-top:0;color:var(--primary)}
+  code.inl{font-family:"SF Mono",Consolas,monospace;background:#eef1f6;padding:1px 6px;border-radius:4px;font-size:12.5px;color:#b91c1c}
+  .footnote{color:var(--muted);font-size:12.5px;margin-top:30px;border-top:1px dashed var(--line);padding-top:14px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:6px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>Báo cáo lỗi vỡ giao diện mobile — Màn hình Xe nâng</h1>
+  <p>Phân tích nguyên nhân kỹ thuật &amp; đề xuất cách sửa từng lỗi</p>
+  <div class="meta">
+    <span>Ngày: 16/06/2026</span>
+    <span>Module: /xenang/forklift</span>
+    <span>Phạm vi: relocate · return · stage-out (FEFO)</span>
+    <span>Nguồn: ảnh test + đối chiếu mã nguồn</span>
+  </div>
+</header>
+
+<h2>1. Tóm tắt</h2>
+<div class="card">
+<p>Các màn hình xe nâng bị "vỡ khung" trên điện thoại do <b>ba nhóm nguyên nhân kỹ thuật độc lập</b>, không phải một lỗi chung. Tất cả đều liên quan đến cách bố cục co giãn (responsive) bên trong một khung mobile bị <b>cắt tràn cứng</b>.</p>
+<table>
+  <thead><tr><th>#</th><th>Màn hình</th><th>Hiện tượng</th><th>Mức độ</th><th>Trạng thái mã nguồn</th></tr></thead>
+  <tbody>
+    <tr><td>A</td><td>Chuyển vị trí pallet (relocate)</td><td>Nút "Quét QR" hàng Pallet tràn ra ngoài, chữ bị cắt thành "Quét Q"</td><td><span class="tag crit">Nặng</span></td><td>Còn lỗi trong code hiện tại</td></tr>
+    <tr><td>B</td><td>Trả hàng về vị trí (return)</td><td>HSD/NSX khoảng cách không đều, nút quét lệch</td><td><span class="tag warn">Trung bình</span></td><td>Đã sửa 1 phần trong code (commit c4cca46) — có thể chưa deploy</td></tr>
+    <tr><td>C</td><td>FEFO (stage-out)</td><td>Bảng gợi ý thiếu cột "Cấp độ" và nút "Xuất" (bị cắt mất)</td><td><span class="tag crit">Nặng</span></td><td>Còn lỗi trong code hiện tại</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout">
+<h3>Nguyên nhân gốc xuyên suốt (đọc trước)</h3>
+<p>Khung mobile chung của xe nâng được bọc bằng <code class="inl">overflow-hidden</code>:</p>
+<pre><span class="c">// src/app/forklift/layout.tsx — dòng 99</span>
+&lt;div className="w-full max-w-md ... min-h-screen bg-bg flex flex-col relative <span class="bad">overflow-hidden</span>"&gt;</pre>
+<p>Hệ quả: bất kỳ phần tử con nào <b>rộng quá màn hình</b> sẽ bị <b>cắt cụt âm thầm</b> — không cuộn ngang được, không có dấu hiệu gì, nội dung bên phải <b>biến mất luôn</b>. Vì vậy chỉ cần một lỗi nhỏ về flexbox/min-width hay một bảng quá rộng là giao diện "vỡ" và mất nội dung. Đây là lý do cả 3 lỗi đều biểu hiện thành "tràn màn hình / mất nút".</p>
+</div>
+
+<h2>2. Lỗi A — Nút "Quét QR" tràn ra ngoài khung (relocate)</h2>
+<div class="card bug">
+<p><span class="tag crit">Nặng</span> &nbsp; <span class="file">src/app/forklift/relocate/page.tsx</span> · dòng 86–97 (hàng "Pallet")</p>
+<p><b>Triệu chứng:</b> Ở hàng chọn Pallet, nút "Quét QR" bị đẩy ra khỏi thẻ, chữ cắt còn "Quét Q" (đúng như ảnh test 1). Trong khi nút "Quét QR" của hàng "Vị trí mới" ngay bên dưới lại hiển thị bình thường.</p>
+
+<h3>Mã nguồn đang lỗi</h3>
+<pre><span class="c">// Hàng "Pallet" — KHÔNG có min-w-0, KHÔNG xuống dòng trên mobile</span>
+&lt;div className="<span class="bad">flex gap-2</span>"&gt;
+  &lt;select className="<span class="bad">flex-1</span> px-3 py-2.5 ..."&gt; ... &lt;/select&gt;
+  &lt;button className="px-3 py-2.5 ... <span class="bad">whitespace-nowrap</span>"&gt;
+    &lt;span ...&gt;qr_code_scanner&lt;/span&gt; Quét QR
+  &lt;/button&gt;
+&lt;/div&gt;</pre>
+
+<div class="why">
+<b>Vì sao vỡ:</b> Trong CSS Flexbox, mỗi flex item mặc định có <code class="inl">min-width: auto</code> — nghĩa là <b>không co nhỏ hơn nội dung bên trong</b>. Thẻ <code class="inl">&lt;select&gt;</code> chứa option rất dài (vd "— Chọn pallet đang trong kho —" và "PL260615.005 — Vị trí: AA-01-01"), nên độ rộng tối thiểu của nó rất lớn. Dù có <code class="inl">flex-1</code>, select vẫn từ chối co lại; cộng với nút có <code class="inl">whitespace-nowrap</code> cũng không co — tổng bề ngang vượt quá ~378px của điện thoại. Phần dư (cái nút) bị khung <code class="inl">overflow-hidden</code> cắt mất.</p>
+</div>
+
+<div class="fix">
+<b>Cách fix:</b> Áp dụng đúng khuôn mà hàng "Vị trí mới" (dòng 107–118) ĐÃ dùng và chạy tốt: xuống dòng dọc trên mobile + thêm <code class="inl">min-w-0</code> cho select để nó được phép co.
+<pre><span class="c">// Hàng "Pallet" sau khi sửa</span>
+&lt;div className="<span class="good">flex flex-col sm:flex-row gap-2</span>"&gt;
+  &lt;select className="<span class="good">w-full sm:flex-1 min-w-0</span> px-3 py-2.5 ..."&gt; ... &lt;/select&gt;
+  &lt;button className="<span class="good">w-full sm:w-auto justify-center</span> px-3 py-2.5 ... whitespace-nowrap"&gt;
+    &lt;span ...&gt;qr_code_scanner&lt;/span&gt; Quét QR
+  &lt;/button&gt;
+&lt;/div&gt;</pre>
+Bản chất 2 thay đổi: (1) <code class="inl">min-w-0</code> cho phép select co nhỏ; (2) <code class="inl">flex-col sm:flex-row</code> cho nút xuống dòng riêng trên màn nhỏ nên không bao giờ tràn.
+</div>
+<p style="font-size:13px;color:var(--muted)"><b>Ghi chú:</b> Lỗi này áp dụng cho cả 2 URL trong test (mở trực tiếp và mở qua <code class="inl">?pallet_id=...</code>) vì cùng một trang.</p>
+</div>
+
+<h2>3. Lỗi C — FEFO thiếu cột "Cấp độ" &amp; nút "Xuất" (stage-out)</h2>
+<div class="card bug">
+<p><span class="tag crit">Nặng</span> &nbsp; <span class="file">src/app/forklift/stage-out/page.tsx</span> · dòng 390–455</p>
+<p><b>Triệu chứng:</b> Bảng "Gợi ý FEFO" chỉ hiển thị Pallet · Vị trí · SL · HSD; <b>cột "Cấp độ" và cột nút "Xuất" bị mất</b> (đúng như ảnh test 2). Không cuộn ngang được để thấy.</p>
+
+<h3>Mã nguồn đang lỗi</h3>
+<pre><span class="c">// Thẻ bọc bảng: overflow-hidden (KHÔNG cho cuộn ngang)</span>
+&lt;div className="bg-white rounded-xl border ... <span class="bad">overflow-hidden</span>"&gt;
+  ...
+  <span class="c">// Bảng bị ÉP rộng tối thiểu 600px</span>
+  &lt;table className="w-full text-sm" style=&#123;&#123; <span class="bad">minWidth: 600</span> &#125;&#125;&gt;
+    ... &lt;th&gt;Cấp độ&lt;/th&gt; ... &lt;th&gt;&lt;/th&gt; <span class="c">(cột nút Xuất)</span>
+  &lt;/table&gt;
+&lt;/div&gt;</pre>
+
+<div class="why">
+<b>Vì sao vỡ:</b> Bảng bị ép <code class="inl">minWidth: 600px</code> nhưng thẻ bọc lại để <code class="inl">overflow-hidden</code>. Màn điện thoại chỉ rộng ~346px (sau khi trừ lề). 600px &gt; 346px nên phần bảng phía bên phải — gồm cột <b>"Cấp độ"</b> và cột <b>nút "Xuất"</b> — bị cắt cụt và <b>không cuộn ngang được</b>.
+<br><br>So sánh: ngay phía trên trong cùng file, bảng "Đã ở khu chờ xuất" (dòng 335) được bọc bằng <code class="inl">&lt;div className="overflow-x-auto"&gt;</code> nên cuộn ngang tốt. Bảng FEFO bị bỏ sót lớp bọc đó.</p>
+</div>
+
+<div class="fix">
+<b>Cách fix — 2 lựa chọn:</b>
+<p><b>Cách nhanh (tối thiểu):</b> bọc bảng FEFO bằng lớp cuộn ngang giống bảng kia.</p>
+<pre>&lt;div className="bg-white rounded-xl border ..."&gt;        <span class="c">// bỏ overflow-hidden ở đây</span>
+  &lt;div className="<span class="good">overflow-x-auto</span>"&gt;
+    &lt;table className="w-full text-sm" style=&#123;&#123; minWidth: 600 &#125;&#125;&gt; ... &lt;/table&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre>
+<p><b>Cách tốt cho mobile (khuyến nghị):</b> trên màn nhỏ render mỗi pallet thành một "thẻ" dọc (Pallet, Vị trí, SL, HSD, Cấp độ, nút Xuất xếp theo chiều dọc), chỉ dùng bảng khi màn ≥ md. Cách này bỏ hẳn nhu cầu cuộn ngang — phù hợp thao tác một tay của xe nâng. Có thể tận dụng pattern <code class="inl">hidden md:table-cell</code> (đang dùng cho cột "Lô") để ẩn bớt cột phụ và ưu tiên nút "Xuất".</p>
+</div>
+</div>
+
+<h2>4. Lỗi B — Return: HSD/NSX không đều, nút quét lệch</h2>
+<div class="card bug fixed-src">
+<p><span class="tag warn">Trung bình</span> &nbsp; <span class="file">src/app/forklift/return/page.tsx</span></p>
+<p><b>Triệu chứng:</b> Cặp ô ngày HSD và NSX khoảng cách không đều, layout lệch; nút "Quét QR" vị trí trả về lệch.</p>
+
+<div class="why">
+<b>Tình trạng &amp; nguyên nhân:</b>
+<ul>
+<li><b>Đã sửa một phần trong code:</b> commit <code class="inl">c4cca46 fix(return): sua lech layout HSD/NSX va nut quet tran mobile</code> đã có trên <code class="inl">main</code>. Mã hiện tại đã dùng lưới <code class="inl">grid grid-cols-2 gap-2</code> với <code class="inl">min-w-0</code> ở cả ô HSD và NSX (dòng 336–361). Nếu production vẫn lệch thì rất có thể là <b>bản build cũ chưa deploy</b> (xem mục 5).</li>
+<li><b>Nguyên nhân kỹ thuật còn sót:</b> ô <code class="inl">&lt;input type="date"&gt;</code> trên mobile (WebKit/Safari) có <b>độ rộng nội tại cố định</b> do nút lịch/spinner bên trong. Dù đặt <code class="inl">w-full min-w-0</code>, khi nhồi 2 ô vào lưới 2 cột trên thẻ chỉ rộng ~330px (do container dùng <code class="inl">p-6</code> = 24px lề mỗi bên, nặng hơn các trang khác dùng 16px) thì mỗi ô ~140px — vẫn dễ chật và trông không đều giữa 2 trình duyệt/thiết bị.</li>
+<li><b>Hàng nút quét vị trí (dòng 376–396):</b> dùng <code class="inl">flex gap-2</code> với nút <code class="inl">whitespace-nowrap</code> nhưng <b>không</b> có cơ chế xuống dòng <code class="inl">flex-col sm:flex-row</code> + <code class="inl">w-full sm:w-auto</code> như trang relocate đã sửa — chỉ dựa vào <code class="inl">min-w-0</code> của select. Kém bền hơn, dễ lệch trên màn rất hẹp.</li>
+</ul>
+</div>
+
+<div class="fix">
+<b>Cách fix:</b>
+<ul>
+<li>Giảm lề container từ <code class="inl">p-6</code> về <code class="inl">px-margin-mobile py-md</code> (16px) cho đồng bộ và rộng chỗ hơn.</li>
+<li>Lưới ngày: cho phép xếp 1 cột trên màn rất hẹp rồi 2 cột khi rộng hơn: <code class="inl">grid grid-cols-1 min-[360px]:grid-cols-2 gap-2</code>; thêm <code class="inl">appearance-none</code> cho input date để kiểm soát độ rộng tốt hơn.</li>
+<li>Hàng nút quét vị trí: áp dụng đúng khuôn của relocate (<code class="inl">flex flex-col sm:flex-row</code> + select <code class="inl">w-full sm:flex-1 min-w-0</code> + nút <code class="inl">w-full sm:w-auto</code>).</li>
+</ul>
+</div>
+</div>
+
+<h2>5. Lưu ý quan trọng về triển khai (deploy)</h2>
+<div class="callout">
+<p>Các màn xe nâng chạy bằng tiến trình PM2 <b>wms-xenang</b>, build vào thư mục <b>.next-xenang</b>. Trong phiên xử lý lỗi pallet kiểm kê hôm nay, chúng ta mới chỉ build lại <b>.next-kiemke</b>. Nghĩa là <b>các sửa lỗi đã nằm trong code cho màn xe nâng (vd commit c4cca46) có thể CHƯA xuất hiện trên production</b> vì bản <code class="inl">.next-xenang</code> còn cũ.</p>
+<p>Vì vậy, sau khi sửa A/B/C, cần build lại đúng instance và restart:</p>
+<pre>cd /var/www/wms-vinhgiang
+git fetch origin &amp;&amp; git checkout main &amp;&amp; git reset --hard origin/main
+<span class="good">rm -rf .next*/types</span>            <span class="c"># tránh lỗi type-check do file build cũ (đã gặp hôm nay)</span>
+BASE_PATH=/xenang npm run build
+pm2 restart wms-xenang</pre>
+<p>Lý do thêm dòng <code class="inl">rm -rf .next*/types</code>: hôm nay build từng fail vì file type sinh ra từ build cũ trỏ tới route đã xóa — nên nhớ dọn trước khi build để khỏi lặp lại.</p>
+</div>
+
+<h2>6. Thứ tự ưu tiên đề xuất</h2>
+<div class="card">
+<table>
+  <thead><tr><th>Ưu tiên</th><th>Việc</th><th>File</th><th>Công sức</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag crit">1</span></td><td>Fix nút Quét QR tràn (Lỗi A)</td><td>relocate/page.tsx</td><td>~5 phút</td></tr>
+    <tr><td><span class="tag crit">2</span></td><td>Fix bảng FEFO bị cắt cột Cấp độ + nút Xuất (Lỗi C)</td><td>stage-out/page.tsx</td><td>~10–20 phút</td></tr>
+    <tr><td><span class="tag warn">3</span></td><td>Chuẩn hóa layout ngày &amp; nút quét (Lỗi B)</td><td>return/page.tsx</td><td>~15 phút</td></tr>
+    <tr><td><span class="tag ok">4</span></td><td>Build lại <code class="inl">.next-xenang</code> + restart wms-xenang</td><td>VPS</td><td>~5 phút</td></tr>
+  </tbody>
+</table>
+<p style="margin-bottom:0"><b>Gợi ý dài hạn:</b> tạo một component dùng chung cho cặp "select + nút Quét QR" (đã đúng chuẩn responsive) để mọi màn dùng lại, tránh tình trạng nơi sửa nơi quên như hiện nay.</p>
+</div>
+
+<p class="footnote">
+Báo cáo lập dựa trên đối chiếu trực tiếp mã nguồn nhánh <code class="inl">main</code> (HEAD 8c0841b) với ảnh test thực tế. Các số dòng theo phiên bản file tại thời điểm phân tích (16/06/2026).
+</p>
+
+</div>
+</body>
+</html>

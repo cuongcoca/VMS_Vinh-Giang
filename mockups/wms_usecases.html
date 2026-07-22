@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tài liệu Use Case — WMS Vĩnh Giang v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============== TOKENS ============== */
+  :root {
+    --bg: #faf9f6;
+    --bg-soft: #f3f1ec;
+    --panel: #ffffff;
+    --ink: #18181b;
+    --ink-soft: #3f3f46;
+    --muted: #71717a;
+    --line: #e7e5e0;
+    --line-strong: #d4d2cc;
+    --accent: #1e3a5f;
+    --accent-soft: #e8eef5;
+
+    --must: #15803d;
+    --must-soft: #dcfce7;
+    --should: #b45309;
+    --should-soft: #fef3c7;
+    --could: #475569;
+    --could-soft: #f1f5f9;
+
+    --shadow-sm: 0 1px 2px rgba(24,24,27,.04);
+    --shadow: 0 1px 3px rgba(24,24,27,.06), 0 4px 16px rgba(24,24,27,.04);
+    --shadow-lg: 0 4px 24px rgba(24,24,27,.08);
+
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14.5px;
+    line-height: 1.6;
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============== DECORATIVE BG ============== */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(30,58,95,0.04) 0%, transparent 40%),
+      radial-gradient(circle at 88% 92%, rgba(180,83,9,0.03) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 56px 48px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ============== HERO ============== */
+  .hero {
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 40px;
+    position: relative;
+  }
+  .hero .kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    padding: 4px 10px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+  .hero .kicker::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(30,58,95,.15);
+  }
+  .hero h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 56px;
+    line-height: 1.05;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    font-variation-settings: 'opsz' 144, 'SOFT' 50;
+  }
+  .hero h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+    font-variation-settings: 'opsz' 144, 'SOFT' 100;
+  }
+  .hero p.lead {
+    font-size: 17px;
+    color: var(--ink-soft);
+    max-width: 720px;
+    line-height: 1.6;
+  }
+  .hero .meta {
+    display: flex; gap: 24px;
+    margin-top: 24px;
+    font-size: 12.5px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    flex-wrap: wrap;
+  }
+  .hero .meta span strong { color: var(--ink); font-weight: 500; }
+
+  /* ============== STATS ============== */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: all .2s ease;
+  }
+  .stat::after {
+    content: "";
+    position: absolute; top: 0; right: 0;
+    width: 60px; height: 60px;
+    background: radial-gradient(circle at top right, var(--accent-soft), transparent 70%);
+    opacity: .5;
+  }
+  .stat:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .stat .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .stat .value {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 42px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variation-settings: 'opsz' 144;
+  }
+  .stat .value sub {
+    font-size: 14px;
+    color: var(--muted);
+    vertical-align: middle;
+    margin-left: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .stat.must .value { color: var(--must); }
+  .stat.should .value { color: var(--should); }
+  .stat.could .value { color: var(--could); }
+
+  /* ============== FILTER BAR ============== */
+  .filters {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    margin-bottom: 32px;
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 16px;
+    z-index: 10;
+    backdrop-filter: blur(12px);
+  }
+  .filters-row {
+    display: flex; gap: 24px; align-items: center; flex-wrap: wrap;
+  }
+  .filter-group {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .filter-group .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12.5px;
+    padding: 5px 12px;
+    background: var(--bg-soft);
+    border: 1px solid transparent;
+    border-radius: 100px;
+    cursor: pointer;
+    color: var(--ink-soft);
+    transition: all .15s ease;
+    user-select: none;
+    font-weight: 500;
+  }
+  .chip:hover { border-color: var(--line-strong); }
+  .chip.active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .chip .count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    opacity: .7;
+  }
+  .filter-search {
+    flex: 1; min-width: 240px; max-width: 360px;
+    margin-left: auto;
+  }
+  .filter-search input {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    padding: 8px 14px 8px 36px;
+    font: inherit; font-size: 13px;
+    border-radius: 100px;
+    outline: none;
+    transition: border-color .15s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 14px center;
+  }
+  .filter-search input:focus { border-color: var(--accent); }
+
+  /* ============== MODULE ============== */
+  .module {
+    margin-bottom: 40px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .2s;
+  }
+  .module:hover { box-shadow: var(--shadow); }
+  .module.hidden { display: none; }
+
+  .module-head {
+    padding: 22px 28px 18px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--panel), var(--bg-soft));
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .module-head:hover { background: linear-gradient(180deg, var(--bg-soft), var(--bg-soft)); }
+  .module-head .left { flex: 1; }
+  .module-head .num {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 2px;
+    letter-spacing: 0.5px;
+  }
+  .module-head h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    line-height: 1.2;
+    font-variation-settings: 'opsz' 80;
+  }
+  .module-head .code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+    margin-left: 8px;
+    background: var(--accent-soft);
+    padding: 2px 8px;
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+  .module-head p {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+    max-width: 720px;
+  }
+  .module-head .right {
+    display: flex; gap: 8px; align-items: center;
+    flex-shrink: 0;
+  }
+  .pct-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .pct-badge strong { color: var(--ink); font-weight: 600; }
+  .chevron {
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    transition: transform .2s ease;
+    font-size: 10px;
+  }
+  .module.collapsed .chevron { transform: rotate(-90deg); }
+  .module.collapsed .module-body { display: none; }
+
+  /* ============== UC TABLE ============== */
+  .module-body {
+    padding: 0;
+  }
+  .uc {
+    display: grid;
+    grid-template-columns: 120px 1fr 200px 100px;
+    gap: 20px;
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--line);
+    align-items: start;
+    transition: background .15s;
+  }
+  .uc:last-child { border-bottom: 0; }
+  .uc:hover { background: var(--bg-soft); }
+  .uc.hidden { display: none; }
+
+  .uc .id {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--bg-soft);
+    padding: 3px 9px;
+    border-radius: 4px;
+    display: inline-block;
+    width: fit-content;
+    border: 1px solid var(--line);
+    letter-spacing: 0.3px;
+  }
+  .uc .body h4 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+    letter-spacing: -0.005em;
+  }
+  .uc .body h4 .star {
+    font-size: 11px;
+    color: var(--accent);
+    margin-left: 6px;
+    background: var(--accent-soft);
+    padding: 2px 7px;
+    border-radius: 100px;
+    vertical-align: middle;
+    font-weight: 500;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.3px;
+  }
+  .uc .body p {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+  .uc .role {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.45;
+    font-style: italic;
+    font-family: 'Fraunces', Georgia, serif;
+    font-variation-settings: 'opsz' 14;
+  }
+  .uc .priority {
+    text-align: right;
+    align-self: start;
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 11px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .badge::before {
+    content: "";
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .badge.must { background: var(--must-soft); color: var(--must); }
+  .badge.should { background: var(--should-soft); color: var(--should); }
+  .badge.could { background: var(--could-soft); color: var(--could); }
+
+  /* ============== EMPTY STATE ============== */
+  .empty-state {
+    text-align: center;
+    padding: 80px 24px;
+    background: var(--panel);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius);
+    color: var(--muted);
+    display: none;
+  }
+  .empty-state.show { display: block; }
+  .empty-state h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+    font-style: italic;
+  }
+  .empty-state p { font-size: 13.5px; }
+
+  /* ============== LEGEND / FOOTER ============== */
+  .legend {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+  }
+  .legend-block h5 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .legend-block .item {
+    display: flex; gap: 10px; margin-bottom: 10px;
+    align-items: flex-start;
+  }
+  .legend-block .item .badge { flex-shrink: 0; margin-top: 1px; min-width: 76px; justify-content: center; }
+  .legend-block .item .desc {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .legend-block .item .desc strong {
+    display: block;
+    color: var(--ink);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .footnote {
+    margin-top: 56px;
+    padding: 24px 28px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.65;
+  }
+  .footnote strong { color: var(--ink); }
+  .footnote ul { padding-left: 18px; margin-top: 6px; }
+  .footnote li { margin-bottom: 3px; }
+  .footnote .sig {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--line);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  /* ============== RESPONSIVE ============== */
+  @media (max-width: 960px) {
+    .wrap { padding: 32px 20px 60px; }
+    .hero h1 { font-size: 38px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .uc {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .uc .priority { text-align: left; }
+    .legend { grid-template-columns: 1fr; }
+    .filters { position: static; }
+    .module-head { flex-direction: column; }
+  }
+
+  /* ============== PRINT ============== */
+  @media print {
+    body { background: white; font-size: 11px; }
+    body::before { display: none; }
+    .filters { display: none; }
+    .module { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; margin-bottom: 16px; }
+    .module-head { cursor: default; }
+    .chevron { display: none; }
+    .hero h1 { font-size: 28px; }
+    .stat { box-shadow: none; }
+    .wrap { padding: 16px; max-width: 100%; }
+    .uc { padding: 10px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <span class="kicker">Specification · v3.0 · Tháng 05/2026</span>
+    <h1>Danh mục <em>Use Case</em><br>Hệ thống WMS Vĩnh Giang</h1>
+    <p class="lead">
+      Tài liệu liệt kê toàn bộ chức năng nghiệp vụ của hệ thống quản lý kho, được phân loại theo module và mức ưu tiên triển khai (Must · Should · Could) theo nguyên tắc MoSCoW.
+    </p>
+    <div class="meta">
+      <span><strong>56</strong> use cases</span>
+      <span><strong>11</strong> module nghiệp vụ</span>
+      <span><strong>5</strong> vai trò người dùng</span>
+      <span><strong>Mobile-first</strong> cho tác nghiệp tại kho</span>
+    </div>
+  </header>
+
+  <!-- ============ STATS ============ -->
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Tổng số</div>
+      <div class="value">56 <sub>UC</sub></div>
+    </div>
+    <div class="stat must">
+      <div class="label">Must — Bắt buộc</div>
+      <div class="value">42 <sub>UC</sub></div>
+    </div>
+    <div class="stat should">
+      <div class="label">Should — Nên có</div>
+      <div class="value">14 <sub>UC</sub></div>
+    </div>
+    <div class="stat could">
+      <div class="label">Could — Tùy chọn</div>
+      <div class="value">0 <sub>UC</sub></div>
+    </div>
+    <div class="stat">
+      <div class="label">Module</div>
+      <div class="value">11</div>
+    </div>
+  </div>
+
+  <!-- ============ FILTERS ============ -->
+  <div class="filters">
+    <div class="filters-row">
+      <div class="filter-group" id="filter-priority">
+        <span class="label">Ưu tiên</span>
+        <span class="chip active" data-priority="all">Tất cả</span>
+        <span class="chip" data-priority="must" style="--c: var(--must); --cs: var(--must-soft);">Must <span class="count">42</span></span>
+        <span class="chip" data-priority="should" style="--c: var(--should); --cs: var(--should-soft);">Should <span class="count">14</span></span>
+        <span class="chip" data-priority="could" style="--c: var(--could); --cs: var(--could-soft);">Could <span class="count">0</span></span>
+      </div>
+      <div class="filter-search">
+        <input type="text" id="search" placeholder="Tìm theo mã UC, tên chức năng, vai trò…">
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODULES (Rendered by JS) ============ -->
+  <div id="modules-container"></div>
+
+  <!-- ============ EMPTY STATE ============ -->
+  <div class="empty-state" id="empty-state">
+    <h3>Không tìm thấy use case phù hợp</h3>
+    <p>Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc ưu tiên.</p>
+  </div>
+
+  <!-- ============ LEGEND ============ -->
+  <div class="legend">
+    <div class="legend-block">
+      <h5>Mức ưu tiên (MoSCoW)</h5>
+      <div class="item">
+        <span class="badge must">Must</span>
+        <div class="desc"><strong>Bắt buộc</strong>Chức năng cốt lõi, hệ thống không thể vận hành thiếu. Phải có trong bản phát hành đầu tiên (MVP).</div>
+      </div>
+      <div class="item">
+        <span class="badge should">Should</span>
+        <div class="desc"><strong>Nên có</strong>Quan trọng nhưng không bắt buộc cho MVP. Cải thiện đáng kể trải nghiệm và hiệu quả vận hành, ưu tiên ở phase 2.</div>
+      </div>
+      <div class="item">
+        <span class="badge could">Could</span>
+        <div class="desc"><strong>Tùy chọn</strong>Chức năng "nice-to-have" — triển khai nếu còn thời gian/ngân sách. Hiện chưa có UC ở mức này (dự phòng cho phase 3+).</div>
+      </div>
+    </div>
+
+    <div class="legend-block">
+      <h5>Vai trò người dùng</h5>
+      <div class="item"><div class="desc"><strong>Kế toán kho</strong>Quản lý chứng từ, phiếu nhập/xuất, mã hàng, đối chiếu sổ sách.</div></div>
+      <div class="item"><div class="desc"><strong>Thủ kho</strong>Tiếp nhận hàng, tạo &amp; xác nhận pallet, đối chiếu thực tế tại kho.</div></div>
+      <div class="item"><div class="desc"><strong>Xe nâng</strong>Di chuyển pallet, xếp vào vị trí, rút hàng FEFO ra khu chờ xuất.</div></div>
+      <div class="item"><div class="desc"><strong>Người kiểm kê</strong>Thực hiện kiểm kê định kỳ theo vị trí hoặc theo mã hàng.</div></div>
+      <div class="item"><div class="desc"><strong>Quản lý</strong>Cấu hình hệ thống, phân quyền, duyệt phiếu điều chỉnh, xem KPI.</div></div>
+    </div>
+
+    <div class="legend-block">
+      <h5>Ký hiệu</h5>
+      <div class="item"><div class="desc"><strong>★ Mới</strong>Use case mới hoàn toàn so với hệ thống cũ.</div></div>
+      <div class="item"><div class="desc"><strong>Cốt lõi</strong>Use case nằm trên luồng nghiệp vụ chính, ảnh hưởng lớn nếu lỗi.</div></div>
+      <div class="item"><div class="desc"><strong>Audit log</strong>Bắt buộc ghi lại đầy đủ thao tác (ai, lúc nào, lý do).</div></div>
+      <div class="item"><div class="desc"><strong>Mobile</strong>Ưu tiên thiết kế cho điện thoại — tác nghiệp ngay tại kho.</div></div>
+    </div>
+  </div>
+
+  <!-- ============ FOOTNOTE ============ -->
+  <div class="footnote">
+    <strong>Ghi chú triển khai —</strong>
+    Toàn bộ 56 use case đã được mockup trực quan (xem file <em>wms_mockups_4.html</em>) và phân loại theo MoSCoW. Phase 1 ưu tiên triển khai 42 UC Must, đảm bảo luồng cơ bản: Nhập hàng → Tạo pallet → Xếp vị trí → Rút FEFO → Khu chờ xuất → Cân lại tồn. Phase 2 bổ sung 14 UC Should (báo cáo nâng cao, kiểm kê, audit, nhà cung cấp). Phase 3 dành cho các UC Could phát sinh trong quá trình vận hành thực tế.
+    <ul>
+      <li>Các UC có gắn <em>★ Mới</em> là điểm khác biệt chính so với hệ thống cũ (đặc biệt: UC-IN-06 nhập Excel hàng về, UC-OUT-05 cân lại tồn, module Kiểm kê toàn bộ).</li>
+      <li>Audit log bắt buộc với UC-FK-05 (hoàn trả khu chờ xuất → vị trí chứa) và UC-INV-09 (phiếu điều chỉnh tồn).</li>
+      <li>FEFO áp dụng triệt để: ≤ 7 ngày → cảnh báo đỏ · ≤ 30 ngày → cảnh báo vàng.</li>
+    </ul>
+    <div class="sig">
+      <span>WMS Vĩnh Giang · Use Case Specification v3.0</span>
+      <span>Cập nhật: 05/2026</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============== DATA ==============
+const modules = [
+  {
+    code: 'AUTH',
+    name: 'Xác thực & Phân quyền',
+    desc: 'Đăng nhập, quản lý mật khẩu và phân quyền theo 5 vai trò kho (RBAC).',
+    ucs: [
+      { id: 'UC-AUTH-01', name: 'Đăng nhập', role: 'Tất cả vai trò', priority: 'must', desc: 'Xác thực vào Mini App. Hỗ trợ Email hoặc SĐT + Mật khẩu. Mỗi vai trò có dashboard khác nhau sau đăng nhập.' },
+      { id: 'UC-AUTH-03', name: 'Đổi mật khẩu', role: 'Tất cả vai trò', priority: 'must', desc: 'Đổi mật khẩu cá nhân trong app: nhập MK hiện tại, MK mới, xác nhận MK mới.' },
+      { id: 'UC-AUTH-04', name: 'Quên mật khẩu', role: 'Tất cả vai trò', priority: 'must', desc: 'Đặt lại mật khẩu qua email. Yêu cầu email đã đăng ký, SMTP đã cấu hình (UC-SYS-02).' },
+      { id: 'UC-AUTH-05', name: 'Phân quyền theo vai trò (RBAC)', role: 'Quản lý', priority: 'must', desc: 'Quản lý 5 vai trò với quyền chi tiết theo từng chức năng. Ma trận phân quyền do Quản lý cấu hình.' },
+    ]
+  },
+  {
+    code: 'MD',
+    name: 'Master Data — Dữ liệu nền',
+    desc: 'Khai báo sản phẩm, mã hàng, nhóm, đơn vị, vị trí kho, nhà cung cấp.',
+    ucs: [
+      { id: 'UC-MD-01', name: 'Khai báo sản phẩm', role: 'Kế toán kho / Quản lý', priority: 'must', desc: 'CRUD sản phẩm với các trường: SKU, Tên đầy đủ, Tên rút gọn, ĐVT, Quy cách, Trọng lượng/thùng, Thể tích/thùng, Có quản lý lô, Có quản lý HSD.' },
+      { id: 'UC-MD-02', name: 'Quản lý Mã hàng', role: 'Kế toán kho (PC) · Thủ kho (ĐT)', priority: 'must', new: true, desc: 'Mã hàng theo chứng từ NCC. Kế toán quản lý chính trên web; Thủ kho tạo nhanh trên điện thoại khi cần.' },
+      { id: 'UC-MD-03', name: 'Quản lý Nhóm hàng', role: 'Kế toán kho', priority: 'must', desc: 'CRUD nhóm hàng để phân loại sản phẩm, dùng cho báo cáo và tìm kiếm.' },
+      { id: 'UC-MD-04', name: 'Quản lý Đơn vị tính', role: 'Kế toán kho', priority: 'must', desc: 'CRUD đơn vị tính. Đơn giản hóa — không cần quản lý chuyển đổi phức tạp giữa các đơn vị.' },
+      { id: 'UC-MD-05', name: 'Quản lý Vị trí kho (Layout)', role: 'Quản lý / Kế toán kho', priority: 'must', new: true, desc: 'Khai báo cấu trúc kho theo dãy/kệ/ô. Format mới: A-03-02 (Khu-Kệ-Tầng). 4 loại: Vị trí chứa, Khu chờ nhập, Khu chờ xuất, Khu kiểm kê.' },
+      { id: 'UC-MD-06', name: 'Quản lý Nhà cung cấp', role: 'Kế toán kho', priority: 'should', new: true, desc: 'CRUD nhà cung cấp dùng cho phiếu nhập. Hệ thống cũ không có module này.' },
+    ]
+  },
+  {
+    code: 'PAL',
+    name: 'Pallet — Đơn vị quản lý hàng',
+    desc: 'Tạo, quản lý và xác nhận pallet — đơn vị nhỏ nhất theo dõi vị trí trong kho.',
+    ucs: [
+      { id: 'UC-PAL-01', name: 'Tạo Pallet (sinh mã tự động)', role: 'Thủ kho', priority: 'must', core: true, desc: 'Bấm "Tạo pallet" → hệ thống tự sinh mã PLYYMMDD.STT (vd PL260506.011). Reset STT hàng ngày, chống trùng khi nhiều thủ kho tạo đồng thời.' },
+      { id: 'UC-PAL-02', name: 'Cập nhật chi tiết hàng trên Pallet', role: 'Thủ kho', priority: 'must', core: true, desc: 'Thêm/sửa các dòng hàng trên pallet. Mỗi dòng: Mã hàng, Tên, SL (số lẻ/thùng), Lô, HSD, Ghi chú.' },
+      { id: 'UC-PAL-03', name: 'Nhận diện mã hàng (đa phương thức)', role: 'Thủ kho', priority: 'should', new: true, desc: 'Hỗ trợ 5 cách nhập mã hàng: Quét mã vạch · Quét QR · Chụp ảnh mã vỏ thùng · Tìm danh mục · Nhập tay dự phòng.' },
+      { id: 'UC-PAL-04', name: 'Xác nhận Pallet (Khóa thông tin)', role: 'Thủ kho', priority: 'must', desc: 'Đánh dấu pallet đã hoàn thiện. Sau khi xác nhận, các trường thông tin bị khóa — chỉ sửa được qua UC-PAL-05 (quyền đặc biệt).' },
+      { id: 'UC-PAL-05', name: 'Sửa Pallet sau khi xác nhận', role: 'Người được phân quyền', priority: 'should', audit: true, desc: 'Trường hợp ngoại lệ khi cần sửa pallet đã khóa. Phải có lý do, ghi audit log đầy đủ.' },
+      { id: 'UC-PAL-06', name: 'Xem chi tiết Pallet', role: 'Tất cả vai trò', priority: 'must', desc: 'Hiển thị: Mã pallet, dòng hàng, trạng thái, vị trí hiện tại, lịch sử di chuyển.' },
+    ]
+  },
+  {
+    code: 'IN',
+    name: 'Inbound — Nhập kho có phiếu',
+    desc: 'Quy trình nhập kho theo phiếu yêu cầu: lập phiếu → tiếp nhận → đối chiếu → chốt.',
+    ucs: [
+      { id: 'UC-IN-01', name: 'Lập Phiếu yêu cầu nhập', role: 'Kế toán kho', priority: 'must', new: true, desc: 'Tạo phiếu PHN với: Mã phiếu, Loại nhập, NCC, Ngày dự kiến, Kho nhận, Danh sách mã hàng + SL. Hỗ trợ nhập tay hoặc up file Excel.' },
+      { id: 'UC-IN-02', name: 'Thủ kho tiếp nhận phiếu', role: 'Thủ kho', priority: 'must', new: true, desc: 'Thủ kho mở phiếu, đánh dấu đã tiếp nhận, chuẩn bị nhân lực và khu chờ nhập cho lô hàng sắp về.' },
+      { id: 'UC-IN-03', name: 'Đối chiếu Pallet với Phiếu yêu cầu', role: 'Hệ thống · Thủ kho · Kế toán', priority: 'must', core: true, desc: 'Engine đối chiếu: sau khi pallet được cập nhật, hệ thống cộng tổng theo mã hàng và phân loại: Đã khớp / Thiếu / Thừa / Hàng phát sinh / Chờ chuẩn hóa.' },
+      { id: 'UC-IN-04', name: 'Kế toán chốt phiếu nhập', role: 'Kế toán kho', priority: 'must', desc: 'Kiểm tra: SL theo phiếu, SL thực, SL đã đưa vào vị trí, chênh lệch, mã tạm, pallet còn chờ. Điều kiện chốt: Tổng thực nhập = Tổng đã phân bổ + chờ xử lý.' },
+      { id: 'UC-IN-05', name: 'Theo dõi trạng thái phiếu nhập', role: 'Kế toán · Thủ kho · Quản lý', priority: 'must', desc: 'DS phiếu với 8 trạng thái: Mới → Chờ TK → Chuẩn bị → Kiểm đếm → Pallet chờ nhập → Đưa vào vị trí → Chờ chốt → Đã chốt.' },
+      { id: 'UC-IN-06', name: 'Nhập phiếu yêu cầu từ file Excel "Hàng về"', role: 'Kế toán kho · Thủ kho', priority: 'must', new: true, desc: 'Upload file Excel NCC lớn (Unilever, P&G…). Hệ thống tự đọc, đối chiếu mã hàng đã khai báo, tạo phiếu yêu cầu nhập tự động. Mã chưa có rơi vào DS "Mã hàng cần tạo".' },
+    ]
+  },
+  {
+    code: 'INTMP',
+    name: 'Inbound Tồn tạm — Nhập không phiếu',
+    desc: 'Xử lý hàng về đột xuất chưa có phiếu yêu cầu — chuẩn hóa sau.',
+    ucs: [
+      { id: 'UC-INTMP-01', name: 'Tạo Phiếu nhập tạm', role: 'Thủ kho', priority: 'must', core: true, desc: 'Hàng về đột xuất chưa có phiếu. Thủ kho tạo phiếu trên mobile với: Nguồn, Người giao, Lý do (bắt buộc), Ảnh chứng từ.' },
+      { id: 'UC-INTMP-02', name: 'Xử lý phiếu nhập tạm (chuẩn hóa)', role: 'Kế toán kho', priority: 'must', desc: 'Quy trình 3 bước trên desktop: đối chiếu chứng từ → tạo/match mã hàng → chuẩn hóa thành phiếu nhập chính thức.' },
+      { id: 'UC-INTMP-03', name: 'Theo dõi tồn tạm', role: 'Kế toán · Quản lý', priority: 'should', desc: 'Báo cáo riêng cho hàng đang ở trạng thái "Tồn tạm — Chờ kế toán xử lý". Cảnh báo nếu quá ngày X.' },
+    ]
+  },
+  {
+    code: 'FK',
+    name: 'Forklift & Movement — Xe nâng',
+    desc: 'Mọi thao tác di chuyển pallet trong kho: xếp vị trí, di chuyển, rút FEFO, hoàn trả.',
+    ucs: [
+      { id: 'UC-FK-01', name: 'Xem DS Pallet chờ đưa vào vị trí', role: 'Xe nâng', priority: 'must', desc: 'Hiển thị: Mã pallet, dòng hàng, SL, Date gần nhất, trạng thái "Chờ đưa vào vị trí". Xe nâng xem nhưng không sửa được nội dung pallet.' },
+      { id: 'UC-FK-02', name: 'Đưa Pallet vào vị trí chứa', role: 'Xe nâng', priority: 'must', core: true, desc: 'Chọn pallet → nhấc thực tế → đến vị trí trống → quét/chọn mã vị trí (vd A-03-02) → xác nhận. Pallet rời khu chờ nhập → đến vị trí chứa.' },
+      { id: 'UC-FK-03', name: 'Chuyển Vị trí chứa → Vị trí chứa', role: 'Xe nâng', priority: 'must', desc: 'Sắp xếp lại kho. App khóa Mã/SL/Lô/Date — chỉ đổi vị trí. Tổng tồn không đổi.' },
+      { id: 'UC-FK-04', name: 'Chuyển Vị trí chứa → Khu chờ xuất (FEFO)', role: 'Xe nâng', priority: 'must', core: true, desc: 'Chọn mã hàng cần rút → app gợi ý vị trí ưu tiên DATE CẬN NHẤT (FEFO). Hỗ trợ rút nguyên pallet (TH-A) hoặc một phần (TH-B).' },
+      { id: 'UC-FK-05', name: 'Chuyển Khu chờ xuất → Vị trí chứa', role: 'Người được phân quyền', priority: 'must', audit: true, desc: 'Luồng DUY NHẤT cho phép sửa Mã/SL/Lô/Date thực tế (vì khu chờ xuất có thể tách/gộp/đổi pallet). Phải có lý do, audit log bắt buộc.' },
+      { id: 'UC-FK-06', name: 'Lịch sử luân chuyển', role: 'Tất cả (theo quyền)', priority: 'must', desc: 'Báo cáo mọi luân chuyển: Pallet, Mã hàng, Vị trí nguồn/đích, SL, Lô/Date, Người, Thời gian, Loại (4 loại).' },
+    ]
+  },
+  {
+    code: 'OUT',
+    name: 'Staging-out & Reports — Khu chờ xuất',
+    desc: 'Quản lý hàng tại khu chờ xuất và các báo cáo xuất kho tương đối.',
+    ucs: [
+      { id: 'UC-OUT-01', name: 'Xem hàng tại Khu chờ xuất', role: 'Tất cả (theo quyền)', priority: 'must', desc: 'Hiển thị Pallet, Mã hàng, Lô/Date, SL, Thời gian đến khu chờ xuất. Cảnh báo HSD đến gần.' },
+      { id: 'UC-OUT-02', name: 'Báo cáo Xuất kho tương đối', role: 'Kế toán · Quản lý', priority: 'must', desc: 'Xuất tương đối = SL chuyển từ vị trí chứa sang khu chờ xuất trong kỳ. Theo mã, theo nhóm, theo kỳ.' },
+      { id: 'UC-OUT-03', name: 'Báo cáo Tốc độ luân chuyển', role: 'Quản lý', priority: 'should', desc: 'Bình quân xuất/ngày · Tỷ lệ xuất/tồn · Số ngày tồn dự kiến. Hỗ trợ ra quyết định nhập hàng.' },
+      { id: 'UC-OUT-04', name: 'Gợi ý nhập hàng', role: 'Quản lý / Kế toán', priority: 'should', desc: 'Nhu cầu = Bình quân xuất/ngày × Số ngày dự trữ. SL gợi ý = Nhu cầu − Tồn hiện tại.' },
+      { id: 'UC-OUT-05', name: 'Cân lại tồn ở Khu chờ xuất', role: 'Kế toán kho', priority: 'must', new: true, desc: 'Tính năng MỚI HOÀN TOÀN. Upload file SL đã xuất hoặc phiếu yêu cầu xuất → trừ tồn đồng bộ với UC-INV-01. Đảm bảo khớp giữa tồn thực và tồn sổ.' },
+    ]
+  },
+  {
+    code: 'INV',
+    name: 'Inventory & Stocktaking — Tồn kho & Kiểm kê',
+    desc: 'Báo cáo tồn kho theo nhiều chiều và quy trình kiểm kê định kỳ.',
+    ucs: [
+      { id: 'UC-INV-01', name: 'Tồn theo Mã hàng', role: 'Tất cả', priority: 'must', desc: 'Báo cáo tồn kho tổng hợp theo SKU: SL khả dụng (sẵn sàng xuất) và SL chờ (đang chờ xếp/di chuyển). Hỗ trợ lọc theo nhóm, NCC, HSD.' },
+      { id: 'UC-INV-02', name: 'Tồn theo Vị trí', role: 'Tất cả', priority: 'must', desc: 'Báo cáo tồn theo từng vị trí kho (A-03-02). Liệt kê các pallet đang chứa và chi tiết hàng.' },
+      { id: 'UC-INV-03', name: 'Tồn theo Pallet', role: 'Tất cả', priority: 'must', desc: 'Danh sách tất cả pallet đang có trong kho, lọc theo trạng thái (chờ xếp / đã xếp / đang di chuyển / xuất tương đối).' },
+      { id: 'UC-INV-04', name: 'Báo cáo FEFO toàn kho', role: 'Quản lý / Kế toán', priority: 'should', desc: 'Tổng hợp tồn theo Lô/HSD trên toàn kho. Sắp xếp theo ngày hết hạn để quản lý ưu tiên xuất.' },
+      { id: 'UC-INV-05', name: 'Cảnh báo HSD & Tồn thấp', role: 'Quản lý / Kế toán', priority: 'should', desc: 'Cron chạy hàng ngày 6:00. Gửi email + badge trên Dashboard. Cảnh báo: HSD ≤ 30/7 ngày, tồn dưới min, tồn vượt max.' },
+      { id: 'UC-INV-06', name: 'Kiểm kê theo Vị trí', role: 'Người kiểm kê', priority: 'must', new: true, desc: 'Quy trình mobile: Quét mã vị trí → app hiển thị pallet đang ở đó → người kiểm kê ghi SL/lô/date thực tế → so sánh hệ thống → ghi nhận chênh lệch.' },
+      { id: 'UC-INV-07', name: 'Kiểm kê theo Mã hàng', role: 'Người kiểm kê / Quản lý', priority: 'must', new: true, desc: 'Tổng hợp tồn của 1 SKU trên TẤT CẢ vị trí, bao gồm cả khu xuất tương đối. Đối chiếu tổng SL hệ thống vs tổng SL thực tế đếm.' },
+      { id: 'UC-INV-08', name: 'Xử lý chênh lệch kiểm kê', role: 'Quản lý / Kế toán', priority: 'should', desc: 'Sau khi kiểm kê, quản lý duyệt từng dòng chênh: Chấp nhận (tạo phiếu điều chỉnh) / Kiểm lại / Bỏ qua.' },
+      { id: 'UC-INV-09', name: 'Phiếu điều chỉnh tồn', role: 'Kế toán → Quản lý duyệt', priority: 'should', audit: true, desc: 'Phiếu chính thức để cập nhật SL tồn (tăng/giảm). Lý do bắt buộc: Hỏng / Mất / Kiểm kê / Khác. Quy trình duyệt 2 cấp: Kế toán lập → Quản lý duyệt.' },
+    ]
+  },
+  {
+    code: 'DASH',
+    name: 'Dashboard — Bảng điều khiển',
+    desc: 'Trang chủ tùy biến theo vai trò và bảng KPI tổng quan cho quản lý.',
+    ucs: [
+      { id: 'UC-DASH-01', name: 'Dashboard theo vai trò', role: 'Tất cả vai trò', priority: 'must', desc: 'Mỗi vai trò khi đăng nhập sẽ thấy dashboard riêng, chỉ hiển thị widget liên quan đến công việc của họ.' },
+      { id: 'UC-DASH-02', name: 'KPI tổng quan (Quản lý)', role: 'Quản lý', priority: 'should', desc: 'Bảng điều khiển tổng quan: tồn theo nhóm, top mã nhập/xuất, cảnh báo HSD, tốc độ luân chuyển, phiếu chờ xử lý.' },
+    ]
+  },
+  {
+    code: 'SYS',
+    name: 'System — Hệ thống',
+    desc: 'Cấu hình chung, email, audit log, người dùng và profile cá nhân.',
+    ucs: [
+      { id: 'UC-SYS-01', name: 'Cấu hình chung', role: 'Quản lý', priority: 'should', desc: 'Tên ứng dụng, hotline, email hỗ trợ, logo, favicon. Hiển thị trên màn hình đăng nhập và header.' },
+      { id: 'UC-SYS-02', name: 'Cấu hình email gửi đi', role: 'Quản lý', priority: 'must', desc: 'SMTP / Mailgun / SendGrid. Test gửi mail trước khi lưu. Dùng cho: cảnh báo HSD, quên mật khẩu, thông báo phiếu.' },
+      { id: 'UC-SYS-03', name: 'Audit Log (Nhật ký thao tác)', role: 'Quản lý', priority: 'must', audit: true, desc: 'Ghi lại toàn bộ thao tác có ảnh hưởng đến dữ liệu: ai, khi nào, làm gì, giá trị cũ → mới, lý do. Bắt buộc cho UC-FK-05 và UC-INV-09.' },
+      { id: 'UC-SYS-04', name: 'Quản lý người dùng', role: 'Quản lý', priority: 'must', desc: 'CRUD người dùng với 5 vai trò mới (Kế toán / Thủ kho / Xe nâng / Người kiểm kê / Quản lý). Bỏ hoàn toàn các trường MLM cũ (Ví / Số điểm / Cha / Người giới thiệu).' },
+      { id: 'UC-SYS-05', name: 'Profile cá nhân', role: 'Tất cả', priority: 'must', desc: 'Mỗi người dùng tự cập nhật thông tin: họ tên, email, SĐT, ảnh đại diện, đổi mật khẩu.' },
+    ]
+  },
+  {
+    code: 'INT',
+    name: 'Integration — Tích hợp & Tiện ích',
+    desc: 'Quét barcode/QR, chụp ảnh chứng từ, xuất Excel — dùng xuyên suốt các module.',
+    ucs: [
+      { id: 'UC-INT-01', name: 'Quét barcode / QR (Mobile)', role: 'Tất cả vai trò mobile', priority: 'must', desc: 'Sử dụng camera điện thoại để quét mã vạch / QR. Áp dụng xuyên suốt: thêm dòng pallet (UC-PAL-03), kiểm kê vị trí (UC-INV-06), tra cứu nhanh.' },
+      { id: 'UC-INT-02', name: 'Chụp ảnh chứng từ / hàng hóa', role: 'Thủ kho / Người KK', priority: 'should', desc: 'Đính kèm ảnh vào phiếu / dòng pallet / kết quả kiểm kê. Dùng cho: chứng từ giấy, ảnh hiện trường, hàng lỗi/vỡ.' },
+      { id: 'UC-INT-03', name: 'Xuất Excel báo cáo', role: 'Quản lý / Kế toán', priority: 'should', desc: 'Mọi báo cáo và bảng liệt kê đều có nút "Xuất Excel". Hộp thoại cấu hình cho phép chọn cột, định dạng và phạm vi dữ liệu.' },
+    ]
+  },
+];
+
+// ============== RENDER ==============
+const container = document.getElementById('modules-container');
+const emptyState = document.getElementById('empty-state');
+
+function priorityLabel(p) {
+  return p === 'must' ? 'Must' : p === 'should' ? 'Should' : 'Could';
+}
+
+function renderModules() {
+  container.innerHTML = modules.map((mod, idx) => {
+    const mustCount = mod.ucs.filter(u => u.priority === 'must').length;
+    const shouldCount = mod.ucs.filter(u => u.priority === 'should').length;
+    const total = mod.ucs.length;
+
+    const ucsHtml = mod.ucs.map(uc => {
+      const tags = [];
+      if (uc.new) tags.push('★ Mới');
+      if (uc.core) tags.push('Cốt lõi');
+      if (uc.audit) tags.push('Audit');
+
+      return `
+        <div class="uc" data-priority="${uc.priority}" data-search="${(uc.id + ' ' + uc.name + ' ' + uc.role + ' ' + uc.desc).toLowerCase()}">
+          <div class="id">${uc.id}</div>
+          <div class="body">
+            <h4>${uc.name}${tags.map(t => `<span class="star">${t}</span>`).join('')}</h4>
+            <p>${uc.desc}</p>
+          </div>
+          <div class="role">${uc.role}</div>
+          <div class="priority"><span class="badge ${uc.priority}">${priorityLabel(uc.priority)}</span></div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <section class="module" data-module="${mod.code}" id="module-${mod.code}">
+        <div class="module-head" onclick="this.parentElement.classList.toggle('collapsed')">
+          <div class="left">
+            <span class="num">Module ${String(idx + 1).padStart(2, '0')}</span>
+            <h2>${mod.name} <span class="code">${mod.code}</span></h2>
+            <p>${mod.desc}</p>
+          </div>
+          <div class="right">
+            <span class="pct-badge"><strong>${total}</strong> UC</span>
+            <span class="pct-badge"><strong style="color:var(--must)">${mustCount}</strong> Must · <strong style="color:var(--should)">${shouldCount}</strong> Should</span>
+            <div class="chevron">▼</div>
+          </div>
+        </div>
+        <div class="module-body">
+          ${ucsHtml}
+        </div>
+      </section>
+    `;
+  }).join('');
+}
+
+renderModules();
+
+// ============== FILTERS ==============
+let activePriority = 'all';
+let searchTerm = '';
+
+function applyFilters() {
+  const ucs = document.querySelectorAll('.uc');
+  const mods = document.querySelectorAll('.module');
+  let visibleCount = 0;
+
+  ucs.forEach(uc => {
+    const pri = uc.dataset.priority;
+    const txt = uc.dataset.search;
+
+    const matchesPri = activePriority === 'all' || pri === activePriority;
+    const matchesSearch = !searchTerm || txt.includes(searchTerm);
+
+    const show = matchesPri && matchesSearch;
+    uc.classList.toggle('hidden', !show);
+    if (show) visibleCount++;
+  });
+
+  // Hide modules that have no visible UCs
+  mods.forEach(mod => {
+    const visible = mod.querySelectorAll('.uc:not(.hidden)').length;
+    mod.classList.toggle('hidden', visible === 0);
+  });
+
+  emptyState.classList.toggle('show', visibleCount === 0);
+}
+
+// Priority chips
+document.querySelectorAll('#filter-priority .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#filter-priority .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activePriority = chip.dataset.priority;
+    applyFilters();
+  });
+});
+
+// Search
+document.getElementById('search').addEventListener('input', (e) => {
+  searchTerm = e.target.value.toLowerCase().trim();
+  applyFilters();
+});
+
+</script>
+</body>
+</html>

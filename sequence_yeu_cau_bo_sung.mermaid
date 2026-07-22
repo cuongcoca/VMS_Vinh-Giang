@@ -1,0 +1,71 @@
+sequenceDiagram
+    autonumber
+    actor KT as Kế toán
+    actor TX as Tài xế
+    participant App as Ứng dụng
+    participant API as Backend API
+    participant DB as Database
+    participant Audit as Audit Module
+    participant Noti as Notification
+
+    Note over KT,Noti: Phiếu đang ở trạng thái "Chờ duyệt", kế toán thấy thiếu thông tin
+
+    KT->>App: Chọn "Yêu cầu bổ sung"
+    App->>KT: Nhập lý do và mục cần bổ sung
+    KT->>App: Gửi yêu cầu bổ sung
+    App->>API: Tạo yêu cầu bổ sung (phiếu, lý do)
+    API->>DB: Cập nhật trạng thái "Cần bổ sung"
+    API->>Audit: Ghi nhận yêu cầu bổ sung
+    API->>Noti: Gửi thông báo cho tài xế
+    Noti-->>TX: Thông báo "Phiếu cần bổ sung"
+    API-->>App: Đã gửi yêu cầu
+    App-->>KT: Hiển thị "Đã yêu cầu bổ sung"
+
+    loop Tối đa N lần (chống lặp vô hạn)
+        TX->>App: Mở phiếu cần bổ sung
+        App->>API: Lấy chi tiết phiếu và lý do
+        API->>DB: Đọc phiếu, lý do, lịch sử
+        DB-->>API: Dữ liệu phiếu
+        API-->>App: Chi tiết phiếu cần bổ sung
+        App-->>TX: Hiển thị nội dung cần bổ sung
+
+        TX->>App: Cập nhật / chụp lại ảnh / sửa dữ liệu
+        App->>API: Lưu thông tin bổ sung
+        API->>DB: Cập nhật phiếu
+        API->>Audit: Ghi nhận thay đổi của tài xế
+
+        TX->>App: Gửi lại phiếu
+        App->>API: Chuyển trạng thái "Chờ duyệt"
+        API->>DB: Cập nhật trạng thái
+        API->>Noti: Thông báo cho kế toán
+        Noti-->>KT: Thông báo "Phiếu đã gửi lại"
+        API-->>App: Gửi lại thành công
+        App-->>TX: Hiển thị "Đã gửi lại"
+
+        KT->>App: Mở phiếu kiểm tra lại
+        App->>API: Lấy chi tiết phiếu
+        API->>DB: Đọc phiếu
+        DB-->>API: Dữ liệu phiếu
+        API-->>App: Chi tiết phiếu
+        App-->>KT: Hiển thị chi tiết
+
+        alt Đã đủ thông tin
+            KT->>App: Duyệt phiếu
+            App->>API: Phê duyệt
+            API->>DB: Cập nhật "Đã duyệt" + tính mức tiêu hao
+            API->>Audit: Ghi nhận phê duyệt
+            API-->>App: Duyệt thành công
+            App-->>KT: Hiển thị "Đã duyệt"
+        else Vẫn thiếu - còn lượt
+            Note over KT,TX: Quay lại đầu vòng lặp, yêu cầu bổ sung tiếp
+        else Vẫn thiếu - hết N lượt
+            KT->>App: Từ chối phiếu
+            App->>API: Từ chối (kèm lý do)
+            API->>DB: Cập nhật "Từ chối"
+            API->>Audit: Ghi nhận từ chối
+            API->>Noti: Thông báo cho tài xế
+            Noti-->>TX: Thông báo "Phiếu bị từ chối"
+            API-->>App: Đã từ chối
+            App-->>KT: Hiển thị "Đã từ chối"
+        end
+    end

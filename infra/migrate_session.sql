@@ -1,0 +1,14 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMP(3);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id UUID NOT NULL PRIMARY KEY,
+    user_id UUID NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    device_info VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(45),
+    location VARCHAR(100),
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    last_active TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+);

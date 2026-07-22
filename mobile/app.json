@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "WMS Vĩnh Giang",
+    "slug": "wms-vinhgiang",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "wms",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#022448"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.vinhgiang.wms",
+      "infoPlist": {
+        "NSCameraUsageDescription": "WMS cần camera để quét mã vạch / QR pallet, vị trí, mã hàng.",
+        "NSPhotoLibraryUsageDescription": "WMS cần truy cập ảnh để đính kèm chứng từ vào phiếu nhập."
+      }
+    },
+    "android": {
+      "package": "com.vinhgiang.wms",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Cho phép WMS dùng camera để quét mã vạch / QR."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cho phép WMS đính kèm ảnh chứng từ."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "https://khohangvinhgiang.io.vn/wms/api",
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}

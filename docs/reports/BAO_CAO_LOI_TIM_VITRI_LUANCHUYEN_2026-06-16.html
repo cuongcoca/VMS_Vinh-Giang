@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='vi'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Báo cáo lỗi: Luân chuyển không tìm được vị trí còn chỗ</title><style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2433;--muted:#5b6473;--line:#e4e8ef;--primary:#3949ab;--crit:#e11d48;--high:#ea580c;--ok:#059669}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-size:14.5px;line-height:1.62;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:30px 18px 90px}
+header.top{background:linear-gradient(135deg,#b91c1c,#ef4444);color:#fff;border-radius:18px;padding:28px 30px;box-shadow:0 12px 30px rgba(185,28,28,.25)}
+header.top h1{margin:0 0 6px;font-size:23px}header.top p{margin:2px 0;opacity:.95;font-size:14px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.meta span{background:rgba(255,255,255,.2);padding:4px 11px;border-radius:999px;font-size:12px;font-weight:600}
+h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+h3{font-size:16px;margin:18px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(16,24,40,.04)}
+.bad{border-left:5px solid var(--crit)}.warn{border-left:5px solid var(--high)}.good{border-left:5px solid var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0}
+th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+th{background:#eef1f7;font-size:12px;text-transform:uppercase;color:var(--muted)}
+code{font-family:Consolas,monospace;background:#eef1f6;color:#b4255f;padding:1px 6px;border-radius:4px;font-size:12px;word-break:break-word}
+pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:13px 15px;overflow-x:auto;font-size:12.5px;line-height:1.5;font-family:Consolas,monospace}
+.callout{background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;padding:16px 19px;margin:16px 0}
+.callout h3{margin-top:0;color:var(--primary)}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px}
+.t-crit{background:#ffe4e6;color:var(--crit)}.t-warn{background:#ffedd5;color:var(--high)}.t-ok{background:#d1fae5;color:var(--ok)}
+ul{margin:8px 0;padding-left:22px}li{margin:6px 0}
+.footnote{color:var(--muted);font-size:12.5px;margin-top:28px;border-top:1px dashed var(--line);padding-top:14px}
+.flow{font-family:Consolas,monospace;font-size:13px;background:#f3f4f8;border-radius:10px;padding:12px 14px;margin:8px 0}
+</style></head><body><div class='wrap'><header class='top'><h1>Báo cáo lỗi — Luân chuyển pallet không tìm được vị trí "có hàng nhưng chưa đầy"</h1>
+<p>Module Xe nâng · các màn: Luân chuyển (relocate), Trả về vị trí (return), Xếp vị trí (put-away)</p>
+<div class='meta'><span>Ngày: 16/06/2026</span><span>Loại: Lỗi logic + cấu hình dữ liệu</span><span>Mức độ: Cao</span></div></header><h2>1. Hiện tượng</h2>
+<div class='card bad'>
+<p>Khi <b>luân chuyển pallet</b>, người dùng muốn chọn được <b>mọi vị trí còn chỗ</b> — kể cả vị trí <b>đã có hàng nhưng chưa đầy</b>. Thực tế hệ thống <b>chỉ hiện vị trí TRỐNG HOÀN TOÀN</b>; vị trí đang có 1 pallet (dù còn chỗ) thì <b>không tìm thấy</b> để xếp vào.</p>
+<p>Màn <b>Xếp pallet vào vị trí (put-away)</b> thì "có vẻ chạy" vì thao tác này vốn nhắm vào vị trí trống.</p>
+</div><h2>2. Mỗi màn đang hỏi dữ liệu ở đâu</h2>
+<div class='card'>
+<table><thead><tr><th>Màn</th><th>Gọi API</th><th>Kết quả</th></tr></thead><tbody>
+<tr><td>Xếp vị trí (put-away)</td><td><code>/api/locations/available</code></td><td>Trống + còn-chỗ (đúng) — nhưng xem mục 3</td></tr>
+<tr><td>Luân chuyển (relocate)</td><td><code>/api/locations/available?pallet_weight_kg=...</code></td><td>Trống + còn-chỗ (đúng endpoint) — nhưng bị chặn bởi mục 3</td></tr>
+<tr><td>Trả về vị trí (return)</td><td><code>/api/locations?status=EMPTY</code></td><td><b>CHỈ vị trí TRỐNG</b> — bỏ qua hẳn vị trí còn-chỗ</td></tr>
+</tbody></table>
+<p style='font-size:13px;color:var(--muted)'>Bằng chứng: <code>forklift/put-away/page.tsx:45</code>, <code>forklift/relocate/page.tsx:46</code>, <code>forklift/return/page.tsx:71</code>.</p>
+</div><h2>3. Nguyên nhân gốc #1 — Mỗi vị trí bị giới hạn 1 pallet</h2>
+<div class='card bad'>
+<p><span class='tag t-crit'>Gốc rễ chính</span></p>
+<p>Dữ liệu vị trí được khởi tạo với <b><code>max_pallets = 1</code></b>. Nghĩa là một vị trí <b>chỉ chứa được 1 pallet</b> — hễ đã có 1 pallet là hệ thống coi như <b>"đầy slot"</b>, dù về mặt vật lý còn chỗ.</p>
+<pre>// prisma/seed-forklift.ts:230-231
+max_weight_kg: 1000.0,
+max_pallets: 1,        // ← mỗi vị trí chỉ nhận 1 pallet</pre>
+<p>Endpoint <code>/api/locations/available</code> lọc đúng theo cấu hình này:</p>
+<pre>// src/app/api/locations/available/route.ts:57-59
+const palletSlotOk = maxPallets == null || currentPallets &lt; maxPallets;
+const weightSlotOk  = maxWeightKg == null || (currentWeightKg + palletWeight) &lt;= maxWeightKg;
+const isAvailable   = palletSlotOk && weightSlotOk;   // currentPallets(1) &lt; maxPallets(1) = false → loại</pre>
+<p>→ Vị trí đã có 1 pallet: <code>current_pallets(1) &lt; max_pallets(1)</code> là <b>false</b> → bị loại khỏi danh sách. Đây chính là lý do "có hàng = không tìm được", và nó áp dụng cho <b>cả relocate lẫn put-away</b>. Put-away "có vẻ ổn" chỉ vì nó dùng để xếp vào ô trống.</p>
+</div><h2>4. Nguyên nhân gốc #2 — Màn "Trả về vị trí" còn khắt khe hơn</h2>
+<div class='card warn'>
+<p><span class='tag t-warn'>Lỗi phụ</span></p>
+<p>Màn Trả về vị trí gọi thẳng <code>/api/locations?status=EMPTY</code> → <b>chỉ vị trí TRỐNG HOÀN TOÀN</b>, không dùng logic "còn chỗ" của endpoint <code>available</code>. Kể cả khi bạn nâng <code>max_pallets</code>, màn này vẫn chỉ hiện ô trống.</p>
+<pre>// src/app/forklift/return/page.tsx:71
+fetch(`${basePath}/api/locations?status=EMPTY`)...</pre>
+</div><h2>5. Vì sao endpoint là "đúng" nhưng vẫn ra lỗi</h2>
+<div class='callout'><p>Code lọc không sai về mặt lập trình — nó tôn trọng <b>sức chứa khai báo</b> của vị trí. Vấn đề là <b>sức chứa được khai báo = 1 pallet</b> cho mọi vị trí, nên "có hàng" đồng nghĩa "hết chỗ". Muốn xếp nhiều pallet vào một vị trí (như mong muốn của bạn) thì phải <b>khai báo lại sức chứa</b> cho vị trí.</p></div><h2>6. Cách khắc phục (đề xuất)</h2>
+<div class='card good'>
+<h3>A. Sửa cấu hình sức chứa vị trí (giải quyết gốc #1)</h3>
+<ul>
+<li><b>Cách nhanh:</b> nâng <code>max_pallets</code> cho các vị trí lên số thực tế (vd 4, 6...) hoặc đặt <b><code>NULL = không giới hạn theo số pallet</code></b> (chỉ chặn theo cân <code>max_weight_kg</code>). Ví dụ SQL:
+<pre>-- Cho phép tối đa 6 pallet/vị trí cho khu chứa
+UPDATE locations SET max_pallets = 6 WHERE type = 'STORAGE';
+-- hoặc bỏ giới hạn theo số pallet (chỉ chặn theo cân):
+UPDATE locations SET max_pallets = NULL WHERE type = 'STORAGE';</pre></li>
+<li><b>Sửa seed</b> <code>prisma/seed-forklift.ts:231</code> để dữ liệu mới không lặp lại lỗi (đặt giá trị hợp lý thay vì 1).</li>
+<li><b>Bổ sung UI</b> cho phép Quản lý nhập/sửa <code>max_pallets</code> &amp; <code>max_weight_kg</code> ở màn quản lý vị trí (hiện form chưa cho chỉnh sức chứa) → để tự cấu hình về sau không cần SQL.</li>
+</ul>
+<h3>B. Đồng bộ màn "Trả về vị trí" (giải quyết #2)</h3>
+<ul>
+<li>Đổi <code>forklift/return/page.tsx</code> từ <code>/api/locations?status=EMPTY</code> sang <code>/api/locations/available</code> để cũng đề xuất được vị trí còn-chỗ (giống relocate/put-away).</li>
+</ul>
+<h3>C. (Tùy chọn) Rõ nghĩa cho người dùng</h3>
+<ul>
+<li>Trong dropdown vị trí, hiển thị "còn N chỗ / còn X kg" (endpoint đã trả <code>remaining_pallets</code>, <code>remaining_weight_kg</code>) để xe nâng biết vị trí nào còn nhận thêm.</li>
+</ul>
+</div><h2>7. Tóm tắt</h2>
+<div class='card'>
+<table><thead><tr><th>#</th><th>Nguyên nhân</th><th>Vị trí</th><th>Cách sửa</th></tr></thead><tbody>
+<tr><td>1</td><td><code>max_pallets = 1</code> → có 1 pallet là "đầy"</td><td>seed-forklift.ts:231 + dữ liệu locations</td><td>Nâng max_pallets / đặt NULL + thêm UI sửa sức chứa</td></tr>
+<tr><td>2</td><td>Màn Trả về chỉ lấy vị trí TRỐNG</td><td>return/page.tsx:71</td><td>Đổi sang /api/locations/available</td></tr>
+<tr><td>3</td><td>(Không phải lỗi) endpoint available lọc đúng theo cấu hình</td><td>available/route.ts:57-59</td><td>Giữ nguyên</td></tr>
+</tbody></table>
+<p><b>Việc cần làm trước tiên:</b> chạy 1 câu UPDATE nâng <code>max_pallets</code> (hoặc đặt NULL) cho các vị trí STORAGE — sau đó relocate sẽ tìm được ngay các vị trí "có hàng nhưng chưa đầy", không cần đổi code.</p>
+</div><p class='footnote'>Báo cáo dựa trên rà soát mã nguồn nhánh main ngày 16/06/2026: forklift/{relocate,put-away,return}/page.tsx, api/locations/available/route.ts, prisma/seed-forklift.ts. Mã hoá theo file:dòng để sửa trực tiếp.</p></div></body></html>
