@@ -22,30 +22,58 @@ export async function GET(req: NextRequest) {
       },
     };
 
-    // RELOCATE: pallet IN_STORAGE có pending move request (đang được lệnh chuyển)
-    //   → đơn giản dùng status IN_STORAGE + movements pending
+    // RELOCATE: pallet đang nằm trong vị trí chứa → xe nâng chọn để sắp xếp lại kho.
+    //   UC-FK-03 không có khái niệm "lệnh luân chuyển" do người khác giao — luồng chính
+    //   là xe nâng tự chọn pallet. Trước đây nhánh này trả mảng rỗng cứng nên tab
+    //   "Luân chuyển" trên Trang chủ Xe nâng LUÔN trống dù kho đầy hàng.
+    const relocateQuery = {
+      where: { status: "IN_STORAGE" as const, location_id: { not: null } },
+      orderBy: { updated_at: "desc" as const },
+      take: 50,
+      include: {
+        supplier: { select: { id: true, code: true, name: true } },
+        inbound_request: { select: { id: true, code: true } },
+        location: { select: { id: true, code: true } },
+        lines: {
+          select: { qty_box: true, expiry_date: true },
+        },
+      },
+    };
+
+    // RETURN: pallet đang ở khu chờ xuất → có thể hoàn trả về vị trí chứa (UC-FK-05).
+    //   Cùng nguyên nhân với RELOCATE: trước đây cũng trả mảng rỗng.
+    const returnQuery = {
+      where: { status: "IN_STAGING" as const },
+      orderBy: { updated_at: "desc" as const },
+      take: 50,
+      include: {
+        supplier: { select: { id: true, code: true, name: true } },
+        inbound_request: { select: { id: true, code: true } },
+        location: { select: { id: true, code: true } },
+        lines: {
+          select: { qty_box: true, expiry_date: true },
+        },
+      },
+    };
+
     // TO_STAGING_OUT: các phiếu xuất đang trong trạng thái lấy hàng (PICKING)
-    // RETURN: pallet từ khu chờ xuất hoàn trả về vị trí lưu trữ
 
     // KPI counts
-    const last24h = new Date(Date.now() - 24 * 3600 * 1000);
-    const [putAwayCount, inStorageCount, pickingRequestsCount, relocate24h, return24h] = await Promise.all([
+    const [putAwayCount, inStorageCount, pickingRequestsCount, inStagingCount] = await Promise.all([
       prisma.pallet.count({ where: { status: "CONFIRMED" } }),
       prisma.pallet.count({ where: { status: "IN_STORAGE" } }),
       prisma.outboundRequest.count({ where: { status: "PICKING" } }),
-      prisma.movement.count({
-        where: { movement_type: "RELOCATE", performed_at: { gte: last24h } },
-      }),
-      prisma.movement.count({
-        where: { movement_type: "RETURN", performed_at: { gte: last24h } },
-      }),
+      prisma.pallet.count({ where: { status: "IN_STAGING" } }),
     ]);
 
+    // Mỗi KPI đếm ĐÚNG số việc đang có thể làm ở tab tương ứng.
+    // Trước đây RELOCATE/RETURN đếm số Movement đã thực hiện trong 24h qua —
+    // tức là hiển thị việc ĐÃ XONG dưới nhãn việc PHẢI LÀM.
     const kpis = {
       PUT_AWAY: putAwayCount,
-      RELOCATE: relocate24h,        // proxy: lệnh chuyển trong 24h qua
+      RELOCATE: inStorageCount,             // pallet đang trong kho, có thể sắp xếp lại
       TO_STAGING_OUT: pickingRequestsCount, // số phiếu xuất đang xử lý
-      RETURN: return24h,             // proxy: hoàn trả vị trí trong 24h qua
+      RETURN: inStagingCount,               // pallet ở khu chờ xuất, có thể hoàn trả
       IN_STORAGE: inStorageCount,
     };
 
@@ -73,9 +101,11 @@ export async function GET(req: NextRequest) {
     }
 
     const pallets: Awaited<ReturnType<typeof prisma.pallet.findMany>> =
-      !taskType || taskType === "PUT_AWAY"
-        ? await prisma.pallet.findMany(putAwayQuery)
-        : []; // Stub: chưa có schema movements pending → trả mảng rỗng để không lỗi
+      taskType === "RELOCATE"
+        ? await prisma.pallet.findMany(relocateQuery)
+        : taskType === "RETURN"
+        ? await prisma.pallet.findMany(returnQuery)
+        : await prisma.pallet.findMany(putAwayQuery);
 
     // Enrich với tổng SL + min HSD
     type LineLite = { qty_box: unknown; expiry_date: Date | null };

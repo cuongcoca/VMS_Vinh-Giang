@@ -42,6 +42,12 @@ export async function GET(req: NextRequest) {
     const supplierId = searchParams.get("supplier_id") || "";
     const from = searchParams.get("from") || "";
     const to = searchParams.get("to") || "";
+    // `limit` để màn hình mobile lấy ít bản ghi khi đang gõ tìm kiếm.
+    // Mặc định giữ 200 như cũ để không đổi hành vi các màn hình đang gọi.
+    const limitParam = Number(searchParams.get("limit"));
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 200) : 200;
+    // KPI phải groupBy toàn bảng pallet — rất tốn khi gõ tìm kiếm liên tục.
+    const skipKpis = searchParams.get("skip_kpis") === "1";
 
     const where: Record<string, unknown> = {};
 
@@ -65,6 +71,9 @@ export async function GET(req: NextRequest) {
       where.OR = [
         { code: { contains: q, mode: "insensitive" } },
         { note: { contains: q, mode: "insensitive" } },
+        // Xe nâng nghĩ theo KỆ chứ không theo mã pallet — cho tìm luôn bằng mã vị trí
+        // (vd gõ "B-24" ra mọi pallet đang nằm ở kệ B-24).
+        { location: { code: { contains: q, mode: "insensitive" } } },
       ];
     }
 
@@ -82,7 +91,7 @@ export async function GET(req: NextRequest) {
           select: { performed_at: true },
         },
       },
-      take: 200,
+      take: limit,
     });
 
     const mapped = pallets.map((p) => {
@@ -99,18 +108,20 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // KPIs
-    const allPallets = await prisma.pallet.groupBy({
-      by: ["status"],
-      _count: true,
-    });
+    // KPIs — bỏ qua khi client không cần (vd ô lọc nhanh gọi liên tục lúc gõ).
     const kpis: Record<string, number> = {};
-    let total = 0;
-    for (const g of allPallets) {
-      kpis[g.status] = g._count;
-      total += g._count;
+    if (!skipKpis) {
+      const allPallets = await prisma.pallet.groupBy({
+        by: ["status"],
+        _count: true,
+      });
+      let total = 0;
+      for (const g of allPallets) {
+        kpis[g.status] = g._count;
+        total += g._count;
+      }
+      kpis.TOTAL = total;
     }
-    kpis.TOTAL = total;
 
     return NextResponse.json({ success: true, data: mapped, kpis });
   } catch (error) {

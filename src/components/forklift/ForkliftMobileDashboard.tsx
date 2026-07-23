@@ -238,12 +238,12 @@ export default function ForkliftMobileDashboard() {
           </div>
         </div>
         <div className="industrial-card p-md rounded-xl flex flex-col gap-xs shadow-sm bg-surface">
-          <span className="text-[11px] md:text-xs font-medium text-on-surface-variant/80">Yêu cầu di chuyển</span>
+          <span className="text-[11px] md:text-xs font-medium text-on-surface-variant/80">Pallet trong kho</span>
           <div className="flex items-baseline gap-xs mt-1">
             <span className="text-3xl font-bold font-jetbrains text-primary">
               {kpis.RELOCATE ?? 0}
             </span>
-            <span className="text-xs text-on-surface-variant">lệnh</span>
+            <span className="text-xs text-on-surface-variant">pallet</span>
           </div>
         </div>
         <div className="industrial-card p-md rounded-xl flex flex-col gap-xs shadow-sm bg-surface">
@@ -256,12 +256,12 @@ export default function ForkliftMobileDashboard() {
           </div>
         </div>
         <div className="industrial-card p-md rounded-xl flex flex-col gap-xs shadow-sm bg-surface">
-          <span className="text-[11px] md:text-xs font-medium text-on-surface-variant/80">Hoàn trả vị trí</span>
+          <span className="text-[11px] md:text-xs font-medium text-on-surface-variant/80">Ở khu chờ xuất</span>
           <div className="flex items-baseline gap-xs mt-1">
             <span className="text-3xl font-bold font-jetbrains text-amber-600">
               {kpis.RETURN ?? 0}
             </span>
-            <span className="text-xs text-on-surface-variant">lệnh</span>
+            <span className="text-xs text-on-surface-variant">pallet</span>
           </div>
         </div>
       </section>
@@ -350,9 +350,9 @@ export default function ForkliftMobileDashboard() {
               <span className="material-symbols-outlined text-[40px] opacity-30 text-success mb-2">check_circle</span>
               <p className="text-sm text-on-surface-variant">
                 {activeTab === "PUT_AWAY" ? "Không có pallet nào chờ xếp vị trí." :
-                 activeTab === "RELOCATE" ? "Không có yêu cầu luân chuyển." :
+                 activeTab === "RELOCATE" ? "Chưa có pallet nào trong kho để sắp xếp lại." :
                  activeTab === "TO_STAGING_OUT" ? "Không có yêu cầu sang chờ xuất." :
-                 "Không có yêu cầu hoàn trả vị trí."}
+                 "Không có pallet nào ở khu chờ xuất."}
               </p>
             </div>
           ) : (
