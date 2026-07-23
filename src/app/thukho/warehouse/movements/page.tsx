@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { BackLink } from "@/components/mobile/BackLink";
 import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 const TYPE_TABS = [
   { key: "", label: "Tất cả" }, { key: "PUT_AWAY", label: "Xếp kho" },
@@ -69,7 +70,10 @@ export default function ThukhoMovementsPage() {
   };
 
   // Phân trang client-side cho danh sách luân chuyển (reset khi đổi tab/tìm kiếm)
-  const pg = useClientPagination(moves, { resetKey: `${tab}|${searchQ}` });
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(searchQ);
+  const pg = useClientPagination(moves, { resetKey: `${tab}|${debouncedSearch}` });
   const { paged: pagedMoves } = pg;
 
   return (

@@ -2,9 +2,10 @@
 import { DateField } from "@/components/mobile";
 import { mobileHref } from "@/lib/mobile-href";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
+import { ListPageFooter } from "@/components/ui/ListPagination";
+import { useDebouncedValue, readSavedPaging } from "@/lib/use-debounced-value";
 
 type PalletItem = {
   id: string;
@@ -52,27 +53,70 @@ export default function ThukhoPalletListPage() {
   const [showFilter, setShowFilter] = useState(false);
   const hasActiveFilter = !!(filterFrom || filterTo || filterSupplier);
 
+  // Ô tìm kiếm gọi thẳng lên server nên phải hoãn, nếu không mỗi phím gõ là
+  // một request (đo được 4 request khi gõ 4 ký tự).
+  const debouncedSearch = useDebouncedValue(search);
+
+  // Phân trang SERVER-SIDE. Trước đây trang này tải 200 bản ghi rồi cắt trang ở
+  // client → kho >200 pallet thì phần dư không có cách nào xem được (đầu trang
+  // ghi 230, chân trang ghi 200).
+  // Khôi phục trang đang xem khi quay lại từ màn chi tiết.
+  // Dùng sessionStorage giống `useClientPagination` — App Router không giữ
+  // query string khi router.back() nên không lưu vào URL được.
+  // Đọc ngay trong hàm khởi tạo state (không qua useEffect) để lần gọi API đầu
+  // tiên đã đúng trang, tránh nạp trang 1 rồi nạp lại trang cũ.
+  const storageKey = "wms:pagination:thukho-pallet";
+  const [page, setPage] = useState(() => readSavedPaging(storageKey).page);
+  const [limit, setLimit] = useState(() => readSavedPaging(storageKey).limit);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    try {
+      if (page === 1 && limit === 10) window.sessionStorage.removeItem(storageKey);
+      else window.sessionStorage.setItem(storageKey, JSON.stringify({ page, limit }));
+    } catch {
+      /* bỏ qua */
+    }
+  }, [page, limit]);
+
+  // Đổi bộ lọc → về trang 1. So sánh giá trị thay vì cờ "lần chạy đầu" để
+  // không bị React StrictMode chạy effect hai lần làm hỏng bước khôi phục.
+  const filterKey = `${activeTab}|${debouncedSearch}|${filterFrom}|${filterTo}|${filterSupplier}`;
+  const prevFilterKeyRef = useRef(filterKey);
+  useEffect(() => {
+    if (prevFilterKeyRef.current === filterKey) return;
+    prevFilterKeyRef.current = filterKey;
+    setPage(1);
+  }, [filterKey]);
+
   const fetchPallets = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       if (activeTab) params.set("status", activeTab);
-      if (search) params.set("q", search);
+      if (debouncedSearch) params.set("q", debouncedSearch);
       if (filterFrom) params.set("from", filterFrom);
       if (filterTo) params.set("to", filterTo);
       if (filterSupplier) params.set("supplier_id", filterSupplier);
+      params.set("page", String(page));
+      params.set("limit", String(limit));
       const res = await fetch(`${basePath}/api/pallets?${params}`);
       const json = await res.json();
       if (json.success) {
         setPallets(json.data || []);
         if (json.kpis) setKpis(json.kpis);
+        if (json.pagination) {
+          setTotal(json.pagination.total);
+          setTotalPages(json.pagination.totalPages);
+        }
       }
     } catch (err) {
       console.error("Error:", err);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, search, filterFrom, filterTo, filterSupplier, basePath]);
+  }, [activeTab, debouncedSearch, filterFrom, filterTo, filterSupplier, page, limit, basePath]);
 
   useEffect(() => { fetchPallets(); }, [fetchPallets]);
 
@@ -84,12 +128,9 @@ export default function ThukhoPalletListPage() {
       .catch(() => {});
   }, [basePath]);
 
-  const filtered = search
-    ? pallets.filter(p =>
-        p.code.toLowerCase().includes(search.toLowerCase()) ||
-        (p.supplier?.name || "").toLowerCase().includes(search.toLowerCase())
-      )
-    : pallets;
+  // Không lọc lại ở client nữa: server đã lọc theo mã pallet / ghi chú / mã kệ /
+  // tên NCC. Lọc hai lần với hai tiêu chí khác nhau khiến pallet server trả về
+  // bị client giấu đi, kết quả tìm kiếm không đoán trước được.
 
   const formatTime = (iso: string | null | undefined) => {
     if (!iso) return null;
@@ -99,11 +140,18 @@ export default function ThukhoPalletListPage() {
     } catch { return null; }
   };
 
-  // Phân trang client-side cho danh sách pallet (reset khi đổi tab/tìm kiếm/lọc ngày/NCC)
-  const pg = useClientPagination(filtered, {
-    resetKey: `${activeTab}|${search}|${filterFrom}|${filterTo}|${filterSupplier}`,
-  });
-  const { paged: pagedPallets } = pg;
+  // Server đã cắt trang sẵn nên `pallets` chính là dòng của trang hiện tại.
+  const pagedPallets = pallets;
+  const pg = {
+    page,
+    setPage,
+    limit,
+    setLimit,
+    total,
+    totalPages,
+    from: total === 0 ? 0 : (page - 1) * limit + 1,
+    to: Math.min(page * limit, total),
+  };
 
   return (
     <div className="px-margin-mobile py-md flex flex-col gap-md">
@@ -236,7 +284,7 @@ export default function ThukhoPalletListPage() {
           <div className="py-16 text-center">
             <span className="material-symbols-outlined animate-spin text-3xl text-primary">progress_activity</span>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : pagedPallets.length === 0 ? (
           <div className="py-16 text-center">
             <span className="material-symbols-outlined text-[48px] text-on-surface-variant/30">inventory_2</span>
             <p className="text-sm text-on-surface-variant mt-2">Không có pallet nào</p>
@@ -313,7 +361,7 @@ export default function ThukhoPalletListPage() {
             );
           })
         )}
-        {!loading && filtered.length > 0 && <ListPageFooter {...pg} unit="pallet" />}
+        {!loading && total > 0 && <ListPageFooter {...pg} unit="pallet" />}
       </div>
     </div>
   );

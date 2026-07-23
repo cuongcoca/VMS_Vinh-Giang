@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
 import { ExcelExport } from "@/components/ExcelExport";
 import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 type AdjustmentLine = {
   id: string;
@@ -76,7 +77,10 @@ export default function AdjustmentsPage() {
   };
 
   // Phân trang client-side cho danh sách phiếu điều chỉnh
-  const pg = useClientPagination(filtered, { resetKey: `${search}|${filterStatus}` });
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(search);
+  const pg = useClientPagination(filtered, { resetKey: `${debouncedSearch}|${filterStatus}` });
   const { paged: pagedFiltered } = pg;
 
   return (

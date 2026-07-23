@@ -12,7 +12,7 @@ export default function ThukhoQueuePage() {
   const getWaitTime = (t:string|null) => { if(!t) return "—"; const m=Math.floor((Date.now()-new Date(t).getTime())/60000); return m<60?`${m}p`:`${Math.floor(m/60)}h${m%60}p`; };
 
   // Phân trang client-side cho danh sách pallet chờ xếp
-  const pg = useClientPagination(queue, { resetKey: `len-${queue.length}` });
+  const pg = useClientPagination(queue);
   const { paged: pagedQueue } = pg;
 
   return (

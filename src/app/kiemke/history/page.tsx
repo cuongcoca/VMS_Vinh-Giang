@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { useClientPagination, ListPageFooter } from "@/components/ui";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 type PalletSummary = {
   id: string;
@@ -147,8 +148,11 @@ export default function KiemkeHistoryPage() {
 
   // Phân trang client-side theo tab đang hiển thị (pallet: card · movement: timeline)
   const activeList: (PalletSummary | MovementRow)[] = tab === "pallet" ? pallets : movements;
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(search);
   const pg = useClientPagination(activeList, {
-    resetKey: `${tab}|${search}`,
+    resetKey: `${tab}|${debouncedSearch}`,
   });
   const { paged } = pg;
 

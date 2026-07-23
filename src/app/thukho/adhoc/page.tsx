@@ -19,7 +19,7 @@ export default function ThukhoAdhocPage() {
   }, []);
 
   // Phân trang client-side cho danh sách phiếu nhập đột xuất
-  const pg = useClientPagination(items, { resetKey: `${items.length}` });
+  const pg = useClientPagination(items);
   const { paged: pagedItems } = pg;
 
   return (

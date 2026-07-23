@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useToast, useClientPagination, ListPageFooter } from "@/components/ui";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 type UserData = { id: string; full_name: string; email: string | null; phone: string | null; role: string; is_locked: boolean; last_login_at: string | null; created_at: string };
 // UC-SYS-04: vai trò người dùng ĐƯỢC PHÉP chọn — chỉ 5 vai trò nghiệp vụ
@@ -91,7 +92,10 @@ export default function UsersPage() {
   );
 
   // Phân trang client-side cho danh sách người dùng đã lọc
-  const pg = useClientPagination(filteredUsers, { resetKey: `${search}|${roleFilter}|${statusFilter}` });
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(search);
+  const pg = useClientPagination(filteredUsers, { resetKey: `${debouncedSearch}|${roleFilter}|${statusFilter}` });
   const { paged: pagedUsers } = pg;
 
   return (

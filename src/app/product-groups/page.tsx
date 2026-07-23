@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 interface ProductGroup {
   id: string;
@@ -265,7 +266,10 @@ export default function ProductGroupsPage() {
   };
 
   // ── Phân trang client-side (TC_PENDING_004) ──
-  const pg = useClientPagination(groups, { resetKey: search });
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(search);
+  const pg = useClientPagination(groups, { resetKey: debouncedSearch });
   const { paged: pagedGroups } = pg;
 
   return (

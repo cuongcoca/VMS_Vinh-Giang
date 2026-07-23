@@ -15,7 +15,7 @@ export default function StockCountPage() {
   useEffect(() => { fetch("/wms/api/stock-count").then(r => r.json()).then(r => { if (r.success) setSessions(r.data); }).catch(console.error).finally(() => setLoading(false)); }, []);
 
   // Phân trang client-side cho danh sách phiên kiểm kê
-  const pg = useClientPagination(sessions, { resetKey: `${sessions.length}` });
+  const pg = useClientPagination(sessions);
   const { paged: pagedSessions } = pg;
 
   return (

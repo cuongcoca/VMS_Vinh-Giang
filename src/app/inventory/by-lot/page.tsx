@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { BackButton } from "@/components/BackButton";
 import { useClientPagination, ListPageFooter } from "@/components/ui";
 import Link from "next/link";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 type LotData = { id: string; qty_box: string; qty_unit?: string; lot: string | null; expiry_date: string | null; days_until_expiry: number | null; urgency: string; item_code: { code: string; short_name: string; units_per_box?: number; unit?: { name: string; symbol: string | null } | null }; pallet: { id: string; code: string; location?: { code: string } | null } };
 // UC-INV-04-TC002: SL hiển thị theo đơn vị tính = số thùng × hệ số quy đổi (units_per_box)
@@ -47,7 +48,10 @@ export default function ByLotPage() {
   };
 
   // Phân trang phía client cho danh sách lô/HSD (FEFO)
-  const pg = useClientPagination(filtered, { resetKey: `${search}|${urgencyFilter}` });
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(search);
+  const pg = useClientPagination(filtered, { resetKey: `${debouncedSearch}|${urgencyFilter}` });
   const { paged: pagedRows } = pg;
 
   return (

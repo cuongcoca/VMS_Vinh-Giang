@@ -6,6 +6,7 @@ import { BarcodeScanner } from "@/components/BarcodeScanner";
 import Link from "next/link";
 import { BackLink } from "@/components/mobile/BackLink";
 import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 type Pallet = {
   id: string;
@@ -191,7 +192,10 @@ function PalletListContent() {
   };
 
   // Phân trang client-side cho lưới card pallet — reset về trang 1 khi đổi tab/tìm kiếm.
-  const pg = useClientPagination(filteredPallets, { resetKey: `${activeTab}|${searchQuery}` });
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(searchQuery);
+  const pg = useClientPagination(filteredPallets, { resetKey: `${activeTab}|${debouncedSearch}` });
   const { paged: pagedPallets } = pg;
 
   return (

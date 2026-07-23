@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ExcelExport } from "@/components/ExcelExport";
 import { useClientPagination, ListPageFooter } from "@/components/ui";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 type InventoryItem = { item_code_id: string; item_code: string; item_name: string; group_code: string | null; group_name: string | null; unit_name: string | null; unit_symbol: string | null; available_qty: number; staging_qty: number; total_qty: number; min_stock: number; max_stock: number; nearest_expiry: string | null; days_until_expiry: number | null; alert_low_stock: boolean; alert_over_max: boolean; alert_expiry: boolean; alert_out_of_stock: boolean };
 
@@ -66,7 +67,10 @@ export default function InventoryPage() {
   });
 
   // Phân trang CLIENT-SIDE dùng chung (TC_PENDING_004)
-  const pg = useClientPagination(filtered, { resetKey: `${search}|${statusFilter}` });
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(search);
+  const pg = useClientPagination(filtered, { resetKey: `${debouncedSearch}|${statusFilter}` });
   const { paged } = pg;
 
   // UC-INV-01: lô cận date — sort HSD gần nhất → xa nhất, lọc ≤ 30 ngày khi limit=9999

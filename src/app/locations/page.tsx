@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { apiFetch } from "@/lib/api";
 import { useToast, useConfirm, useClientPagination, ListPageFooter } from "@/components/ui";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 // Định nghĩa Types
 type LocationType = "STORAGE" | "INBOUND_STAGING" | "OUTBOUND_STAGING" | "STOCKTAKE";
@@ -499,8 +500,11 @@ export default function LocationsPage() {
 
   // Phân trang client-side cho chế độ xem dạng bảng (danh sách phẳng các vị trí).
   // Chế độ sơ đồ lưới là bản đồ tọa độ theo Kệ/Tầng nên không phân trang.
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(searchQuery);
   const pg = useClientPagination(locations, {
-    resetKey: `${filterZone}|${filterType}|${filterStatus}|${searchQuery}|${viewMode}`,
+    resetKey: `${filterZone}|${filterType}|${filterStatus}|${debouncedSearch}|${viewMode}`,
   });
   const { paged: pagedLoc } = pg;
 

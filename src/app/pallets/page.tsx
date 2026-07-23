@@ -1,7 +1,8 @@
 "use client";
-import { useToast, useClientPagination, ListPageFooter } from "@/components/ui";
+import { useToast, ListPageFooter } from "@/components/ui";
 
-import React, { Suspense, useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect, useRef } from "react";
+import { useDebouncedValue, readSavedPaging } from "@/lib/use-debounced-value";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -58,6 +59,38 @@ function PalletsContent() {
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
   const [filterSupplier, setFilterSupplier] = useState("");
+
+  // Ô tìm kiếm gọi thẳng lên server → phải hoãn để mỗi phím gõ không là 1 request.
+  const debouncedSearch = useDebouncedValue(searchQuery);
+
+  // Phân trang server-side. Nhớ trang đang xem khi mở chi tiết rồi quay lại —
+  // dùng sessionStorage chứ không phải URL: App Router dựng lại địa chỉ từ state
+  // nội bộ khi router.back() nên query string bị mất.
+  const pageStorageKey = "wms:pagination:wms-pallets";
+  const [page, setPage] = useState(() => readSavedPaging(pageStorageKey).page);
+  const [limit, setLimit] = useState(() => readSavedPaging(pageStorageKey).limit);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    try {
+      if (page === 1 && limit === 10) window.sessionStorage.removeItem(pageStorageKey);
+      else window.sessionStorage.setItem(pageStorageKey, JSON.stringify({ page, limit }));
+    } catch {
+      /* bỏ qua */
+    }
+  }, [page, limit]);
+
+  // Đổi bộ lọc → về trang 1. So sánh giá trị thay vì cờ "lần chạy đầu" để không
+  // bị React StrictMode chạy effect hai lần làm hỏng bước khôi phục.
+  const filterKey = `${debouncedSearch}|${filterStatus}|${filterFrom}|${filterTo}|${filterSupplier}`;
+  const prevFilterKeyRef = useRef(filterKey);
+  useEffect(() => {
+    if (prevFilterKeyRef.current === filterKey) return;
+    prevFilterKeyRef.current = filterKey;
+    setPage(1);
+  }, [filterKey]);
+
   const [showModal, setShowModal] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   // UC-PAL-01: load PHN open (status PENDING/RECEIVING) để chọn khi tạo pallet
@@ -100,20 +133,28 @@ function PalletsContent() {
   const [saving, setSaving] = useState(false);
 
   // Fetch pallets — Phase 3.5: thêm from/to/supplier_id
+  // Phân trang SERVER-SIDE: trước đây API cắt 200 bản ghi rồi client mới chia trang,
+  // nên kho >200 pallet thì phần dư không xem được từ màn này.
   const fetchPallets = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (searchQuery) params.set("q", searchQuery);
+      if (debouncedSearch) params.set("q", debouncedSearch);
       if (filterStatus) params.set("status", filterStatus);
       if (filterFrom) params.set("from", filterFrom);
       if (filterTo) params.set("to", filterTo);
       if (filterSupplier) params.set("supplier_id", filterSupplier);
+      params.set("page", String(page));
+      params.set("limit", String(limit));
       const res = await fetch(`/wms/api/pallets?${params.toString()}`);
       const result = await res.json();
       if (result.success) {
         setPallets(result.data);
         setKpis(result.kpis || {});
+        if (result.pagination) {
+          setTotal(result.pagination.total);
+          setTotalPages(result.pagination.totalPages);
+        }
       }
     } catch (err) {
       console.error("Fetch pallets error:", err);
@@ -157,7 +198,8 @@ function PalletsContent() {
     fetchPallets();
     fetchSuppliers();
     fetchOpenInbounds();
-  }, [searchQuery, filterStatus, filterFrom, filterTo, filterSupplier]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, filterStatus, filterFrom, filterTo, filterSupplier, page, limit]);
 
   // Auto-open modal nếu URL có ?new_phn=X (link từ /wms/inbound/[id])
   useEffect(() => {
@@ -241,11 +283,18 @@ function PalletsContent() {
     return new Date(d).toLocaleDateString("vi-VN");
   };
 
-  // Phân trang client-side cho danh sách pallet — reset về trang 1 khi đổi bộ lọc/tìm kiếm
-  const pg = useClientPagination(pallets, {
-    resetKey: `${searchQuery}|${filterStatus}|${filterFrom}|${filterTo}|${filterSupplier}`,
-  });
-  const { paged: pagedPallets } = pg;
+  // Server đã cắt trang sẵn nên `pallets` chính là dòng của trang hiện tại.
+  const pagedPallets = pallets;
+  const pg = {
+    page,
+    setPage,
+    limit,
+    setLimit,
+    total,
+    totalPages,
+    from: total === 0 ? 0 : (page - 1) * limit + 1,
+    to: Math.min(page * limit, total),
+  };
 
   return (
     <AppLayout title="PALLET">

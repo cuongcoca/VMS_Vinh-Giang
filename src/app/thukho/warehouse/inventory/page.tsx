@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { BackLink } from "@/components/mobile/BackLink";
 import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 export default function ThukhoInventoryPage() {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -11,7 +12,10 @@ export default function ThukhoInventoryPage() {
   useEffect(() => { fetch(`${basePath}/api/inventory/by-item`).then(r=>r.json()).then(j=>{ if(j.success) setItems(j.data||[]); }).catch(console.error).finally(()=>setLoading(false)); }, []);
   const filtered = search ? items.filter((i:any)=>(i.item_code||'').toLowerCase().includes(search.toLowerCase())||(i.item_name||'').toLowerCase().includes(search.toLowerCase())) : items;
   // Phân trang client-side cho danh sách tồn theo mã
-  const pg = useClientPagination(filtered, { resetKey: `${search}` });
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(search);
+  const pg = useClientPagination(filtered, { resetKey: `${debouncedSearch}` });
   const { paged: pagedItems } = pg;
 
   return (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { BackButton } from "@/components/BackButton";
 import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 type OutboundRequest = {
   id: string; code: string; status: string;
@@ -43,7 +44,10 @@ export default function OutboundRequestsPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // Phân trang client-side cho danh sách phiếu PYX
-  const pg = useClientPagination(data, { resetKey: `${filterStatus}|${search}` });
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(search);
+  const pg = useClientPagination(data, { resetKey: `${filterStatus}|${debouncedSearch}` });
   const { paged: pagedData } = pg;
 
   return (

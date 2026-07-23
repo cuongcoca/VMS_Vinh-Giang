@@ -3,6 +3,7 @@ import { useToast, useClientPagination, ListPageFooter } from "@/components/ui";
 
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 type Supplier = {
   id: string;
@@ -134,7 +135,10 @@ export default function SuppliersPage() {
   };
 
   // ── Phân trang client-side (TC_PENDING_004) ──
-  const pg = useClientPagination(suppliers, { resetKey: searchQuery });
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(searchQuery);
+  const pg = useClientPagination(suppliers, { resetKey: debouncedSearch });
   const { paged: pagedSuppliers } = pg;
 
   return (

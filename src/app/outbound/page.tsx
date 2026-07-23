@@ -71,7 +71,7 @@ export default function OutboundPage() {
   };
 
   // Phân trang client-side cho danh sách pallet khu chờ xuất (chỉ ảnh hưởng hiển thị)
-  const pg = useClientPagination(pallets, { resetKey: `${summary.total_pallets}`, initialLimit: 10 });
+  const pg = useClientPagination(pallets, { initialLimit: 10 });
   const { paged: pagedPallets } = pg;
 
   return (

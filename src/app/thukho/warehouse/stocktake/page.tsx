@@ -13,7 +13,7 @@ export default function ThukhoStocktakePage() {
   const getStatusColor = (s:string) => { switch(s) { case "OPEN": return "bg-blue-100 text-blue-700"; case "COUNTING": return "bg-amber-100 text-amber-700"; case "COMPLETED": return "bg-green-100 text-green-700"; default: return "bg-gray-100 text-gray-600"; } };
 
   // Phân trang client-side cho danh sách phiên kiểm kê
-  const pg = useClientPagination(sessions, { resetKey: `${sessions.length}` });
+  const pg = useClientPagination(sessions);
   const { paged: pagedSessions } = pg;
 
   return (

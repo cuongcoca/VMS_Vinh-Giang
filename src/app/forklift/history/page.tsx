@@ -6,6 +6,7 @@ import Link from "next/link";
 import { mobileHref } from "@/lib/mobile-href";
 import { BackButton } from "@/components/BackButton";
 import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 type Movement = {
   id: string; movement_type: string; reason: string | null; performed_at: string;
@@ -136,8 +137,11 @@ export default function MovementHistoryPage() {
   };
 
   // Phân trang client-side cho timeline luân chuyển (chỉ ảnh hưởng hiển thị).
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(filterSearch);
   const pg = useClientPagination(movements, {
-    resetKey: `${filterType}|${filterFrom}|${filterTo}|${filterSearch}|${todayOnly}`,
+    resetKey: `${filterType}|${filterFrom}|${filterTo}|${debouncedSearch}|${todayOnly}`,
     initialLimit: 10,
   });
   const { paged: pagedMovements } = pg;

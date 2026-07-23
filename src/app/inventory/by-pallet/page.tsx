@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { BackButton } from "@/components/BackButton";
 import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
 import Link from "next/link";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 type PalletRow = {
   id: string;
@@ -97,7 +98,10 @@ export default function ByPalletPage() {
   };
 
   // Phân trang client-side cho danh sách pallet (chỉ ảnh hưởng hiển thị)
-  const pg = useClientPagination(rows, { resetKey: `${q}|${status}|${date}` });
+  // Hoãn từ khoá tìm kiếm trước khi đưa vào resetKey: nếu dùng giá trị thô thì
+  // mỗi ký tự gõ là một lần nhảy về trang 1.
+  const debouncedSearch = useDebouncedValue(q);
+  const pg = useClientPagination(rows, { resetKey: `${debouncedSearch}|${status}|${date}` });
   const { paged: pagedRows } = pg;
 
   return (
