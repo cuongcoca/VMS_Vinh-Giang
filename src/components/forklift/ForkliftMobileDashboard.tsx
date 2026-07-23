@@ -400,8 +400,16 @@ export default function ForkliftMobileDashboard() {
 
                   <div className="flex justify-between items-start pl-1">
                     <span className="font-mono text-sm font-bold text-primary">{p.code}</span>
-                    <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-bold">
-                      Chờ đưa vào
+                    {/* Nhãn theo tab: mỗi tab là một loại việc khác nhau, không phải
+                        tab nào cũng là "chờ đưa vào vị trí". */}
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] md:text-xs font-bold ${
+                      activeTab === "RELOCATE" ? "bg-blue-100 text-blue-700"
+                      : activeTab === "RETURN" ? "bg-rose-100 text-rose-700"
+                      : "bg-amber-100 text-amber-700"
+                    }`}>
+                      {activeTab === "RELOCATE" ? "Trong kho"
+                       : activeTab === "RETURN" ? "Ở khu chờ xuất"
+                       : "Chờ đưa vào"}
                     </span>
                   </div>
 
@@ -412,15 +420,18 @@ export default function ForkliftMobileDashboard() {
                     {nearestExpiry && <> · Date gần nhất: <b>{nearestExpiry}</b></>}
                   </div>
 
-                  {/* PHN + XN time */}
+                  {/* PHN + XN time. Riêng RELOCATE/RETURN thì vị trí hiện tại mới là
+                      thông tin cần, còn "chờ bao lâu" chỉ có nghĩa với hàng chờ xếp. */}
                   <div className="pl-1 flex flex-wrap gap-2 text-[11px] md:text-xs text-on-surface-variant/80">
-                    {p.inbound_request?.code && (
-                      <span>📥 {p.inbound_request.code}</span>
+                    {p.location?.code ? (
+                      <span>📍 {p.location.code}</span>
+                    ) : (
+                      p.inbound_request?.code && <span>📥 {p.inbound_request.code}</span>
                     )}
-                    {confirmedTime && (
+                    {confirmedTime && activeTab === "PUT_AWAY" && (
                       <span>⏱ XN {confirmedTime}</span>
                     )}
-                    {p.confirmed_at && (
+                    {p.confirmed_at && activeTab === "PUT_AWAY" && (
                       <span className="ml-auto text-[10px] md:text-xs font-semibold text-[#ea580c]">
                         Chờ {getWaitTime(p.confirmed_at)}
                       </span>
