@@ -14,6 +14,8 @@ import React, { useEffect, useRef, useState } from "react";
  */
 
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+// Nhãn tháng cho lưới chọn tháng (Th1…Th12).
+const MONTHS = Array.from({ length: 12 }, (_, i) => `Th${i + 1}`);
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -54,9 +56,15 @@ export function DateField({
     m: base.getMonth(),
   });
 
-  // Chế độ hiển thị: lịch theo ngày, hoặc lưới chọn năm
-  const [mode, setMode] = useState<"day" | "year">("day");
+  // Chế độ hiển thị: lịch theo ngày · lưới chọn tháng · lưới chọn năm
+  const [mode, setMode] = useState<"day" | "month" | "year">("day");
   const [yearStart, setYearStart] = useState(0);
+
+  const openMonthPicker = () => setMode("month");
+  const pickMonth = (m: number) => {
+    setView((v) => ({ ...v, m }));
+    setMode("day");
+  };
 
   const openYearPicker = () => {
     setYearStart(view.y - (view.y % 12));
@@ -66,6 +74,8 @@ export function DateField({
   const nextYears = () => setYearStart((s) => s + 12);
   const pickYear = (y: number) => {
     setView((v) => ({ ...v, y }));
+    // Về lại lịch ngày cho nhất quán với nút chọn tháng và giống lịch chuẩn:
+    // chỉ đổi năm thì không phải chọn lại tháng. Muốn đổi tháng thì bấm nút tháng.
     setMode("day");
   };
 
@@ -144,25 +154,37 @@ export function DateField({
                   type="button"
                   onClick={prevMonth}
                   aria-label="Tháng trước"
-                  className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-low"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-low shrink-0"
                 >
                   <span className="material-symbols-outlined text-[20px]">chevron_left</span>
                 </button>
-                <span className="text-sm font-bold text-on-surface flex items-center gap-1">
-                  <span>Tháng {view.m + 1} /</span>
+                {/* Hai nút bấm rõ ràng: bấm tháng → lưới tháng, bấm năm → lưới năm.
+                    Mũi tên xổ báo cho người dùng biết đây là nút chọn, không phải chữ. */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={openMonthPicker}
+                    aria-label="Chọn tháng"
+                    className="flex items-center gap-0.5 px-2.5 py-1 rounded-lg text-sm font-bold text-on-surface bg-surface-low hover:bg-primary/10 hover:text-primary transition-colors"
+                  >
+                    Tháng {view.m + 1}
+                    <span className="material-symbols-outlined text-[18px] -mr-1">arrow_drop_down</span>
+                  </button>
                   <button
                     type="button"
                     onClick={openYearPicker}
-                    className="px-1.5 py-0.5 rounded hover:bg-primary/10 hover:text-primary transition-colors"
+                    aria-label="Chọn năm"
+                    className="flex items-center gap-0.5 px-2.5 py-1 rounded-lg text-sm font-bold text-on-surface bg-surface-low hover:bg-primary/10 hover:text-primary transition-colors"
                   >
                     {view.y}
+                    <span className="material-symbols-outlined text-[18px] -mr-1">arrow_drop_down</span>
                   </button>
-                </span>
+                </div>
                 <button
                   type="button"
                   onClick={nextMonth}
                   aria-label="Tháng sau"
-                  className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-low"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-low shrink-0"
                 >
                   <span className="material-symbols-outlined text-[20px]">chevron_right</span>
                 </button>
@@ -199,6 +221,61 @@ export function DateField({
                       }`}
                     >
                       {d}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : mode === "month" ? (
+            <>
+              {/* Lưới chọn THÁNG — mũi tên đổi năm, tiêu đề giữa mở lưới chọn năm. */}
+              <div className="flex items-center justify-between mb-2">
+                <button
+                  type="button"
+                  onClick={() => setView((v) => ({ ...v, y: v.y - 1 }))}
+                  aria-label="Năm trước"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-low shrink-0"
+                >
+                  <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openYearPicker}
+                  aria-label="Chọn năm"
+                  className="flex items-center gap-0.5 px-2.5 py-1 rounded-lg text-sm font-bold text-on-surface bg-surface-low hover:bg-primary/10 hover:text-primary transition-colors"
+                >
+                  {view.y}
+                  <span className="material-symbols-outlined text-[18px] -mr-1">arrow_drop_down</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setView((v) => ({ ...v, y: v.y + 1 }))}
+                  aria-label="Năm sau"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-low shrink-0"
+                >
+                  <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5 py-1">
+                {MONTHS.map((label, i) => {
+                  const isSel = i === view.m;
+                  const now = new Date();
+                  const isThisMonth = i === now.getMonth() && view.y === now.getFullYear();
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => pickMonth(i)}
+                      className={`h-10 rounded-lg text-sm flex items-center justify-center transition-colors ${
+                        isSel
+                          ? "bg-primary text-white font-bold"
+                          : isThisMonth
+                            ? "border border-primary text-primary font-semibold"
+                            : "hover:bg-surface-low text-on-surface"
+                      }`}
+                    >
+                      {label}
                     </button>
                   );
                 })}
