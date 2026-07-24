@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { mobileHref } from "@/lib/mobile-href";
 import { BackLink } from "@/components/mobile/BackLink";
 import { useToast, useConfirm } from "@/components/ui";
+import { PALLET_STATUS_LABEL } from "@/lib/status-labels";
 
 // UC-PAL-03: Modal quét barcode — dynamic import vì html5-qrcode chỉ chạy ở client
 const BarcodeScannerModal = dynamic(
@@ -127,6 +128,22 @@ export default function ThukhoPalletDetailPage() {
   const [phnPicker, setPhnPicker] = useState<{ item: ItemCode; phns: OpenPhn[] } | null>(null);
   // Hỏi xác nhận khi thêm hàng của phiếu CHƯA có trên pallet.
   const [phnConfirm, setPhnConfirm] = useState<{ item: ItemCode; phn: OpenPhn } | null>(null);
+  // Modal "SL này đang nằm ở pallet nào" — bấm từ badge "đã lên N thùng".
+  type PalletOfItem = { pallet_id: string; pallet_code: string; status: string; location_code: string | null; qty_box: number };
+  const [breakdown, setBreakdown] = useState<{ item: ItemCode; phn: OpenPhn; loading: boolean; rows: PalletOfItem[]; total: number } | null>(null);
+
+  const openBreakdown = async (item: ItemCode, phn: OpenPhn) => {
+    setBreakdown({ item, phn, loading: true, rows: [], total: 0 });
+    try {
+      const res = await fetch(`${basePath}/api/pallets/by-item?item_code_id=${item.id}&inbound_request_id=${phn.id}`);
+      const json = await res.json();
+      if (json.success) setBreakdown({ item, phn, loading: false, rows: json.data || [], total: json.total || 0 });
+      else setBreakdown({ item, phn, loading: false, rows: [], total: 0 });
+    } catch {
+      setBreakdown({ item, phn, loading: false, rows: [], total: 0 });
+    }
+  };
+
   const [qty, setQty] = useState("");
   const [lot, setLot] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -551,15 +568,28 @@ export default function ThukhoPalletDetailPage() {
 
                   {/* Hướng A: còn lại theo ĐÚNG phiếu của dòng (ĐK − đã lên theo dòng gán phiếu đó) */}
                   {selectedPhn && (
-                    <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-[11px] rounded-lg bg-surface-low px-2.5 py-1.5">
-                      <span className="text-on-surface-variant">Theo phiếu {selectedPhn.code}:</span>
-                      <span className="font-semibold">ĐK {selectedPhn.qty_expected}</span>
-                      <span className="text-on-surface-variant/40">·</span>
-                      <span className="font-semibold">đã lên {selectedPhn.qty_on_pallet}</span>
-                      <span className="text-on-surface-variant/40">·</span>
-                      <span className={`font-bold ${selectedPhn.qty_remaining > 0 ? "text-amber-700" : "text-emerald-700"}`}>
-                        còn {selectedPhn.qty_remaining}{selectedPhn.qty_remaining <= 0 ? " ✓" : ""}
-                      </span>
+                    <div className="rounded-lg bg-surface-low px-2.5 py-1.5 space-y-1">
+                      <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-[11px]">
+                        <span className="text-on-surface-variant">Theo phiếu {selectedPhn.code}:</span>
+                        <span className="font-semibold">ĐK {selectedPhn.qty_expected}</span>
+                        <span className="text-on-surface-variant/40">·</span>
+                        <span className="font-semibold">đã lên {selectedPhn.qty_on_pallet}</span>
+                        <span className="text-on-surface-variant/40">·</span>
+                        <span className={`font-bold ${selectedPhn.qty_remaining > 0 ? "text-amber-700" : "text-emerald-700"}`}>
+                          còn {selectedPhn.qty_remaining}{selectedPhn.qty_remaining <= 0 ? " ✓" : ""}
+                        </span>
+                      </div>
+                      {/* Bấm để xem SL đã lên đang nằm ở pallet nào — dễ soi trùng/nhầm. */}
+                      {selectedPhn.qty_on_pallet > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => openBreakdown(selectedItem, selectedPhn)}
+                          className="text-[11px] font-semibold text-primary underline underline-offset-2 flex items-center gap-0.5"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">pallet</span>
+                          Xem {selectedPhn.qty_on_pallet} thùng đang ở pallet nào →
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -1018,6 +1048,51 @@ export default function ThukhoPalletDetailPage() {
               <button type="button" onClick={() => setPhnConfirm(null)} className="flex-1 py-2.5 rounded-lg border border-outline-variant text-sm font-semibold text-on-surface-variant">Hủy</button>
               <button type="button" onClick={() => finalizeSelect(phnConfirm.item, phnConfirm.phn)} className="flex-1 py-2.5 rounded-lg bg-primary text-white text-sm font-bold">Thêm phiếu</button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal "SL đã lên đang ở pallet nào" — giúp soi khi badge báo đã đủ / còn ít
+          mà thủ kho không rõ số đó nằm đâu (vd nhập nhầm 12, hoặc 2 pallet 6+6). */}
+      {breakdown && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[97] bg-black/40 flex items-end sm:items-center justify-center p-4 overflow-y-auto" onClick={() => setBreakdown(null)}>
+          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-xl my-auto max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-primary mb-0.5 flex items-center gap-1">
+              <span className="material-symbols-outlined text-[16px]">pallet</span>
+              Mã {breakdown.item.code} — phiếu {breakdown.phn.code}
+            </h3>
+            <p className="text-[11px] text-on-surface-variant mb-3">
+              Tổng đã lên pallet: <b>{breakdown.total}</b> thùng · Dự kiến {breakdown.phn.qty_expected}
+            </p>
+            {breakdown.loading ? (
+              <div className="py-6 text-center">
+                <span className="material-symbols-outlined animate-spin text-[24px] text-primary">progress_activity</span>
+              </div>
+            ) : breakdown.rows.length === 0 ? (
+              <p className="py-6 text-center text-xs text-on-surface-variant">Chưa có pallet nào chứa mã này.</p>
+            ) : (
+              <ul className="space-y-2">
+                {breakdown.rows.map((r) => (
+                  <li key={r.pallet_id}>
+                    <Link
+                      href={mobileHref(`/thukho/pallet/${r.pallet_id}`)}
+                      className="flex items-center justify-between gap-2 px-3 py-2.5 border border-outline-variant rounded-lg hover:border-primary hover:bg-primary/5 transition-colors"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold text-primary font-mono">{r.pallet_code}</span>
+                        <span className="block text-[11px] text-on-surface-variant">
+                          {PALLET_STATUS_LABEL[r.status] || r.status}
+                          {r.location_code ? ` · ${r.location_code}` : ""}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-sm font-bold text-amber-700">{r.qty_box} thùng</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button type="button" onClick={() => setBreakdown(null)} className="mt-3 w-full py-2 text-xs font-semibold text-on-surface-variant">Đóng</button>
           </div>
         </div>,
         document.body
