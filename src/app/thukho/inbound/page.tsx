@@ -3,6 +3,7 @@ import { mobileHref } from "@/lib/mobile-href";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 // UC-IN-02: Thủ kho tiếp nhận phiếu
 type InboundItem = {
@@ -10,6 +11,7 @@ type InboundItem = {
   code: string;
   status: string;
   expected_date: string | null;
+  invoice_no: string | null;   // UC-IN-01: số hóa đơn — hiện trên thẻ để Thủ kho đối chiếu tờ giấy
   total_lines: number;
   supplier: { id: string; code: string; name: string } | null;
   creator: { id: string; full_name: string } | null;
@@ -31,17 +33,23 @@ export default function ThukhoInboundPage() {
   const [items, setItems] = useState<InboundItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("PENDING");
+  // Tìm chung theo số hóa đơn HOẶC mã PHN. Gõ xong hỏi lại API (không giới hạn
+  // số phiếu như lọc tại máy). API `/api/inbound?q=` đã tìm cả code lẫn invoice_no.
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${basePath}/api/inbound`)
+    const params = new URLSearchParams();
+    if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
+    fetch(`${basePath}/api/inbound?${params}`)
       .then((r) => r.json())
       .then((j) => {
         if (j.success) setItems(j.data || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [basePath, debouncedSearch]);
 
   const currentTab = TABS.find((t) => t.key === tab)!;
   const filteredItems = items.filter((it) => currentTab.statuses.includes(it.status));
@@ -63,8 +71,8 @@ export default function ThukhoInboundPage() {
     return days < 2;
   };
 
-  // Phân trang client-side cho danh sách phiếu (reset khi đổi tab)
-  const pg = useClientPagination(filteredItems, { resetKey: tab });
+  // Phân trang client-side cho danh sách phiếu (reset khi đổi tab hoặc tìm kiếm)
+  const pg = useClientPagination(filteredItems, { resetKey: `${tab}|${debouncedSearch}` });
   const { paged: pagedItems } = pg;
 
   return (
@@ -75,6 +83,31 @@ export default function ThukhoInboundPage() {
           <span className="material-symbols-outlined text-[22px]">inbox</span>
           Phiếu cần tiếp nhận
         </h1>
+      </div>
+
+      {/* Ô tìm chung: số hóa đơn hoặc mã PHN — giúp Thủ kho tra nhanh theo tờ hóa đơn */}
+      <div className="relative">
+        <span className="material-symbols-outlined text-[18px] text-on-surface-variant/60 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          search
+        </span>
+        <input
+          type="text"
+          inputMode="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Tìm theo số hóa đơn hoặc mã phiếu…"
+          className="w-full min-h-[44px] pl-10 pr-9 py-2 text-sm border border-outline-variant rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch("")}
+            aria-label="Xóa tìm kiếm"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface-low text-on-surface-variant"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        )}
       </div>
 
       {/* 3 Tabs */}
@@ -142,6 +175,12 @@ export default function ThukhoInboundPage() {
                 </div>
 
                 <div className="flex items-center gap-md mt-2 pl-1 text-[11px] text-on-surface-variant flex-wrap">
+                  {item.invoice_no && (
+                    <span className="flex items-center gap-1 font-semibold text-on-surface">
+                      <span className="material-symbols-outlined text-[14px]">receipt_long</span>
+                      HĐ: {item.invoice_no}
+                    </span>
+                  )}
                   <span className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-[14px]">calendar_today</span>
                     Dự kiến {formatDate(item.expected_date)}

@@ -14,6 +14,7 @@ type InboundRequest = {
   supplier_id: string | null;
   supplier: Supplier | null;
   expected_date: string | null;
+  invoice_no: string | null;
   note: string | null;
   _count?: { lines: number };
   created_at: string;
@@ -234,6 +235,7 @@ export default function InboundPage() {
               data={requests as unknown as Record<string, unknown>[]}
               columns={[
                 { key: "code", header: "Mã phiếu" },
+                { key: "invoice_no", header: "Số HĐ", transform: (v) => (v as string) || "" },
                 { key: "status", header: "Trạng thái", transform: (v) => STATUS_MAP[v as string]?.label || String(v) },
                 { key: "supplier", header: "NCC", transform: (v) => (v as Supplier)?.name || "" },
                 { key: "expected_date", header: "Ngày dự kiến", transform: (v) => v ? new Date(v as string).toLocaleDateString("vi-VN") : "" },
@@ -335,7 +337,7 @@ export default function InboundPage() {
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
               <input
                 type="text"
-                placeholder="Tìm mã phiếu, ghi chú..."
+                placeholder="Tìm số hóa đơn, mã phiếu, ghi chú..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-surface-low border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -444,6 +446,7 @@ export default function InboundPage() {
               <thead>
                 <tr className="bg-surface-low border-b border-outline-variant">
                   <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">Mã phiếu</th>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">Số HĐ</th>
                   <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">NCC</th>
                   <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider text-on-surface-variant hidden md:table-cell">Ngày dự kiến</th>
                   <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider text-on-surface-variant hidden lg:table-cell" style={{ width: 140 }}>Tiến độ</th>
@@ -455,12 +458,12 @@ export default function InboundPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="text-center py-12 text-on-surface-variant">
+                  <tr><td colSpan={9} className="text-center py-12 text-on-surface-variant">
                     <span className="material-symbols-outlined animate-spin text-[24px]">progress_activity</span>
                     <p className="mt-2 text-sm">Đang tải...</p>
                   </td></tr>
                 ) : requests.length === 0 ? (
-                  <tr><td colSpan={8} className="text-center py-12 text-on-surface-variant">
+                  <tr><td colSpan={9} className="text-center py-12 text-on-surface-variant">
                     <span className="material-symbols-outlined text-[40px] opacity-30">inbox</span>
                     <p className="mt-2 text-sm">{hasActiveFilters ? "Không tìm thấy phiếu nào phù hợp." : "Chưa có phiếu nhập nào."}</p>
                     {hasActiveFilters && (
@@ -479,6 +482,9 @@ export default function InboundPage() {
                       <tr key={r.id} className="border-b border-outline-variant/50 hover:bg-surface-low/50 transition-colors">
                         <td className="px-4 py-3 font-mono font-bold text-base">
                           <Link href={`/inbound/${r.id}`} className="text-primary hover:underline">{r.code}</Link>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-sm text-on-surface-variant">
+                          {r.invoice_no || "—"}
                         </td>
                         <td className="px-4 py-3 text-on-surface-variant">
                           {r.supplier ? <span className="text-sm">{r.supplier.name}</span> : "—"}
