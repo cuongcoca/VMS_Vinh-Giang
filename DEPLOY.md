@@ -6,6 +6,13 @@
 - Web Admin: `https://188.166.210.73/wms` (Tự động redirect sang trang login nếu chưa xác thực)
 - Xe nâng di động: `https://188.166.210.73/xenang/forklift`
 
+> ⚠️ **QUAN TRỌNG — Quét mã QR/barcode bằng camera:** Trình duyệt CHỈ cho bật camera trong
+> "secure context" (HTTPS **chứng chỉ hợp lệ** hoặc localhost). Mở app bằng **IP + chứng chỉ
+> tự ký** (`https://188.166.210.73/...`) → iOS/Android **chặn camera** → nút quét không lên hình.
+> **Vì vậy cho nhân viên (thủ kho / xe nâng / kiểm kê) mở app bằng TÊN MIỀN hợp lệ:**
+> `https://khohangvinhgiang.io.vn/thukho`, `.../xenang`, `.../kiemke` (đã có chứng chỉ Let's Encrypt).
+> Nếu buộc dùng IP: bấm nút **"Ảnh"** trong màn quét (chụp/chọn ảnh mã — không cần camera stream) hoặc **"Nhập tay"**.
+
 ---
 
 ## 1. Kiến trúc Triển khai trên VPS

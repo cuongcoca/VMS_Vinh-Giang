@@ -84,6 +84,19 @@ export function BarcodeScannerModal({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [decodingImage, setDecodingImage] = useState(false);
+  // Camera trình duyệt CHỈ chạy trong "secure context" (HTTPS chứng chỉ hợp lệ hoặc
+  // localhost). Mở bằng IP + chứng chỉ tự ký (vd https://188.166.210.73) → không bảo mật
+  // → trình duyệt (nhất là iOS Safari) ẩn navigator.mediaDevices → camera bị chặn.
+  // Phát hiện sớm để KHÔNG mount viewfinder (chỉ quay vòng vô ích) mà hướng dẫn dùng "Ảnh".
+  const [cameraBlocked, setCameraBlocked] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const secure =
+      typeof window !== "undefined" &&
+      window.isSecureContext &&
+      !!navigator.mediaDevices?.getUserMedia;
+    setCameraBlocked(!secure);
+  }, [open]);
 
   // KK-20 / SH-17: khoa scroll nen khi mo + dong bang phim Escape.
   useEffect(() => {
@@ -187,17 +200,49 @@ export function BarcodeScannerModal({
           </div>
         )}
 
+        {/* Camera bị chặn (trang không bảo mật): KHÔNG mount viewfinder, hướng dẫn rõ ràng. */}
+        {cameraBlocked && !manualMode && (
+          <div className="w-full max-w-md px-2">
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-center space-y-3">
+              <span className="material-symbols-outlined text-[40px] text-amber-400">no_photography</span>
+              <p className="text-white font-semibold text-sm">Camera chưa dùng được ở địa chỉ này</p>
+              <p className="text-white/70 text-xs leading-relaxed">
+                Trình duyệt chỉ cho bật camera khi mở app bằng địa chỉ bảo mật. Hãy mở app bằng tên miền:
+              </p>
+              <p className="text-emerald-300 font-mono text-xs break-all bg-black/40 rounded-lg py-2 px-2">
+                https://khohangvinhgiang.io.vn
+              </p>
+              <p className="text-white/70 text-xs">
+                Hoặc quét ngay bằng cách <b className="text-white">chụp / chọn ảnh</b> mã:
+              </p>
+              <button
+                type="button"
+                onClick={handlePickImage}
+                disabled={decodingImage}
+                className="w-full py-3 bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[20px]">photo_camera</span>
+                {decodingImage ? "Đang đọc ảnh…" : "Chụp / chọn ảnh mã"}
+              </button>
+              <p className="text-white/40 text-[11px]">…hoặc bấm <b>Nhập tay</b> bên dưới để gõ mã.</p>
+            </div>
+          </div>
+        )}
+
         {/* Vùng Camera: luôn luôn mount khi modal mở, nhưng ẩn đi bằng CSS khi ở manualMode.
-            Điều này ngăn chặn việc mount/unmount liên tục gây lỗi race condition cho camera. */}
-        <div className={`w-full max-w-2xl flex flex-col items-center ${manualMode ? "hidden" : ""}`}>
+            Điều này ngăn chặn việc mount/unmount liên tục gây lỗi race condition cho camera.
+            Chỉ mount khi thực sự có secure context (cameraBlocked=false). */}
+        <div className={`w-full max-w-2xl flex flex-col items-center ${manualMode || cameraBlocked ? "hidden" : ""}`}>
           <p className="text-white/70 text-xs mb-3 text-center">Đưa mã vạch lấp ĐẦY chiều ngang khung, giữ cách ~15cm cho nét</p>
           <div className="w-full">
             <ScannerErrorBoundary>
-              <BarcodeScanner
-                onScan={handleScanSuccess}
-                onError={handleScanError}
-                showTorch
-              />
+              {!cameraBlocked && (
+                <BarcodeScanner
+                  onScan={handleScanSuccess}
+                  onError={handleScanError}
+                  showTorch
+                />
+              )}
             </ScannerErrorBoundary>
           </div>
           <p className="text-white/50 text-[11px] md:text-xs mt-3 text-center">
