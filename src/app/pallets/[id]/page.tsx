@@ -20,6 +20,8 @@ type PalletLineData = {
   expiry_date: string | null; manufactured_date: string | null;
   weight_kg: string; note: string | null; created_at: string;
   item_code: ItemCodeOption;
+  inbound_request_id: string | null;
+  inbound_request?: { id: string; code: string; invoice_no: string | null } | null;
 };
 
 type PalletDetail = {
@@ -586,6 +588,7 @@ export default function PalletDetailPage({ params }: { params: Promise<{ id: str
                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">#</th>
                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">Mã hàng</th>
                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">Tên</th>
+                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant hidden md:table-cell">Phiếu</th>
                     <th className="text-right px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">SL Thùng</th>
                     <th className="text-right px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">SL Lẻ</th>
                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant hidden md:table-cell">Lô</th>
@@ -596,7 +599,7 @@ export default function PalletDetailPage({ params }: { params: Promise<{ id: str
                 </thead>
                 <tbody>
                   {pallet.lines.length === 0 ? (
-                    <tr><td colSpan={9} className="text-center py-10 text-on-surface-variant">
+                    <tr><td colSpan={10} className="text-center py-10 text-on-surface-variant">
                       <span className="material-symbols-outlined text-[36px] opacity-30">inventory_2</span>
                       <p className="mt-2 text-sm">Pallet trống — chưa có dòng hàng nào.</p>
                     </td></tr>
@@ -634,6 +637,12 @@ export default function PalletDetailPage({ params }: { params: Promise<{ id: str
                         <td className="px-4 py-2.5 text-on-surface-variant/70 text-xs">{idx + 1}</td>
                         <td className="px-4 py-2.5 font-mono font-bold text-primary text-xs">{line.item_code.code}</td>
                         <td className="px-4 py-2.5 text-sm">{line.item_code.short_name}</td>
+                        {/* Hướng A: dòng thuộc phiếu nào (pallet có thể ghép nhiều phiếu) */}
+                        <td className="px-4 py-2.5 text-xs hidden md:table-cell">
+                          {line.inbound_request?.code
+                            ? <span className="font-mono text-on-surface-variant">{line.inbound_request.code}</span>
+                            : <span className="text-amber-600">Phát sinh</span>}
+                        </td>
 
                         {/* L1 fix — SL THÙNG editable inline */}
                         <td className="px-4 py-2.5 text-right">

@@ -25,6 +25,8 @@ type PalletLine = {
   expiry_date: string | null;
   weight_kg: string | null;
   note: string | null;
+  inbound_request_id: string | null;                               // Hướng A: dòng thuộc phiếu nào
+  inbound_request?: { id: string; code: string; invoice_no: string | null } | null;
 };
 
 type PalletDetail = {
@@ -86,16 +88,23 @@ const PAL_ROLE_LABEL: Record<string, string> = {
   KIEM_KE: "Kiểm kê",
   STAFF: "Nhân viên",
 };
+// Hướng A: mỗi mã kèm danh sách phiếu ĐANG MỞ chứa nó (để chọn dòng thuộc phiếu nào).
+type OpenPhn = {
+  id: string;
+  code: string;
+  invoice_no: string | null;
+  qty_expected: number;
+  qty_on_pallet: number;
+  qty_remaining: number;
+};
+
 type ItemCode = {
   id: string;
   code: string;
   short_name: string;
   unit?: { name: string; symbol?: string };
   units_per_box?: number;
-  // fix 1 phiếu — nhiều pallet: "còn lại theo phiếu" (chỉ có khi pallet link phiếu nhập)
-  phn_qty_expected?: number;
-  phn_qty_on_pallet?: number;
-  phn_qty_remaining?: number;
+  open_phns?: OpenPhn[];
 };
 
 export default function ThukhoPalletDetailPage() {
@@ -112,6 +121,12 @@ export default function ThukhoPalletDetailPage() {
   const [itemSearch, setItemSearch] = useState("");
   const [searchResults, setSearchResults] = useState<ItemCode[]>([]);
   const [selectedItem, setSelectedItem] = useState<ItemCode | null>(null);
+  // Hướng A: phiếu mà DÒNG đang thêm thuộc về (có thể khác phiếu gốc của pallet).
+  const [selectedPhn, setSelectedPhn] = useState<OpenPhn | null>(null);
+  // Modal chọn phiếu khi 1 mã thuộc nhiều phiếu đang mở.
+  const [phnPicker, setPhnPicker] = useState<{ item: ItemCode; phns: OpenPhn[] } | null>(null);
+  // Hỏi xác nhận khi thêm hàng của phiếu CHƯA có trên pallet.
+  const [phnConfirm, setPhnConfirm] = useState<{ item: ItemCode; phn: OpenPhn } | null>(null);
   const [qty, setQty] = useState("");
   const [lot, setLot] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -155,28 +170,64 @@ export default function ThukhoPalletDetailPage() {
   useEffect(() => { fetchPallet(); }, [fetchPallet]);
   useEffect(() => { if (activeTab === "history") fetchHistory(); }, [activeTab]);
 
-  // UC-PAL-02: Item search debounce — nếu pallet link PHN, filter chặt theo PHN đó
+  // Hướng A: chỉ tìm mã thuộc CÁC PHIẾU ĐANG MỞ (tránh nhập sai), kèm phiếu nào chứa mã.
   useEffect(() => {
     if (itemSearch.length < 2) { setSearchResults([]); return; }
     const t = setTimeout(async () => {
       try {
-        const phnId = pallet?.inbound_request_id;
-        const params = new URLSearchParams({ q: itemSearch });
-        if (phnId) params.set("inbound_request_id", phnId);
+        const params = new URLSearchParams({ q: itemSearch, inbound_scope: "open" });
         const res = await fetch(`${basePath}/api/item-codes?${params.toString()}`);
         const json = await res.json();
         if (json.success) setSearchResults(json.data || []);
       } catch (err) { console.error(err); }
     }, 300);
     return () => clearTimeout(t);
-  }, [itemSearch, basePath, pallet?.inbound_request_id]);
+  }, [itemSearch, basePath]);
+
+  // Tập PHN hiện có trên pallet = phiếu của các dòng + phiếu gốc (nếu có).
+  const currentPhnIds = new Set<string>();
+  if (pallet?.inbound_request_id) currentPhnIds.add(pallet.inbound_request_id);
+  for (const l of pallet?.lines || []) {
+    if (l.inbound_request_id) currentPhnIds.add(l.inbound_request_id);
+  }
+
+  // Chốt chọn mã + phiếu cho dòng đang thêm.
+  const finalizeSelect = (item: ItemCode, phn: OpenPhn) => {
+    setSelectedItem(item);
+    setSelectedPhn(phn);
+    setItemSearch("");
+    setSearchResults([]);
+    setPhnPicker(null);
+    setPhnConfirm(null);
+    if (phn.qty_remaining > 0) setQty(String(phn.qty_remaining));
+    else setQty("");
+  };
+
+  // Sau khi biết mã + phiếu: nếu phiếu chưa có trên pallet → hỏi xác nhận; ngược lại chốt luôn.
+  const applyPhnChoice = (item: ItemCode, phn: OpenPhn) => {
+    if (currentPhnIds.has(phn.id)) finalizeSelect(item, phn);
+    else setPhnConfirm({ item, phn });
+  };
+
+  // Điểm vào khi bấm 1 mã (từ tìm kiếm hoặc quét).
+  const chooseItem = (item: ItemCode) => {
+    const phns = item.open_phns || [];
+    if (phns.length === 0) {
+      // scope=open đã lọc nên hầu như không xảy ra; báo nhẹ.
+      setScanStatus({ kind: "not_found", code: item.code });
+      setTimeout(() => setScanStatus(null), 4000);
+      return;
+    }
+    if (phns.length === 1) { applyPhnChoice(item, phns[0]); return; }
+    setPhnPicker({ item, phns }); // 1 mã ở nhiều phiếu → cho chọn
+  };
 
   // UC-PAL-03: Quét barcode → lookup item, nếu có set selectedItem, nếu không → search manual
   const handleScanResult = async (scannedCode: string) => {
     setScannerOpen(false);
     try {
-      // Thử lookup theo barcode hoặc code
-      const res = await fetch(`${basePath}/api/item-codes?q=${encodeURIComponent(scannedCode)}`);
+      // Thử lookup theo barcode hoặc code — trong phạm vi phiếu đang mở (hướng A).
+      const res = await fetch(`${basePath}/api/item-codes?q=${encodeURIComponent(scannedCode)}&inbound_scope=open`);
       const json = await res.json();
       const items: ItemCode[] = (json.success && Array.isArray(json.data) ? json.data : []) as ItemCode[];
       // Ưu tiên exact match (code hoặc barcode)
@@ -186,14 +237,8 @@ export default function ThukhoPalletDetailPage() {
       ) || items[0];
 
       if (exact) {
-        setSelectedItem(exact);
-        setItemSearch("");
-        setSearchResults([]);
-        // Mặc định điền = số còn lại theo phiếu (nếu còn)
-        if (exact.phn_qty_remaining != null && exact.phn_qty_remaining > 0) {
-          setQty(String(exact.phn_qty_remaining));
-        }
         setScanStatus({ kind: "success", code: scannedCode });
+        chooseItem(exact); // tự giải quyết phiếu (1 phiếu / nhiều phiếu / hỏi xác nhận)
       } else {
         // Không tìm thấy → đẩy code vào search box để user tìm tay hoặc tạo mã mới
         setItemSearch(scannedCode);
@@ -220,11 +265,12 @@ export default function ThukhoPalletDetailPage() {
           lot: lot || null,
           expiry_date: expiry || null,
           note: lineNote || null,
+          inbound_request_id: selectedPhn?.id || null,   // Hướng A: gán dòng về phiếu đã chọn
         }),
       });
       const json = await res.json();
       if (json.success) {
-        setSelectedItem(null); setItemSearch(""); setQty(""); setLot(""); setExpiry(""); setLineNote("");
+        setSelectedItem(null); setSelectedPhn(null); setItemSearch(""); setQty(""); setLot(""); setExpiry(""); setLineNote("");
         fetchPallet();
       }
     } catch (err) { console.error(err); }
@@ -345,7 +391,28 @@ export default function ThukhoPalletDetailPage() {
             {pallet.lines?.length === 0 ? (
               <div className="py-8 text-center text-sm text-on-surface-variant">Chưa có hàng hóa trong pallet</div>
             ) : (
-              pallet.lines?.map((line) => (
+              // Hướng A: nhóm dòng theo phiếu. Nhiều phiếu → hiện tiêu đề từng phiếu;
+              // 1 phiếu (đa số) → không cần header cho gọn. Dòng NULL = "Hàng phát sinh".
+              (() => {
+                const groups = new Map<string, { code: string; lines: typeof pallet.lines }>();
+                for (const l of pallet.lines) {
+                  const key = l.inbound_request_id || "__extra__";
+                  const code = l.inbound_request?.code || "Hàng phát sinh (chưa gán phiếu)";
+                  if (!groups.has(key)) groups.set(key, { code, lines: [] });
+                  groups.get(key)!.lines.push(l);
+                }
+                const groupArr = Array.from(groups.values());
+                const showHeaders = groupArr.length > 1;
+                return groupArr.map((g) => (
+                  <React.Fragment key={g.code}>
+                    {showHeaders && (
+                      <div className="flex items-center gap-1.5 mt-1 first:mt-0 px-1 text-[11px] font-bold text-primary">
+                        <span className="material-symbols-outlined text-[14px]">receipt_long</span>
+                        {g.code}
+                        <span className="text-on-surface-variant/60 font-normal">· {g.lines.length} dòng</span>
+                      </div>
+                    )}
+                    {g.lines.map((line) => (
                 <div key={line.id} className="industrial-card p-sm rounded-xl bg-surface shadow-sm flex justify-between items-center">
                   <div className="flex flex-col flex-1">
                     <span className="text-xs font-bold text-primary">{line.item_code?.code}</span>
@@ -373,7 +440,10 @@ export default function ThukhoPalletDetailPage() {
                     </button>
                   )}
                 </div>
-              ))
+                    ))}
+                  </React.Fragment>
+                ));
+              })()
             )}
           </div>
 
@@ -382,33 +452,19 @@ export default function ThukhoPalletDetailPage() {
             <div className="industrial-card p-md rounded-xl bg-surface-low flex flex-col gap-sm">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-[11px] md:text-xs font-bold text-on-surface-variant uppercase tracking-wider">Thêm hàng vào pallet</span>
-                {pallet.inbound_request ? (
+                {/* Hướng A: pallet có thể ghép nhiều phiếu — hiện số phiếu đang có trên pallet. */}
+                {currentPhnIds.size > 0 && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <span className="material-symbols-outlined text-[12px]">link</span>
-                    {pallet.inbound_request.code}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                    <span className="material-symbols-outlined text-[12px]">warning</span>
-                    Chưa liên kết phiếu nhập
+                    <span className="material-symbols-outlined text-[12px]">receipt_long</span>
+                    {currentPhnIds.size === 1 ? (pallet.inbound_request?.code || "1 phiếu") : `${currentPhnIds.size} phiếu`}
                   </span>
                 )}
               </div>
 
-              {/* UC-PAL-01 cảnh báo: pallet đang thêm hàng (EMPTY/COUNTING) mà chưa link PHN */}
-              {!pallet.inbound_request_id && (pallet.status === "EMPTY" || pallet.status === "COUNTING") && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[11px] text-amber-800 flex items-start gap-1.5">
-                  <span className="material-symbols-outlined text-[14px] mt-0.5">info</span>
-                  <span>Pallet này <b>chưa liên kết Phiếu nhập</b> nên hiển thị TẤT CẢ mã hàng. Để giới hạn chỉ trong phiếu nhập, tạo pallet từ "<i>Phiếu nhập → Tạo pallet</i>".</span>
-                </div>
-              )}
-
-              {pallet.inbound_request_id && pallet.inbound_request && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-[11px] text-emerald-800 flex items-start gap-1.5">
-                  <span className="material-symbols-outlined text-[14px] mt-0.5">check_circle</span>
-                  <span>Tìm kiếm chỉ trong mã hàng thuộc <b>{pallet.inbound_request.code}</b> — tránh nhập sai.</span>
-                </div>
-              )}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-[11px] text-emerald-800 flex items-start gap-1.5">
+                <span className="material-symbols-outlined text-[14px] mt-0.5">check_circle</span>
+                <span>Chỉ tìm mã thuộc <b>các phiếu đang mở</b> — tránh nhập sai. Pallet có thể chứa hàng của nhiều phiếu; mỗi mã gán về phiếu của nó.</span>
+              </div>
 
               {!selectedItem ? (
                 <>
@@ -425,17 +481,15 @@ export default function ThukhoPalletDetailPage() {
                       {searchResults.length > 0 && (
                         <div className="absolute z-20 w-full mt-1 bg-white border border-outline-variant rounded-lg shadow-lg max-h-40 overflow-y-auto">
                           {searchResults.map((item) => {
-                            const rem = item.phn_qty_remaining;
+                            const phns = item.open_phns || [];
+                            // Nhãn phiếu: 1 phiếu → mã PHN; nhiều phiếu → "N phiếu — chọn"
+                            const phnLabel = phns.length === 1
+                              ? phns[0].code
+                              : phns.length > 1 ? `${phns.length} phiếu — chọn` : "";
                             return (
                               <button
                                 key={item.id}
-                                onClick={() => {
-                                  setSelectedItem(item);
-                                  setItemSearch("");
-                                  setSearchResults([]);
-                                  // Mặc định điền = số còn lại theo phiếu (nếu còn)
-                                  if (rem != null && rem > 0) setQty(String(rem));
-                                }}
+                                onClick={() => chooseItem(item)}
                                 className="w-full px-3 py-2 text-left hover:bg-surface-low text-sm border-b border-outline-variant/20 last:border-0"
                               >
                                 <div className="flex items-center justify-between gap-2">
@@ -443,11 +497,10 @@ export default function ThukhoPalletDetailPage() {
                                     <span className="font-bold text-primary">{item.code}</span>
                                     <span className="text-on-surface-variant ml-2">{item.short_name}</span>
                                   </span>
-                                  {rem != null && (
-                                    <span className={`shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded ${
-                                      rem > 0 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
-                                    }`}>
-                                      {rem > 0 ? `còn ${rem}` : "đã đủ ✓"}
+                                  {phnLabel && (
+                                    <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary flex items-center gap-0.5">
+                                      <span className="material-symbols-outlined text-[12px]">receipt_long</span>
+                                      {phnLabel}
                                     </span>
                                   )}
                                 </div>
@@ -483,23 +536,29 @@ export default function ThukhoPalletDetailPage() {
               ) : (
                 <>
                   <div className="flex justify-between items-center p-sm bg-primary-container/20 rounded-lg">
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-xs font-bold text-primary">{selectedItem.code}</span>
                       <span className="text-[11px] md:text-xs text-on-surface-variant ml-2">{selectedItem.short_name}</span>
+                      {selectedPhn && (
+                        <span className="block mt-0.5 text-[10px] font-bold text-primary flex items-center gap-0.5">
+                          <span className="material-symbols-outlined text-[12px]">receipt_long</span>
+                          Thuộc phiếu {selectedPhn.code}
+                        </span>
+                      )}
                     </div>
-                    <button onClick={() => setSelectedItem(null)} className="text-error text-xs font-semibold">Đổi</button>
+                    <button onClick={() => { setSelectedItem(null); setSelectedPhn(null); }} className="text-error text-xs font-semibold shrink-0">Đổi</button>
                   </div>
 
-                  {/* fix 1 phiếu — nhiều pallet: còn lại theo phiếu (ĐK − đã lên pallet) */}
-                  {selectedItem.phn_qty_remaining != null && (
+                  {/* Hướng A: còn lại theo ĐÚNG phiếu của dòng (ĐK − đã lên theo dòng gán phiếu đó) */}
+                  {selectedPhn && (
                     <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-[11px] rounded-lg bg-surface-low px-2.5 py-1.5">
-                      <span className="text-on-surface-variant">Theo phiếu:</span>
-                      <span className="font-semibold">ĐK {selectedItem.phn_qty_expected ?? 0}</span>
+                      <span className="text-on-surface-variant">Theo phiếu {selectedPhn.code}:</span>
+                      <span className="font-semibold">ĐK {selectedPhn.qty_expected}</span>
                       <span className="text-on-surface-variant/40">·</span>
-                      <span className="font-semibold">đã lên {selectedItem.phn_qty_on_pallet ?? 0}</span>
+                      <span className="font-semibold">đã lên {selectedPhn.qty_on_pallet}</span>
                       <span className="text-on-surface-variant/40">·</span>
-                      <span className={`font-bold ${(selectedItem.phn_qty_remaining ?? 0) > 0 ? "text-amber-700" : "text-emerald-700"}`}>
-                        còn {selectedItem.phn_qty_remaining}{(selectedItem.phn_qty_remaining ?? 0) <= 0 ? " ✓" : ""}
+                      <span className={`font-bold ${selectedPhn.qty_remaining > 0 ? "text-amber-700" : "text-emerald-700"}`}>
+                        còn {selectedPhn.qty_remaining}{selectedPhn.qty_remaining <= 0 ? " ✓" : ""}
                       </span>
                     </div>
                   )}
@@ -516,9 +575,9 @@ export default function ThukhoPalletDetailPage() {
                         </p>
                       )}
                       {/* Cảnh báo (không chặn) khi vượt số còn lại theo phiếu */}
-                      {selectedItem.phn_qty_remaining != null && Number(qty) > (selectedItem.phn_qty_remaining ?? 0) && (
+                      {selectedPhn && Number(qty) > selectedPhn.qty_remaining && (
                         <p className="text-[11px] text-rose-600 font-semibold mt-0.5">
-                          ⚠ Vượt còn lại theo phiếu ({selectedItem.phn_qty_remaining}) — kiểm tra lại.
+                          ⚠ Vượt còn lại theo phiếu {selectedPhn.code} ({selectedPhn.qty_remaining}) — kiểm tra lại.
                         </p>
                       )}
                     </div>
@@ -903,6 +962,64 @@ export default function ThukhoPalletDetailPage() {
           allowManualInput
           allowFromGallery
         />,
+        document.body
+      )}
+
+      {/* Hướng A — Modal chọn phiếu khi 1 mã thuộc nhiều phiếu đang mở */}
+      {phnPicker && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[95] bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={() => setPhnPicker(null)}>
+          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-primary mb-1">Mã {phnPicker.item.code} thuộc nhiều phiếu</h3>
+            <p className="text-[11px] text-on-surface-variant mb-3">Chọn phiếu cho thùng hàng này:</p>
+            <ul className="space-y-2">
+              {phnPicker.phns.map((phn) => (
+                <li key={phn.id}>
+                  <button
+                    type="button"
+                    onClick={() => applyPhnChoice(phnPicker.item, phn)}
+                    className="w-full text-left px-3 py-2.5 border border-outline-variant rounded-lg hover:border-primary hover:bg-primary/5 transition-colors"
+                  >
+                    <span className="block text-sm font-bold text-primary flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[15px]">receipt_long</span>
+                      {phn.code}
+                      {phn.invoice_no && <span className="text-[10px] font-normal text-on-surface-variant">· HĐ {phn.invoice_no}</span>}
+                    </span>
+                    <span className="block text-[11px] text-on-surface-variant mt-0.5">
+                      ĐK {phn.qty_expected} · đã lên {phn.qty_on_pallet} ·{" "}
+                      <span className={phn.qty_remaining > 0 ? "text-amber-700 font-semibold" : "text-emerald-700 font-semibold"}>
+                        còn {phn.qty_remaining}{phn.qty_remaining <= 0 ? " ✓" : ""}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button type="button" onClick={() => setPhnPicker(null)} className="mt-3 w-full py-2 text-xs font-semibold text-on-surface-variant">Hủy</button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Hướng A — Hỏi xác nhận khi thêm hàng của phiếu CHƯA có trên pallet */}
+      {phnConfirm && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[96] bg-black/40 flex items-center justify-center p-4" onClick={() => setPhnConfirm(null)}>
+          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-2 mb-3">
+              <span className="material-symbols-outlined text-[22px] text-amber-600 mt-0.5">add_task</span>
+              <div>
+                <h3 className="text-sm font-bold text-on-surface">Thêm phiếu vào pallet?</h3>
+                <p className="text-[12px] text-on-surface-variant mt-1">
+                  Mã <b>{phnConfirm.item.code}</b> thuộc phiếu <b>{phnConfirm.phn.code}</b> — phiếu này chưa có trên pallet.
+                  Xác nhận để ghép thêm hàng của phiếu này vào cùng pallet.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setPhnConfirm(null)} className="flex-1 py-2.5 rounded-lg border border-outline-variant text-sm font-semibold text-on-surface-variant">Hủy</button>
+              <button type="button" onClick={() => finalizeSelect(phnConfirm.item, phnConfirm.phn)} className="flex-1 py-2.5 rounded-lg bg-primary text-white text-sm font-bold">Thêm phiếu</button>
+            </div>
+          </div>
+        </div>,
         document.body
       )}
     </div>

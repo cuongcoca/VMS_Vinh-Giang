@@ -24,6 +24,8 @@ export async function GET(
                 unit: { select: { id: true, name: true, symbol: true } },
               },
             },
+            // Hướng A: dòng thuộc phiếu nào — để hiển thị nhóm theo phiếu + biết PHN của pallet.
+            inbound_request: { select: { id: true, code: true, invoice_no: true } },
           },
           orderBy: { created_at: "asc" },
         },

@@ -223,6 +223,8 @@ export async function POST(req: NextRequest) {
             lines: {
               create: {
                 item_code_id: line.item_code_id,
+                // Hướng A: dòng con giữ phiếu của dòng cha để đối chiếu không lệch.
+                inbound_request_id: line.inbound_request_id,
                 qty_box: new Prisma.Decimal(partialQtyNum),
                 qty_unit: childLineUnit,
                 lot: line.lot,

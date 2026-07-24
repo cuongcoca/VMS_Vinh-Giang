@@ -33,6 +33,8 @@ export async function GET(
                 unit: { select: { id: true, name: true, symbol: true } },
               },
             },
+            // Hướng A: dòng thuộc phiếu nào — để hiển thị nhóm theo phiếu.
+            inbound_request: { select: { id: true, code: true, invoice_no: true } },
           },
         },
       },
@@ -63,7 +65,9 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { item_code_id, qty_box, lot, expiry_date, manufactured_date, note } = body;
+    // Hướng A: `inbound_request_id` = phiếu mà DÒNG này thuộc về (có thể khác phiếu
+    // gốc của pallet). Không truyền = hàng phát sinh (NULL).
+    const { item_code_id, qty_box, lot, expiry_date, manufactured_date, note, inbound_request_id } = body;
 
     // Validate bắt buộc
     if (!item_code_id) {
@@ -103,6 +107,23 @@ export async function POST(
       );
     }
 
+    // Hướng A: nếu gán dòng vào một PHN, mã hàng phải thực sự thuộc phiếu đó
+    // (có ít nhất 1 InboundLine) — tránh gán nhầm hàng của phiếu khác.
+    let lineInboundId: string | null = null;
+    if (inbound_request_id) {
+      const inLine = await prisma.inboundLine.findFirst({
+        where: { inbound_request_id, item_code_id },
+        select: { id: true },
+      });
+      if (!inLine) {
+        return NextResponse.json(
+          { success: false, error: "Mã hàng không thuộc phiếu nhập đã chọn." },
+          { status: 400 }
+        );
+      }
+      lineInboundId = inbound_request_id;
+    }
+
     // Tính toán
     const qtyBoxNum = Number(qty_box);
     const weightPerBox = itemCode.weight_per_box ? Number(itemCode.weight_per_box) : 0;
@@ -116,6 +137,7 @@ export async function POST(
       data: {
         pallet_id: id,
         item_code_id,
+        inbound_request_id: lineInboundId,
         qty_box: new Prisma.Decimal(qtyBoxNum),
         qty_unit: new Prisma.Decimal(qtyUnit),
         lot: lot?.trim() || null,

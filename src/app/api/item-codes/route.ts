@@ -14,6 +14,9 @@ export async function GET(req: Request) {
     // UC-PAL-02: filter theo PHN → chỉ trả ItemCode thuộc InboundLine của phiếu đó.
     // Dùng khi thủ kho thêm dòng vào pallet đã link PHN — tránh chọn nhầm hàng từ phiếu khác.
     const inboundRequestId = url.searchParams.get("inbound_request_id") || "";
+    // Hướng A: scope "open" → trả mã thuộc BẤT KỲ phiếu đang mở (PENDING/RECEIVING/RECONCILING),
+    // kèm danh sách phiếu mở chứa mã đó (để màn thêm hàng chọn dòng thuộc phiếu nào).
+    const inboundScope = url.searchParams.get("inbound_scope") || "";
     const sortBy = url.searchParams.get("sortBy") || "created_at";
     const sortOrder = url.searchParams.get("sortOrder") || "desc";
     const page = parseInt(url.searchParams.get("page") || "1");
@@ -45,6 +48,11 @@ export async function GET(req: Request) {
     if (inboundRequestId) {
       // ItemCode phải có ít nhất 1 InboundLine thuộc phiếu này
       where.inboundLines = { some: { inbound_request_id: inboundRequestId } };
+    } else if (inboundScope === "open") {
+      // Mã thuộc bất kỳ phiếu đang mở (chưa chốt/hủy).
+      where.inboundLines = {
+        some: { inbound_request: { status: { in: ["PENDING", "RECEIVING", "RECONCILING"] } } },
+      };
     }
 
     const allowedSortFields = ["code", "short_name", "created_at", "updated_at", "status"];
@@ -113,6 +121,57 @@ export async function GET(req: Request) {
           phn_qty_remaining: exp - onPallet,
         };
       });
+    } else if (inboundScope === "open" && items.length > 0) {
+      // Hướng A: mỗi mã kèm danh sách phiếu ĐANG MỞ chứa nó, mỗi phiếu có
+      // "còn lại" = tổng dự kiến của mã trong phiếu − tổng đã lên các dòng
+      // gán về phiếu đó (theo dòng, không theo pallet gốc).
+      const itemIds = items.map((it) => it.id);
+      const [expectedRows, onLineRows] = await Promise.all([
+        prisma.inboundLine.findMany({
+          where: {
+            item_code_id: { in: itemIds },
+            inbound_request: { status: { in: ["PENDING", "RECEIVING", "RECONCILING"] } },
+          },
+          select: {
+            item_code_id: true,
+            qty_expected: true,
+            inbound_request: { select: { id: true, code: true, invoice_no: true } },
+          },
+        }),
+        prisma.palletLine.groupBy({
+          by: ["item_code_id", "inbound_request_id"],
+          where: {
+            item_code_id: { in: itemIds },
+            inbound_request_id: { not: null },
+            pallet: { status: { not: "CANCELLED" } },
+          },
+          _sum: { qty_box: true },
+        }),
+      ]);
+      // Map (item, phn) → đã lên
+      const onLineMap = new Map<string, number>();
+      for (const r of onLineRows) {
+        onLineMap.set(`${r.item_code_id}|${r.inbound_request_id}`, Number(r._sum.qty_box || 0));
+      }
+      // Gom phiếu mở theo mã
+      type OpenPhn = { id: string; code: string; invoice_no: string | null; qty_expected: number; qty_on_pallet: number; qty_remaining: number };
+      const byItem = new Map<string, OpenPhn[]>();
+      for (const row of expectedRows) {
+        const phn = row.inbound_request;
+        const exp = Number(row.qty_expected);
+        const onPallet = onLineMap.get(`${row.item_code_id}|${phn.id}`) || 0;
+        const list = byItem.get(row.item_code_id) || [];
+        // Cùng mã có thể có nhiều dòng trong 1 phiếu → cộng dồn dự kiến.
+        const existing = list.find((x) => x.id === phn.id);
+        if (existing) {
+          existing.qty_expected += exp;
+          existing.qty_remaining = existing.qty_expected - existing.qty_on_pallet;
+        } else {
+          list.push({ id: phn.id, code: phn.code, invoice_no: phn.invoice_no, qty_expected: exp, qty_on_pallet: onPallet, qty_remaining: exp - onPallet });
+          byItem.set(row.item_code_id, list);
+        }
+      }
+      data = items.map((it) => ({ ...it, open_phns: byItem.get(it.id) || [] }));
     }
 
     return NextResponse.json({

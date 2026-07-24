@@ -38,19 +38,33 @@ export async function GET(
       );
     }
 
-    // UC-IN-03: KPI stats + pallets_by_item + extra_lines (hàng phát sinh)
+    // UC-IN-03 (hướng A — pallet nhiều phiếu): đối chiếu theo TỪNG DÒNG gán về phiếu này,
+    // không theo pallet. Một pallet ghép nhiều phiếu chỉ đóng góp dòng của đúng phiếu đang xem.
     const inboundLineItemCodeIds = inbound.lines.map((l) => l.item_code_id);
 
-    // 1) Pallet link với phiếu này (loại trừ CANCELLED)
-    const pallets = await prisma.pallet.findMany({
-      where: { inbound_request_id: id, status: { not: "CANCELLED" } },
+    // 1) Các DÒNG pallet gán về phiếu này (kèm pallet code/status; loại pallet CANCELLED)
+    const scopedLines = await prisma.palletLine.findMany({
+      where: {
+        inbound_request_id: id,
+        pallet: { status: { not: "CANCELLED" } },
+      },
       select: {
-        id: true,
-        code: true,
-        status: true,
-        lines: { select: { item_code_id: true, qty_box: true } },
+        item_code_id: true,
+        qty_box: true,
+        pallet: { select: { id: true, code: true, status: true } },
       },
     });
+
+    // Gom về "pallet ảo" theo pallet id để tính KPI trạng thái + mapping mã→pallet.
+    type ScopedPallet = { id: string; code: string; status: string; lines: { item_code_id: string; qty_box: number }[] };
+    const palletMap = new Map<string, ScopedPallet>();
+    for (const l of scopedLines) {
+      const p = l.pallet;
+      let sp = palletMap.get(p.id);
+      if (!sp) { sp = { id: p.id, code: p.code, status: p.status, lines: [] }; palletMap.set(p.id, sp); }
+      sp.lines.push({ item_code_id: l.item_code_id, qty_box: Number(l.qty_box) });
+    }
+    const pallets = Array.from(palletMap.values());
 
     const palletsByStatus = {
       total: pallets.length,
@@ -71,7 +85,8 @@ export async function GET(
       }
     }
 
-    // 3) Hàng phát sinh — PalletLine có item_code KHÔNG thuộc InboundLine của phiếu
+    // 3) Hàng phát sinh — dòng gán về phiếu này nhưng mã KHÔNG có trong InboundLine.
+    //    (Bình thường không xảy ra vì POST đã chặn; giữ để bắt dữ liệu cũ / bất thường.)
     type ExtraLine = {
       item_code_id: string;
       item_code: { id: string; code: string; short_name: string; status?: string };

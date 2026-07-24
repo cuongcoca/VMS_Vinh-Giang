@@ -331,6 +331,9 @@ model PalletLine {
   id                String    @id @default(uuid()) @db.Uuid
   pallet_id         String    @db.Uuid
   item_code_id      String    @db.Uuid
+  // Hướng A (pallet nhiều phiếu): dòng này thuộc PHN nào. NULL = hàng phát sinh
+  // (không khớp phiếu). Cho phép 1 pallet vật lý chứa dòng của nhiều phiếu khác nhau.
+  inbound_request_id String?  @db.Uuid
   qty_box           Decimal   @db.Decimal(10, 2)
   qty_unit          Decimal   @default(0) @db.Decimal(14, 3)
   lot               String?   @db.VarChar(40)
@@ -341,12 +344,14 @@ model PalletLine {
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
 
-  pallet            Pallet    @relation(fields: [pallet_id], references: [id], onDelete: Cascade)
-  item_code         ItemCode  @relation(fields: [item_code_id], references: [id])
+  pallet            Pallet          @relation(fields: [pallet_id], references: [id], onDelete: Cascade)
+  item_code         ItemCode        @relation(fields: [item_code_id], references: [id])
+  inbound_request   InboundRequest? @relation("pallet_line_inbound", fields: [inbound_request_id], references: [id])
 
   @@index([pallet_id])
   @@index([item_code_id, expiry_date])
   @@index([lot, expiry_date])
+  @@index([inbound_request_id])
   @@map("pallet_lines")
 }
 
@@ -454,6 +459,7 @@ model InboundRequest {
   supplier               Supplier?      @relation(fields: [supplier_id], references: [id])
   lines                  InboundLine[]
   pallets                Pallet[]
+  palletLines            PalletLine[]   @relation("pallet_line_inbound")   // Hướng A: dòng pallet gán về phiếu này
   standardizedFromTemps  InboundTemp[]  @relation("temp_standardized_to_request")
 
   @@unique([code_year, code_seq])

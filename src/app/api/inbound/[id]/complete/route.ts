@@ -96,8 +96,20 @@ export async function POST(
       );
     }
 
-    // Phase 1.1: chặn chốt nếu còn pallet COUNTING/EMPTY (chưa hoàn tất đếm/xác nhận)
-    const unfinishedPallets = inbound.pallets.filter(
+    // Phase 1.1 + hướng A: chặn chốt nếu còn pallet COUNTING/EMPTY (chưa xác nhận).
+    // Phải xét MỌI pallet có dòng thuộc phiếu này — kể cả pallet ghép nhiều phiếu
+    // mà phiếu gốc (pallet.inbound_request_id) là phiếu khác.
+    const palletsWithLines = await prisma.pallet.findMany({
+      where: {
+        status: { not: "CANCELLED" },
+        OR: [
+          { inbound_request_id: id },
+          { lines: { some: { inbound_request_id: id } } },
+        ],
+      },
+      select: { id: true, code: true, status: true },
+    });
+    const unfinishedPallets = palletsWithLines.filter(
       (p) => p.status === "COUNTING" || p.status === "EMPTY"
     );
     if (unfinishedPallets.length > 0) {
