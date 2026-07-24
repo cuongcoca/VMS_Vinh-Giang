@@ -255,14 +255,19 @@ export default function StageOutPage() {
           )}
         </div>
 
-        {/* UC-FK-04 Modal: chọn TH-A (rút nguyên) vs TH-B (rút phần) */}
+        {/* UC-FK-04 Modal: chọn TH-A (rút nguyên) vs TH-B (rút phần).
+            Overlay canh TỪ TRÊN (items-start) + cho cuộn (overflow-y-auto), hộp thoại
+            có max-h-[92vh] + overflow-y-auto: khi hộp thoại cao hơn màn hình (pallet
+            nhiều mã + rút một phần trên máy màn hình thấp), người dùng vẫn cuộn xuống
+            chạm được nút xác nhận. Trước đây items-center + không max-h/overflow →
+            nút "Rút…" bị cắt dưới, không bấm được (lỗi "không hiện chỗ xuất"). */}
         {extractModal && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setExtractModal(null)}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setExtractModal(null)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg my-auto max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="px-6 py-4 border-b border-outline-variant">
-                <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
-                  <span className="material-symbols-outlined text-amber-500">output</span>
-                  Chuyển <span className="font-mono">{extractModal.pallet.pallet.code}</span> sang khu chờ xuất
+                <h3 className="text-lg font-bold text-on-surface flex items-start gap-2">
+                  <span className="material-symbols-outlined text-amber-500 shrink-0">output</span>
+                  <span className="min-w-0">Chuyển <span className="font-mono break-all">{extractModal.pallet.pallet.code}</span> sang khu chờ xuất</span>
                 </h3>
                 <p className="text-xs text-on-surface-variant mt-1">SL mã <b className="font-mono text-primary">{extractModal.pallet.item_code.code}</b> trong pallet: <b className="font-mono text-primary">{Number(extractModal.pallet.qty_box)}</b> thùng · HSD {extractModal.pallet.expiry_date ? new Date(extractModal.pallet.expiry_date).toLocaleDateString("vi-VN") : "—"}</p>
               </div>
