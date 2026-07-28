@@ -3,8 +3,10 @@ import { fetchJson } from "@/lib/api";
 import { DateField } from "@/components/mobile";
 import { mobileHref } from "@/lib/mobile-href";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { ListPageFooter } from "@/components/ui/ListPagination";
 import { useDebouncedValue, readSavedPaging } from "@/lib/use-debounced-value";
 
@@ -39,8 +41,15 @@ const STATUS_META: Record<string, { label: string; chipBg: string; chipText: str
   CANCELLED: { label: "Đã hủy", chipBg: "bg-rose-100", chipText: "text-rose-600", borderLeft: "bg-rose-400" },
 };
 
-export default function ThukhoPalletListPage() {
+function ThukhoPalletListContent() {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  // WVG — Quét QR Thủ kho: nút QR ở header điều hướng tới /thukho/pallet?scan=true.
+  // Trước đây trang này KHÔNG đọc param nên camera không mở ("QR chưa hoạt động").
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const shouldAutoScan = searchParams.get("scan") === "true";
+  const [showScanner, setShowScanner] = useState(shouldAutoScan);
+  const [scanToast, setScanToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [pallets, setPallets] = useState<PalletItem[]>([]);
   const [kpis, setKpis] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -140,6 +149,38 @@ export default function ThukhoPalletListPage() {
     } catch { return null; }
   };
 
+  // Tự ẩn toast sau 4s.
+  useEffect(() => {
+    if (!scanToast) return;
+    const t = setTimeout(() => setScanToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [scanToast]);
+
+  // Xử lý mã quét được từ camera/nhập tay. Mã hợp lệ = trùng đúng code 1 pallet.
+  // Tra cứu qua /api/pallets/by-code → lọc danh sách tới pallet đó; không thấy thì
+  // báo lỗi rõ ràng (thay vì im lặng ra danh sách rỗng gây hiểu nhầm chưa quét).
+  const handleScan = async (code: string) => {
+    setShowScanner(false);
+    // Bỏ ?scan=true khỏi URL để không tự mở lại scanner (dùng mobileHref vì build
+    // standalone /thukho có basePath trùng tên thư mục).
+    if (shouldAutoScan) router.replace(mobileHref("/thukho/pallet"));
+    const scanned = code.trim();
+    if (!scanned) return;
+    try {
+      const res = await fetch(`${basePath}/api/pallets/by-code?code=${encodeURIComponent(scanned)}`);
+      const json = await res.json();
+      if (json.success && json.data?.code) {
+        setSearch(json.data.code); // lọc danh sách tới pallet vừa quét
+        setScanToast({ message: `Đã tìm thấy pallet ${json.data.code}.`, type: "success" });
+      } else {
+        setSearch("");
+        setScanToast({ message: `Không tìm thấy pallet với mã "${scanned}".`, type: "error" });
+      }
+    } catch {
+      setScanToast({ message: "Lỗi kết nối khi tra cứu pallet. Vui lòng thử lại.", type: "error" });
+    }
+  };
+
   // Server đã cắt trang sẵn nên `pallets` chính là dòng của trang hiện tại.
   const pagedPallets = pallets;
   const pg = {
@@ -174,25 +215,35 @@ export default function ThukhoPalletListPage() {
         </Link>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[18px]">search</span>
-        <input
-          type="text"
-          placeholder="Tìm theo mã pallet, NCC..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && fetchPallets()}
-          className="w-full pl-10 pr-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-surface focus:outline-none focus:border-primary"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 hover:text-rose-500"
-          >
-            <span className="material-symbols-outlined text-[16px]">close</span>
-          </button>
-        )}
+      {/* Search + nút quét QR */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[18px]">search</span>
+          <input
+            type="text"
+            placeholder="Tìm theo mã pallet, NCC..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && fetchPallets()}
+            className="w-full pl-10 pr-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-surface focus:outline-none focus:border-primary"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 hover:text-rose-500"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          )}
+        </div>
+        <button
+          onClick={() => setShowScanner(true)}
+          className="shrink-0 w-11 flex items-center justify-center rounded-lg bg-secondary text-white hover:bg-on-secondary-container active:scale-95 transition-all"
+          title="Quét QR pallet"
+          aria-label="Quét QR pallet"
+        >
+          <span className="material-symbols-outlined text-[20px]">qr_code_scanner</span>
+        </button>
       </div>
 
       {/* UC-PAL-06 / TC_HISTORY_PAL_002+003: bộ lọc theo ngày + NCC */}
@@ -363,6 +414,42 @@ export default function ThukhoPalletListPage() {
         )}
         {!loading && total > 0 && <ListPageFooter {...pg} unit="pallet" />}
       </div>
+
+      {/* WVG — Quét QR: scanner full-screen (camera + nhập tay) */}
+      <BarcodeScanner
+        isOpen={showScanner}
+        onScan={handleScan}
+        onClose={() => {
+          setShowScanner(false);
+          if (shouldAutoScan) router.replace(mobileHref("/thukho/pallet"));
+        }}
+        title="Quét QR pallet"
+      />
+
+      {/* Thông báo kết quả quét */}
+      {scanToast && (
+        <div
+          className={`fixed left-1/2 -translate-x-1/2 bottom-24 z-50 px-4 py-2.5 rounded-lg shadow-lg text-sm font-semibold flex items-center gap-2 ${
+            scanToast.type === "success"
+              ? "bg-emerald-600 text-white"
+              : "bg-rose-600 text-white"
+          }`}
+          role="status"
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            {scanToast.type === "success" ? "check_circle" : "error"}
+          </span>
+          {scanToast.message}
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function ThukhoPalletListPage() {
+  return (
+    <Suspense fallback={null}>
+      <ThukhoPalletListContent />
+    </Suspense>
   );
 }
