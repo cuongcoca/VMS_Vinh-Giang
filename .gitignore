@@ -83,3 +83,7 @@ _audit.js
 _mark.js
 _nextfix.js
 _plan_*.json
+
+# Playwright artifacts
+test-results/
+playwright-report/
