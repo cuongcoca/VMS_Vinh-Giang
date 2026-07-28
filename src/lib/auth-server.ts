@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import * as jwt from "jsonwebtoken";
 import { prisma } from "./prisma";
-import { can, type Resource, type ActionType } from "./permissions";
+import { can, ensurePermissionMatrixLoaded, type Resource, type ActionType } from "./permissions";
 
 /**
  * Lớp helper xác thực + RBAC dùng cho mọi API route business.
@@ -177,6 +177,7 @@ export async function requirePermission(
   action: ActionType
 ): Promise<AuthContext> {
   const ctx = await requireAuth(req); // 401 nếu chưa xác thực
+  await ensurePermissionMatrixLoaded(); // Pha 4: nạp override ma trận từ DB (cache TTL)
   if (!can(ctx.user.role, resource, action)) {
     throw new ApiError(403, "Không có quyền thực hiện thao tác này");
   }

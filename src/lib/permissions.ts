@@ -75,7 +75,9 @@ function allSpecial(): Partial<Record<Resource, Level>> {
   return Object.fromEntries(ALL_RESOURCES.map((r) => [r, "special" as Level]));
 }
 
-export const PERMISSION_MATRIX: Record<string, Partial<Record<Resource, Level>>> = {
+// Ma trận MẶC ĐỊNH (seed/fallback). Pha 4: override lưu ở DB (systemConfig) và
+// nạp vào `activeMatrix` qua ensurePermissionMatrixLoaded().
+export const DEFAULT_MATRIX: Record<string, Partial<Record<Resource, Level>>> = {
   // Quản lý — toàn quyền nghiệp vụ + quản trị hệ thống
   QUAN_LY: allSpecial(),
 
@@ -108,13 +110,86 @@ export const PERMISSION_MATRIX: Record<string, Partial<Record<Resource, Level>>>
 
 // Legacy roles: grant TƯỜNG MINH special toàn bộ (KHÔNG wildcard) — di trú ở Pha 3.
 for (const legacy of LEGACY_ROLES) {
-  PERMISSION_MATRIX[legacy] = allSpecial();
+  DEFAULT_MATRIX[legacy] = allSpecial();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pha 4 — Ma trận ĐANG HIỆU LỰC: mặc định = DEFAULT_MATRIX, override lưu ở DB.
+// can()/levelOf() đọc SYNC từ `activeMatrix`; ensurePermissionMatrixLoaded()
+// (async, cache TTL) nạp override từ systemConfig. Gọi trong requirePermission.
+// ─────────────────────────────────────────────────────────────────────────────
+export const PERMISSION_CONFIG_KEY = "rbac_permission_matrix";
+const LEVELS: Level[] = ["none", "read", "full", "special"];
+
+function cloneDefault(): Record<string, Partial<Record<Resource, Level>>> {
+  return JSON.parse(JSON.stringify(DEFAULT_MATRIX));
+}
+
+let activeMatrix = cloneDefault();
+let loadedAt = 0;
+const TTL_MS = 15_000;
+
+// Áp override (CHỈ baseline roles; legacy giữ default allSpecial). Validate chặt.
+function applyOverride(override: unknown): void {
+  const m = cloneDefault();
+  if (override && typeof override === "object") {
+    const o = override as Record<string, Record<string, string>>;
+    for (const role of BASELINE_ROLES) {
+      const g = o[role];
+      if (g && typeof g === "object") {
+        const clean: Partial<Record<Resource, Level>> = {};
+        for (const res of ALL_RESOURCES) {
+          const lvl = g[res];
+          if (typeof lvl === "string" && (LEVELS as string[]).includes(lvl)) {
+            clean[res] = lvl as Level;
+          }
+        }
+        m[role] = clean;
+      }
+    }
+  }
+  activeMatrix = m;
+}
+
+/** Nạp override từ DB (cache TTL). Gọi trước can() ở server (requirePermission). */
+export async function ensurePermissionMatrixLoaded(): Promise<void> {
+  const now = Date.now();
+  if (now - loadedAt < TTL_MS) return;
+  loadedAt = now; // set trước để tránh nhiều request cùng nạp
+  try {
+    const { prisma } = await import("./prisma");
+    const cfg = await prisma.systemConfig.findUnique({ where: { key: PERMISSION_CONFIG_KEY } });
+    if (cfg?.value) applyOverride(JSON.parse(cfg.value));
+    else activeMatrix = cloneDefault();
+  } catch (e) {
+    // Lỗi DB → GIỮ ma trận hiện tại (fallback an toàn, không mở toang quyền).
+    console.error("[permissions] load matrix error (giữ ma trận hiện tại):", e);
+  }
+}
+
+/** Buộc nạp lại ngay (gọi sau khi PUT cập nhật ma trận). */
+export async function reloadPermissionMatrix(): Promise<void> {
+  loadedAt = 0;
+  await ensurePermissionMatrixLoaded();
+}
+
+/** Dữ liệu cho UI cấu hình: ma trận hiệu lực (baseline) + metadata. */
+export function getPermissionMatrixForAdmin() {
+  const matrix: Record<string, Partial<Record<Resource, Level>>> = {};
+  for (const role of BASELINE_ROLES) matrix[role] = activeMatrix[role] ?? {};
+  return {
+    roles: [...BASELINE_ROLES],
+    resources: [...ALL_RESOURCES],
+    levels: [...LEVELS],
+    matrix,
+    defaults: Object.fromEntries(BASELINE_ROLES.map((r) => [r, DEFAULT_MATRIX[r] ?? {}])),
+  };
 }
 
 /** Mức quyền của role trên resource (deny-by-default = "none"). */
 export function levelOf(role: string | undefined | null, resource: Resource): Level {
   if (!role) return "none";
-  return PERMISSION_MATRIX[role]?.[resource] ?? "none";
+  return activeMatrix[role]?.[resource] ?? "none";
 }
 
 /** role có được phép thực hiện action trên resource không. Deny-by-default. */
