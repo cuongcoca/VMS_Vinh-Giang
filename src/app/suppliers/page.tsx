@@ -4,6 +4,7 @@ import { useToast, useClientPagination, ListPageFooter } from "@/components/ui";
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
+import { fetchJson } from "@/lib/api";
 
 type Supplier = {
   id: string;
@@ -35,6 +36,7 @@ export default function SuppliersPage() {
   const { toast } = useToast();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
@@ -45,13 +47,18 @@ export default function SuppliersPage() {
   const fetchSuppliers = async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = new URLSearchParams();
       if (searchQuery) params.set("q", searchQuery);
-      const res = await fetch(`/wms/api/suppliers?${params.toString()}`);
-      const result = await res.json();
-      if (result.success) setSuppliers(result.data);
+      const body = await fetchJson<{ success: boolean; data: Supplier[] }>(
+        `/wms/api/suppliers?${params.toString()}`
+      );
+      setSuppliers(body.data || []);
     } catch (err) {
+      // WMS-004: KHÔNG nuốt lỗi thành empty state — hiện thông báo + cho Thử lại.
       console.error("Fetch suppliers error:", err);
+      setSuppliers([]);
+      setError(err instanceof Error ? err.message : "Không tải được danh sách nhà cung cấp.");
     } finally {
       setLoading(false);
     }
@@ -245,6 +252,20 @@ export default function SuppliersPage() {
                     <td colSpan={8} className="text-center py-12 text-on-surface-variant">
                       <span className="material-symbols-outlined animate-spin text-[24px]">progress_activity</span>
                       <p className="mt-2 text-sm">Đang tải...</p>
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-12">
+                      <span className="material-symbols-outlined text-[40px] text-rose-400">error</span>
+                      <p className="mt-2 text-sm text-rose-600 font-medium">{error}</p>
+                      <button
+                        onClick={fetchSuppliers}
+                        className="mt-3 px-4 py-2 text-sm bg-primary text-white rounded-lg inline-flex items-center gap-1 hover:bg-primary-hover"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">refresh</span>
+                        Thử lại
+                      </button>
                     </td>
                   </tr>
                 ) : suppliers.length === 0 ? (

@@ -1,4 +1,5 @@
 "use client";
+import { fetchJson } from "@/lib/api";
 import { useToast } from "@/components/ui";
 
 import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
@@ -127,9 +128,8 @@ function InboundNewForm() {
     // Fetch suppliers
     (async () => {
       try {
-        const res = await fetch("/wms/api/suppliers");
-        const result = await res.json();
-        if (result.success) setSuppliers(result.data);
+        const body = await fetchJson<{ data?: unknown[] }>("/wms/api/suppliers");
+        setSuppliers((body.data ?? []) as typeof suppliers);
       } catch (err) {
         console.error("Fetch suppliers error:", err);
       }

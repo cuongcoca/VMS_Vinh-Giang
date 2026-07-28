@@ -1,4 +1,5 @@
 "use client";
+import { fetchJson } from "@/lib/api";
 import { DateField } from "@/components/mobile";
 import { mobileHref } from "@/lib/mobile-href";
 
@@ -47,9 +48,8 @@ function NewPalletContent() {
       .catch(console.error);
 
     // Load NCC
-    fetch(`${basePath}/api/suppliers`)
-      .then((r) => r.json())
-      .then((j) => { if (j.success) setSuppliers(j.data || []); })
+    fetchJson<{ data?: unknown[] }>(`${basePath}/api/suppliers`)
+      .then((body) => setSuppliers((body.data ?? []) as typeof suppliers))
       .catch(console.error);
 
     if (prefilledTempId) {

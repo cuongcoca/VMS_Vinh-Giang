@@ -1,4 +1,5 @@
 "use client";
+import { fetchJson } from "@/lib/api";
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -136,9 +137,8 @@ export default function InboundPage() {
   // Fetch suppliers cho dropdown
   const fetchSuppliers = async () => {
     try {
-      const res = await fetch("/wms/api/suppliers");
-      const result = await res.json();
-      if (result.success) setSuppliers(result.data);
+      const body = await fetchJson<{ data?: unknown[] }>("/wms/api/suppliers");
+      setSuppliers((body.data ?? []) as typeof suppliers);
     } catch (err) {
       console.error("Fetch suppliers error:", err);
     }

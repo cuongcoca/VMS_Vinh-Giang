@@ -1,4 +1,5 @@
 "use client";
+import { fetchJson } from "@/lib/api";
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -131,7 +132,7 @@ export default function NewInboundAdhocPage() {
   }, []);
 
   useEffect(() => {
-    fetch("/wms/api/suppliers").then(r => r.json()).then(r => { if (r.success) setSuppliers(r.data); });
+    fetchJson<{ data?: unknown[] }>("/wms/api/suppliers").then(r => setSuppliers((r.data ?? []) as typeof suppliers)).catch(() => {});
     // Preview mã phiếu PNT-YYYY-SSSS (CT-1: PTT → PNT theo mockup)
     fetch("/wms/api/inbound-temp").then(r => r.json()).then(r => {
       if (r.success && r.data && r.data.length > 0) {

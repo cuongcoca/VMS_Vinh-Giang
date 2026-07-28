@@ -1,4 +1,5 @@
 "use client";
+import { fetchJson } from "@/lib/api";
 import { DateField } from "@/components/mobile";
 import { mobileHref } from "@/lib/mobile-href";
 
@@ -122,9 +123,8 @@ export default function ThukhoPalletListPage() {
 
   // Tải danh sách NCC cho dropdown lọc (1 lần)
   useEffect(() => {
-    fetch(`${basePath}/api/suppliers`)
-      .then((r) => r.json())
-      .then((r) => { if (r.success) setSuppliers(r.data || []); })
+    fetchJson<{ data?: unknown[] }>(`${basePath}/api/suppliers`)
+      .then((body) => setSuppliers((body.data ?? []) as typeof suppliers))
       .catch(() => {});
   }, [basePath]);
 

@@ -1,4 +1,5 @@
 "use client";
+import { fetchJson } from "@/lib/api";
 import { mobileHref } from "@/lib/mobile-href";
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -58,9 +59,8 @@ export default function ThukhoNewAdhocPage() {
   const [previewCode, setPreviewCode] = useState<string>(previewCodeFallback());
 
   useEffect(() => {
-    fetch(`${basePath}/api/suppliers`)
-      .then((r) => r.json())
-      .then((j) => { if (j.success) setSuppliers(j.data || []); })
+    fetchJson<{ data?: unknown[] }>(`${basePath}/api/suppliers`)
+      .then((body) => setSuppliers((body.data ?? []) as typeof suppliers))
       .catch(console.error);
 
     fetch(`${basePath}/api/inbound-temp/next-code`)

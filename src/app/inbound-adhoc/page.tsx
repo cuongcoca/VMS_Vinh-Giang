@@ -1,4 +1,5 @@
 "use client";
+import { fetchJson } from "@/lib/api";
 import { useToast, useClientPagination, ListPageFooter } from "@/components/ui";
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -51,7 +52,7 @@ export default function InboundAdhocPage() {
   };
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
-  useEffect(() => { fetchSummary(); fetch("/wms/api/suppliers").then(r => r.json()).then(r => { if (r.success) setSuppliers(r.data); }); }, []);
+  useEffect(() => { fetchSummary(); fetchJson<{ data?: unknown[] }>("/wms/api/suppliers").then(r => setSuppliers((r.data ?? []) as typeof suppliers)).catch(() => {}); }, []);
 
   const handleDelete = async (id: string, code: string) => {
     if (!confirm(`Xóa phiếu tạm "${code}"?`)) return;
