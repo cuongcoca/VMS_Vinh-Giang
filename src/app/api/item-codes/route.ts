@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePermission, guardPermission, apiErrorResponse } from "@/lib/auth-server";
 import { validateSpecification } from "@/lib/spec-validate";
 import { notifyByRoles } from "@/lib/notifications";
+import { buildUserIdentitySet, assertNotAccount } from "@/lib/item-code-guard";
 
 // GET: Danh sách mã hàng (search, filter status, paging, sort)
 export async function GET(req: Request) {
@@ -259,6 +260,22 @@ export async function POST(req: Request) {
         { success: false, error: "Tên rút gọn không vượt quá 100 ký tự.", field: "short_name" },
         { status: 400 }
       );
+    }
+
+    // WVG-63: chặn dữ liệu tài khoản (email/SĐT/trùng account) lọt vào mã hàng —
+    // đặc biệt bịt lỗ `short_name` (trước đây không kiểm định dạng).
+    const userIdentitySet = buildUserIdentitySet(
+      await prisma.user.findMany({
+        select: { email: true, phone: true, username: true, full_name: true },
+      })
+    );
+    const codeAcctErr = assertNotAccount(code, userIdentitySet, "Mã hàng");
+    if (codeAcctErr) {
+      return NextResponse.json({ success: false, error: codeAcctErr, field: "code" }, { status: 400 });
+    }
+    const nameAcctErr = assertNotAccount(short_name, userIdentitySet, "Tên rút gọn");
+    if (nameAcctErr) {
+      return NextResponse.json({ success: false, error: nameAcctErr, field: "short_name" }, { status: 400 });
     }
 
     // Validate trọng lượng >= 0
