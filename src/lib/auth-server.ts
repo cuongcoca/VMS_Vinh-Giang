@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import * as jwt from "jsonwebtoken";
 import { prisma } from "./prisma";
+import { can, type Resource, type ActionType } from "./permissions";
 
 /**
  * Lớp helper xác thực + RBAC dùng cho mọi API route business.
@@ -158,6 +159,48 @@ export async function requireAuth(
     sessionId,
     token,
   };
+}
+
+/**
+ * WVG-16 / WMS-002 — Enforce phân quyền deny-by-default ở BACKEND.
+ *
+ * Khác `requireAuth(req, allowedRoles)` cũ ở chỗ:
+ *  - Không dựa trên danh sách role rời rạc mà tra MA TRẬN quyền (permissions.ts).
+ *  - KHÔNG có super-role bypass: ADMIN/MANAGER/STAFF cũng phải có grant tường minh.
+ *  - Thiếu grant → 403 (deny-by-default).
+ *
+ * Dùng ở đầu mỗi route: `await requirePermission(req, "pallet", "read")`.
+ */
+export async function requirePermission(
+  req: Request,
+  resource: Resource,
+  action: ActionType
+): Promise<AuthContext> {
+  const ctx = await requireAuth(req); // 401 nếu chưa xác thực
+  if (!can(ctx.user.role, resource, action)) {
+    throw new ApiError(403, "Không có quyền thực hiện thao tác này");
+  }
+  return ctx;
+}
+
+/**
+ * Bọc `requirePermission` trả về NextResponse lỗi (401/403) hoặc `null` nếu hợp lệ.
+ * Tiện gắn 1 dòng ở đầu handler mà không đụng try/catch nghiệp vụ sẵn có:
+ *
+ *   const denied = await guardPermission(req, "pallet", "read");
+ *   if (denied) return denied;
+ */
+export async function guardPermission(
+  req: Request,
+  resource: Resource,
+  action: ActionType
+): Promise<NextResponse | null> {
+  try {
+    await requirePermission(req, resource, action);
+    return null;
+  } catch (err) {
+    return apiErrorResponse(err);
+  }
 }
 
 export function apiErrorResponse(err: unknown): NextResponse {

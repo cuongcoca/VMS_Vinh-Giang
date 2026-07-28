@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
+import { guardPermission } from "@/lib/auth-server";
 
 // Helper: Sinh mã pallet PLYYMMDD.STT
 // UC-PAL-01: phải race-safe khi nhiều thủ kho cùng tạo → dùng advisory lock theo ngày
@@ -35,6 +36,9 @@ async function generatePalletCode(
 // Phase 3.5 (BUG_REPORT TC_HISTORY_PAL_002/_003): hỗ trợ filter theo
 // ngày tạo (from/to) và nhà cung cấp.
 export async function GET(req: NextRequest) {
+  // WMS-002: enforce quyền đọc pallet (deny-by-default)
+  const denied = await guardPermission(req, "pallet", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q") || "";
@@ -182,6 +186,9 @@ export async function GET(req: NextRequest) {
 // + Phương án A: auto-populate PalletLine từ InboundLine của phiếu (nếu link PHN)
 //   Body option: `auto_populate_lines: boolean` (default true)
 export async function POST(req: NextRequest) {
+  // WMS-002: enforce quyền tạo pallet
+  const denied = await guardPermission(req, "pallet", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const {

@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/pallets/[id] — Chi tiết pallet
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "pallet", "read");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const pallet = await prisma.pallet.findUnique({
@@ -52,6 +55,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "pallet", "special");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const pallet = await prisma.pallet.findUnique({ where: { id } });

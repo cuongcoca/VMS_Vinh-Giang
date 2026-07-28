@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/pallets/by-code?code=PL260506.005 — resolve QR pallet
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "pallet", "read");
+  if (denied) return denied;
   try {
     const code = req.nextUrl.searchParams.get("code")?.trim();
     if (!code) {

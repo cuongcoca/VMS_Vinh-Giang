@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/pallets/next-code — Preview mã pallet sẽ sinh tiếp theo (PLYYMMDD.STT)
 // UC-PAL-01: dùng để hiển thị mã preview trong form tạo pallet, KHÔNG cấp phát thật.
 //   Do không lock → có thể lệch nếu nhiều người tạo song song. Mã thật sẽ được sinh khi POST.
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "pallet", "read");
+  if (denied) return denied;
   try {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);

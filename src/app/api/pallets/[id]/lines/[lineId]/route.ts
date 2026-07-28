@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
+import { guardPermission } from "@/lib/auth-server";
 
 // PATCH /api/pallets/[id]/lines/[lineId] — Sửa dòng hàng (qty_box, lot, expiry_date, manufactured_date, note)
 // L1 fix — chỉ cho phép khi pallet ở EMPTY hoặc COUNTING
@@ -9,6 +10,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; lineId: string }> }
 ) {
+  const denied = await guardPermission(req, "pallet", "write");
+  if (denied) return denied;
   try {
     const { id, lineId } = await params;
     const body = await req.json();
@@ -151,6 +154,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; lineId: string }> }
 ) {
+  const denied = await guardPermission(req, "pallet", "write");
+  if (denied) return denied;
   try {
     const { id, lineId } = await params;
 

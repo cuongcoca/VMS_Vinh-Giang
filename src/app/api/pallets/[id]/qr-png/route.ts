@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import QRCode from "qrcode";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/pallets/[id]/qr-png?size=400 — QR PNG cho 1 pallet
 // Content = pallet.code (plain text).
@@ -8,6 +9,8 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "pallet", "read");
+  if (denied) return denied;
   try {
     const { id } = await context.params;
     const size = Math.min(Math.max(Number(req.nextUrl.searchParams.get("size") || 600), 100), 1200);

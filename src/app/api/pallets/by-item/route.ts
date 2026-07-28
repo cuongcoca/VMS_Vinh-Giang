@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/pallets/by-item?item_code_id=…&inbound_request_id=…
 // Liệt kê các pallet (chưa hủy) của MỘT phiếu đang chứa MỘT mã hàng, kèm SL từng pallet.
 // Dùng cho màn thêm hàng: khi badge báo "đã đủ / còn N", thủ kho bấm để thấy
 // "SL đó đang nằm ở pallet nào" → dễ soi trùng/nhầm và sửa.
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "pallet", "read");
+  if (denied) return denied;
   try {
     const itemCodeId = req.nextUrl.searchParams.get("item_code_id") || "";
     const inboundRequestId = req.nextUrl.searchParams.get("inbound_request_id") || "";

@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/pallets/[id]/lines — Danh sách dòng hàng của pallet
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "pallet", "read");
+  if (denied) return denied;
   try {
     const { id } = await params;
 
@@ -62,6 +65,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "pallet", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const body = await req.json();
