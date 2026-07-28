@@ -31,6 +31,24 @@ function todayISO() {
   const t = new Date();
   return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`;
 }
+// Tự chèn dấu "/" khi gõ: chỉ giữ số, tối đa 8 chữ số (ddmmyyyy) → "dd/mm/yyyy".
+function formatTyping(raw: string) {
+  const dg = raw.replace(/\D/g, "").slice(0, 8);
+  let out = dg.slice(0, 2);
+  if (dg.length >= 3) out += "/" + dg.slice(2, 4);
+  if (dg.length >= 5) out += "/" + dg.slice(4, 8);
+  return out;
+}
+// Parse "dd/mm/yyyy" → "YYYY-MM-DD" nếu là NGÀY THẬT (chặn 31/02, 00/…), else null.
+function parseDisplay(s: string): string | null {
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const d = +m[1], mo = +m[2], y = +m[3];
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900) return null;
+  const dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  return `${y}-${pad(mo)}-${pad(d)}`;
+}
 
 export function DateField({
   value,
@@ -49,6 +67,32 @@ export function DateField({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  // Cho phép GÕ TAY dd/mm/yyyy: `text` là chuỗi đang gõ, đồng bộ với `value`
+  // khi không focus (để lịch/parent cập nhật vẫn hiển thị đúng).
+  const [text, setText] = useState(() => toDisplay(value));
+  const [focused, setFocused] = useState(false);
+  useEffect(() => {
+    if (!focused) setText(toDisplay(value));
+  }, [value, focused]);
+
+  const handleTextChange = (raw: string) => {
+    const f = formatTyping(raw);
+    setText(f);
+    if (f === "") {
+      onChange("");
+      return;
+    }
+    const iso = parseDisplay(f);
+    if (iso) onChange(iso); // chỉ commit khi đã là ngày thật, đủ dd/mm/yyyy
+  };
+  const handleBlur = () => {
+    setFocused(false);
+    const iso = parseDisplay(text);
+    if (iso) onChange(iso);
+    else if (text.trim() === "") onChange("");
+    else setText(toDisplay(value)); // gõ dở/sai → khôi phục giá trị hợp lệ gần nhất
+  };
 
   const base = value ? new Date(value + "T00:00:00") : new Date();
   const [view, setView] = useState<{ y: number; m: number }>({
@@ -126,20 +170,40 @@ export function DateField({
 
   return (
     <div className="relative" ref={ref}>
-      <button
-        type="button"
-        id={id}
-        disabled={disabled}
-        onClick={() => !disabled && setOpen((o) => !o)}
-        className={`w-full min-h-[44px] px-3 py-2 text-sm border rounded-lg bg-white flex items-center justify-between gap-2 disabled:opacity-50 ${className}`}
+      {/* Ô nhập: GÕ TAY dd/mm/yyyy (tự chèn "/"), + icon lịch để chọn bằng lịch */}
+      <div
+        className={`relative w-full min-h-[44px] border rounded-lg bg-white flex items-center ${disabled ? "opacity-50" : ""} ${className}`}
       >
-        <span className={value ? "text-on-surface" : "text-on-surface-variant/50"}>
-          {value ? toDisplay(value) : placeholder}
-        </span>
-        <span className="material-symbols-outlined text-[18px] text-on-surface-variant/70">
-          calendar_month
-        </span>
-      </button>
+        <input
+          type="text"
+          id={id}
+          inputMode="numeric"
+          disabled={disabled}
+          placeholder={placeholder}
+          value={text}
+          maxLength={10}
+          onFocus={() => setFocused(true)}
+          onChange={(e) => handleTextChange(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleBlur();
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
+          className="w-full min-h-[44px] pl-3 pr-10 py-2 text-sm text-on-surface bg-transparent rounded-lg outline-none placeholder:text-on-surface-variant/50"
+        />
+        <button
+          type="button"
+          disabled={disabled}
+          tabIndex={-1}
+          onClick={() => !disabled && setOpen((o) => !o)}
+          aria-label="Mở lịch chọn ngày"
+          className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-low text-on-surface-variant/70"
+        >
+          <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+        </button>
+      </div>
 
       {open && (
         <>
