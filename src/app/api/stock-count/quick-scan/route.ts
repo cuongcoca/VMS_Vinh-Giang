@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getRequestActor } from "@/lib/audit";
 import { CODE_PREFIX, formatYearlyCode } from "@/lib/codegen";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/stock-count/quick-scan — Lưu kết quả "Quét & Đếm nhanh" từ mobile KIEM_KE
 // UC-INV-06.
@@ -43,6 +44,8 @@ function parseExpiry(v?: string): Date | null {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "stock_count", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { location_id, session_id } = body as { location_id: string; session_id?: string };

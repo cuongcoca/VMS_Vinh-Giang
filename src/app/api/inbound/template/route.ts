@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
+import { guardPermission } from "@/lib/auth-server";
 
 /**
  * GET /api/inbound/template
  * Trả về file Excel template cho UC-IN-01 (tab "Up file Excel" nội dòng).
  * Cột chuẩn: Mã hàng · Tên · SL · ĐVT · Ghi chú.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "inbound", "read");
+  if (denied) return denied;
   try {
     // Sheet template với 1 hàng header + 2 hàng ví dụ
     const data = [

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 const INCLUDE = {
   unit: { select: { id: true, name: true, symbol: true } },
@@ -13,6 +14,8 @@ const INCLUDE = {
 //   2) ItemCode.barcode (mã vạch)
 //   3) Product.sku → ItemCode liên kết (người dùng quen nhập mã SKU)
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "item_code", "read");
+  if (denied) return denied;
   try {
     const code = req.nextUrl.searchParams.get("code")?.trim();
     if (!code) {

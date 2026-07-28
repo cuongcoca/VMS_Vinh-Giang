@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/dashboard/kpi?period=7d|30d|90d
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "dashboard", "read");
+  if (denied) return denied;
   try {
     const period = req.nextUrl.searchParams.get("period") || "30d";
     const days = parseInt(period) || 30;

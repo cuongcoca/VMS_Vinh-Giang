@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // API cấu hình NHẬN cảnh báo (UC-INV-05 TC017) — quản lý danh sách email người nhận.
 // Lưu vào model AlertSetting (recipients String[]). KHÔNG cần migration (model đã có sẵn).
@@ -7,7 +8,9 @@ import { prisma } from "@/lib/prisma";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // GET /api/inventory/alert-settings — danh sách cấu hình cảnh báo
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "inventory", "read");
+  if (denied) return denied;
   try {
     const settings = await prisma.alertSetting.findMany({ orderBy: { alert_type: "asc" } });
     return NextResponse.json({ success: true, data: settings });
@@ -19,6 +22,8 @@ export async function GET() {
 
 // PUT /api/inventory/alert-settings — cập nhật (upsert) recipients/frequency/is_active theo alert_type
 export async function PUT(req: NextRequest) {
+  const denied = await guardPermission(req, "inventory", "write");
+  if (denied) return denied;
   try {
     const { alert_type, recipients, frequency, is_active } = await req.json();
     if (!alert_type) {

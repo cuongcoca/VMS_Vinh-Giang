@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { guardPermission } from "@/lib/auth-server";
 
 /**
  * UC-INV-01.B: Drill-down — DS các vị trí chứa mã hàng nhất định.
@@ -13,6 +14,8 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
+  const denied = await guardPermission(req, "inventory", "read");
+  if (denied) return denied;
   try {
     const { code: rawCode } = await params;
     const code = decodeURIComponent(rawCode);

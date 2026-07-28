@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { guardPermission } from "@/lib/auth-server";
 
 // PUT /api/inbound/[id]/lines/[lineId]/accept — Kế toán nhập SL chấp nhận
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; lineId: string }> }
 ) {
+  const denied = await guardPermission(req, "inbound", "write");
+  if (denied) return denied;
   try {
     const { id, lineId } = await params;
     const body = await req.json();

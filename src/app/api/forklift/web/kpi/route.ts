@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "forklift", "read");
+  if (denied) return denied;
   try {
     // Calculate start of today in Vietnam timezone (UTC+7)
     const now = new Date();

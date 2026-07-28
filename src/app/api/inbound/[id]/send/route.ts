@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/inbound/[id]/send — Gửi phiếu nhập (DRAFT → PENDING)
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "inbound", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
 

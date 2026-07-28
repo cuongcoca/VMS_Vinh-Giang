@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { LocationType, LocationStatus } from "@prisma/client";
+import { guardPermission } from "@/lib/auth-server";
 
 // Regex kiểm tra định dạng Khu-Kệ-Tầng (Ví dụ: A-03-02, B-12-05)
 // Zone: 1-3 chữ cái viết hoa
@@ -26,6 +27,8 @@ const OCCUPYING_PALLET_STATUSES = ["IN_STORAGE", "IN_STAGING", "COUNTING"] as co
 
 // GET: Lấy danh sách vị trí kho
 export async function GET(request: NextRequest) {
+  const denied = await guardPermission(request, "location", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q") || "";
@@ -129,6 +132,8 @@ export async function GET(request: NextRequest) {
 
 // POST: Tạo mới một vị trí kho đơn lẻ
 export async function POST(request: NextRequest) {
+  const denied = await guardPermission(request, "location", "write");
+  if (denied) return denied;
   try {
     const body = await request.json();
     const { zone, rack, level, type, status, max_weight_kg, max_pallets, note } = body;

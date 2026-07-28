@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "forklift", "read");
+  if (denied) return denied;
   try {
     // Get pallets with statuses CONFIRMED (Pending Put-away), IN_STAGING (Pending Outbound/FEFO), or recently moved IN_STORAGE.
     const pallets = await prisma.pallet.findMany({

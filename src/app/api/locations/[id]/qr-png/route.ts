@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import QRCode from "qrcode";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/locations/[id]/qr-png?size=400 — QR PNG cho 1 vị trí
 // Content = location.code (plain text, theo quyết định Phase 1).
@@ -8,6 +9,8 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "location", "read");
+  if (denied) return denied;
   try {
     const { id } = await context.params;
     const size = Math.min(Math.max(Number(req.nextUrl.searchParams.get("size") || 600), 100), 1200);

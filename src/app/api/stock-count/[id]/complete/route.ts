@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/stock-count/[id]/complete — Hoàn tất phiên kiểm kê
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission(_req, "stock_count", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const session = await prisma.stocktakeSession.findUnique({

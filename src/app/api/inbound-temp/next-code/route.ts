@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CODE_PREFIX, formatYearlyCode } from "@/lib/codegen";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/inbound-temp/next-code — Preview mã phiếu tạm kế tiếp (PNT-YYYY-SSSS).
 //
 // CT-1 fix (2026-05-28): đổi prefix PTT → PNT khớp mockup.
 // Race condition giữa preview và POST vẫn tồn tại (INB-010) — fix Sprint 1.
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "inbound", "read");
+  if (denied) return denied;
   try {
     const year = new Date().getFullYear();
     const maxSeq = await prisma.inboundTemp.aggregate({

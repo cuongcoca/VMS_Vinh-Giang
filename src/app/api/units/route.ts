@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET: Danh sách đơn vị tính (có search)
 export async function GET(request: NextRequest) {
+  const denied = await guardPermission(request, "unit", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q") || "";
@@ -40,6 +43,8 @@ export async function GET(request: NextRequest) {
 
 // POST: Thêm đơn vị tính mới
 export async function POST(request: NextRequest) {
+  const denied = await guardPermission(request, "unit", "write");
+  if (denied) return denied;
   try {
     const body = await request.json();
     const { name, symbol } = body;

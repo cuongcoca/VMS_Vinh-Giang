@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as bcrypt from "bcryptjs";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/users — Danh sách người dùng
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "user", "read");
+  if (denied) return denied;
   try {
     const users = await prisma.user.findMany({
       orderBy: { created_at: "desc" },
@@ -18,6 +21,8 @@ export async function GET() {
 
 // POST /api/users — Tạo user mới
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "user", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { full_name, email, phone, password, role } = body;

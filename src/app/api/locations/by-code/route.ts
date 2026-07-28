@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/locations/by-code?code=A-03-02 — resolve QR vị trí
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "location", "read");
+  if (denied) return denied;
   try {
     const code = req.nextUrl.searchParams.get("code")?.trim();
     if (!code) {

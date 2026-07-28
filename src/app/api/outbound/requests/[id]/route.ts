@@ -3,9 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { notifyByRoles } from "@/lib/notifications";
 import { Prisma } from "@prisma/client";
 import { getRequestActor, logAudit } from "@/lib/audit";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/outbound/requests/[id] — Chi tiết phiếu PYX
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission(req, "outbound", "read");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const request = await prisma.outboundRequest.findUnique({
@@ -164,6 +167,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 // PATCH /api/outbound/requests/[id] — Update status (workflow theo enum: PENDING → PICKING → SHIPPED, hoặc CANCELLED)
 // body: { action: "START_PICKING" | "SHIP" | "CANCEL", note? }
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission(req, "outbound", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const body = await req.json();
@@ -438,6 +443,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 // DELETE /api/outbound/requests/[id] — chỉ cho phiếu PENDING/CANCELLED
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission(req, "outbound", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const request = await prisma.outboundRequest.findUnique({ where: { id } });

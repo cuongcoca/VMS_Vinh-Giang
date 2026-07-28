@@ -55,7 +55,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const denied = await guardPermission(req, "pallet", "special");
+  const denied = await guardPermission(req, "pallet", "write");
   if (denied) return denied;
   try {
     const { id } = await params;

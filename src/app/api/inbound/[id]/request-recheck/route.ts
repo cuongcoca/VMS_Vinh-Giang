@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/inbound/[id]/request-recheck — Kế toán yêu cầu thủ kho kiểm lại
 // RECONCILING → RECEIVING (rollback). Lý do ghi vào InboundRequest.note (append).
@@ -8,6 +9,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "inbound", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const body = await req.json().catch(() => ({}));

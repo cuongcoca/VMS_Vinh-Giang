@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET: Gợi ý mã hàng tương tự để gộp trùng (TC_STANDARD_004)
 export async function GET(req: Request) {
+  const denied = await guardPermission(req, "item_code", "read");
+  if (denied) return denied;
   try {
     const url = new URL(req.url);
     const query = url.searchParams.get("q")?.trim() || "";

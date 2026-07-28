@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
+import { guardPermission } from "@/lib/auth-server";
 
 interface ProductExcelRow {
   row_index: number;
@@ -20,6 +21,8 @@ interface ProductExcelRow {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "item_code", "write");
+  if (denied) return denied;
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

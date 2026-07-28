@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getRequestActor } from "@/lib/audit";
+import { guardPermission } from "@/lib/auth-server";
 
 /**
  * POST /api/push-tokens — Đăng ký hoặc cập nhật device token (FCM)
@@ -11,6 +12,8 @@ import { getRequestActor } from "@/lib/audit";
  * Dùng upsert để tránh duplicate khi user mở lại app.
  */
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "notification", "write");
+  if (denied) return denied;
   try {
     const actor = getRequestActor(req);
     if (!actor.userId) {
@@ -90,6 +93,8 @@ export async function POST(req: NextRequest) {
  * Body: { token: string }
  */
 export async function DELETE(req: NextRequest) {
+  const denied = await guardPermission(req, "notification", "write");
+  if (denied) return denied;
   try {
     const actor = getRequestActor(req);
     if (!actor.userId) {

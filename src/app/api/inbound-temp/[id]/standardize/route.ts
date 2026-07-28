@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getRequestActor, logAudit } from "@/lib/audit";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/inbound-temp/[id]/standardize — Chuẩn hóa phiếu tạm
 //
@@ -17,6 +18,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "inbound", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const body = await req.json().catch(() => ({}));

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/inventory/by-location
 //   query: code (optional — lookup 1 vị trí cụ thể, trả luôn pallet detail + sơ đồ cùng kệ)
@@ -9,6 +10,8 @@ import { prisma } from "@/lib/prisma";
 //   zones: ZoneSummary[]
 //   detail: LocationDetail | null — khi query có `code`
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "inventory", "read");
+  if (denied) return denied;
   try {
     const code = req.nextUrl.searchParams.get("code")?.trim().toUpperCase();
     const zoneFilter = req.nextUrl.searchParams.get("zone") || undefined;

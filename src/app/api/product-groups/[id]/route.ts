@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -7,6 +8,8 @@ interface Params {
 
 // GET: Chi tiết nhóm hàng
 export async function GET(request: NextRequest, { params }: Params) {
+  const denied = await guardPermission(request, "product_group", "read");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const group = await prisma.productGroup.findUnique({
@@ -40,6 +43,8 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 // PUT: Cập nhật nhóm hàng
 export async function PUT(request: NextRequest, { params }: Params) {
+  const denied = await guardPermission(request, "product_group", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const body = await request.json();
@@ -96,6 +101,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
 // DELETE: Xóa nhóm hàng (soft-delete: set is_active = false)
 export async function DELETE(request: NextRequest, { params }: Params) {
+  const denied = await guardPermission(request, "product_group", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
 

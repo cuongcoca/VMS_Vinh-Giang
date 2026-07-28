@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/inventory/by-item — Tồn kho theo mã hàng
 // Phase 1.1 (BUG_REPORT TC_CLOSE_IN_006/_010/_015): include CONFIRMED — pallet
 // đã xác nhận sau chốt phiếu nhập phải tính tồn kho ngay, không đợi put-away.
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "inventory", "read");
+  if (denied) return denied;
   try {
     const stockData = await prisma.palletLine.groupBy({
       by: ["item_code_id"],

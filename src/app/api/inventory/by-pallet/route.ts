@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma, PalletStatus } from "@prisma/client";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/inventory/by-pallet — UC-INV-03 Tồn theo Pallet
 // Query:
@@ -9,6 +10,8 @@ import { Prisma, PalletStatus } from "@prisma/client";
 //   date          : YYYY-MM-DD — filter theo created_at (cùng ngày)
 //   limit         : default 200, max 500
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "inventory", "read");
+  if (denied) return denied;
   try {
     const sp = req.nextUrl.searchParams;
     const q = (sp.get("q") || "").trim();

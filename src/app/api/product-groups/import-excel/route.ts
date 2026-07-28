@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { logAudit } from "@/lib/audit";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/product-groups/import-excel — Import nhóm hàng từ Excel
 //
@@ -9,6 +10,8 @@ import { logAudit } from "@/lib/audit";
 // File Excel expected 2 cột: "Tên nhóm" (bắt buộc), "Mô tả" (tùy chọn).
 // Skip dòng trùng tên (đã tồn tại trong DB), upsert insert mới.
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "product_group", "write");
+  if (denied) return denied;
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

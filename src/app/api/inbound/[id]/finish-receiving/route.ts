@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/inbound/[id]/finish-receiving — Thủ kho gửi đối chiếu (RECEIVING → RECONCILING)
 // Sau bước này, kế toán mở phiếu trên desktop, accept từng line + /complete để chốt.
@@ -8,6 +9,8 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(_req, "inbound", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
 

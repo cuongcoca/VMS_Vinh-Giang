@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { notifyByRoles } from "@/lib/notifications";
 import { getRequestActor, logAudit } from "@/lib/audit";
 import { CODE_PREFIX, formatYearlyCode } from "@/lib/codegen";
+import { guardPermission } from "@/lib/auth-server";
 
 // Helper: Sinh mã phiếu nhập PHN-{YYYY}-{SSSS} (sequential per year)
 // Prefix theo CT-1 mockup wms_mockups_4.html v3.0.
@@ -20,6 +21,8 @@ async function generateInboundCode(): Promise<{ code: string; codeYear: number; 
 
 // GET /api/inbound — Danh sách phiếu nhập kho + tìm kiếm + lọc + KPIs
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "inbound", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q") || "";
@@ -114,6 +117,8 @@ export async function GET(req: NextRequest) {
 // POST /api/inbound — Tạo phiếu nhập kho mới (tự sinh mã PHN-YYYY-SSSS)
 // UC-IN-01: hỗ trợ thêm import_type, warehouse, order_date, prep_zone_ready, source
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "inbound", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const {

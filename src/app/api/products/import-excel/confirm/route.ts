@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { guardPermission } from "@/lib/auth-server";
 
 interface ProductImportItem {
   sku: string;
@@ -18,6 +19,8 @@ interface ProductImportItem {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "item_code", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { products } = body as { products: ProductImportItem[] };

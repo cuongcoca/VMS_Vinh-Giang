@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/inventory/alerts — Trung tâm cảnh báo
 // Trả 4 KPI + danh sách urgent/warning/low_stock/over_max + bảng "Tồn lâu theo vị trí"
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "inventory", "read");
+  if (denied) return denied;
   try {
     const now = new Date();
     const d7 = new Date(now.getTime() + 7 * 86400000);

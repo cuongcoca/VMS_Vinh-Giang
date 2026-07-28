@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CODE_PREFIX, formatYearlyCode } from "@/lib/codegen";
+import { guardPermission } from "@/lib/auth-server";
 
 /**
  * GET /api/inbound/next-code
  * Trả về mã phiếu nhập tiếp theo (preview, KHÔNG tạo record).
  * Dùng cho UC-IN-01 hiển thị "Mã phiếu (auto)" disabled trên form tạo.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "inbound", "read");
+  if (denied) return denied;
   try {
     const year = new Date().getFullYear();
     const maxSeq = await prisma.inboundRequest.aggregate({

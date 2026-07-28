@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/system/config — Lấy cấu hình
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "system", "read");
+  if (denied) return denied;
   try {
     const configs = await prisma.systemConfig.findMany({ orderBy: { key: "asc" } });
     return NextResponse.json({ success: true, data: configs });
@@ -14,6 +17,8 @@ export async function GET() {
 
 // PUT /api/system/config — Cập nhật cấu hình
 export async function PUT(req: NextRequest) {
+  const denied = await guardPermission(req, "system", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { key, value, label } = body;

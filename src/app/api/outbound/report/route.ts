@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/outbound/report — Báo cáo xuất kho theo kỳ
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "outbound", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const from = searchParams.get("from") || "";

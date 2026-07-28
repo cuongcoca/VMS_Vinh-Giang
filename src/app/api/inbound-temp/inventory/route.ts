@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // UC-INTMP-03: Theo dõi tồn tạm
 // Trả về flat list các dòng (line) thuộc phiếu PENDING + KPIs.
@@ -9,7 +10,9 @@ import { prisma } from "@/lib/prisma";
 //   - new: days_on_hand < 2
 const OVERDUE_THRESHOLD = 3;
 
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "inbound", "read");
+  if (denied) return denied;
   try {
     const temps = await prisma.inboundTemp.findMany({
       where: { status: "PENDING" },

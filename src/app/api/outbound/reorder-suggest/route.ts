@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/outbound/reorder-suggest — Gợi ý nhập hàng dựa trên forecast (UC-OUT-04)
 // Query params:
 //   - days: số ngày dự trữ mong muốn (default 14)
 //   - lookback: số ngày lịch sử để tính BQ xuất/ngày (default 30)
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "outbound", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const daysReserve = Math.max(1, Math.min(180, Number(searchParams.get("days")) || 14));

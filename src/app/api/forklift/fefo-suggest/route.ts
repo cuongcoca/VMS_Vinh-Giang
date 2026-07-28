@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/forklift/fefo-suggest?item_code_id=xxx — Gợi ý pallet theo FEFO
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "forklift", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const itemCodeId = searchParams.get("item_code_id") || "";

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { guardPermission } from "@/lib/auth-server";
 
 /**
  * UC-DASH-02: KPI tổng quan cho Quản lý.
@@ -15,6 +16,8 @@ import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
  *   - pending: { inbound, inbound_temp, pallets_waiting, pallets_moving, adjustments }
  */
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "dashboard", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const period = searchParams.get("period") || "month";

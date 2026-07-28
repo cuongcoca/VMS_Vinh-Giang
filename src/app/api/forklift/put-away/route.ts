@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getRequestActor, logAudit } from "@/lib/audit";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/forklift/put-away — Đưa pallet vào vị trí (CONFIRMED → IN_STORAGE)
 //
@@ -11,6 +12,8 @@ import { notifyByRoles } from "@/lib/notifications";
 //   - Set performed_by trên Movement từ JWT.
 //   - Hỗ trợ tra location_id từ location_code (QR scan trả code, không phải id).
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "forklift", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { pallet_id, location_id: locIdInput, location_code } = body;

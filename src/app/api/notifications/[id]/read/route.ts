@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getRequestActor } from "@/lib/audit";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/notifications/[id]/read — đánh dấu 1 thông báo là đã đọc.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "notification", "write");
+  if (denied) return denied;
   try {
     const actor = getRequestActor(req);
     if (!actor.userId) {

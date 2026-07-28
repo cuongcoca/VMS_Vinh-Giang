@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // Ngưỡng (phút) coi tài xế là "đang làm việc" nếu có hoạt động gần đây
 const ACTIVE_WINDOW_MIN = 30;
@@ -18,7 +19,9 @@ function relTime(mins: number): string {
 // GET /api/forklift/web/drivers
 // Trả về ĐỘI NGŨ TÀI XẾ XE NÂNG thật (role XE_NANG) + trạng thái làm việc thật
 // suy ra từ lịch sử di chuyển (bảng movements). KHÔNG bịa pin/sạc/xe ảo.
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "forklift", "read");
+  if (denied) return denied;
   try {
     const drivers = await prisma.user.findMany({
       where: { role: "XE_NANG", is_locked: false },

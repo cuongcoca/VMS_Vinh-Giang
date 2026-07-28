@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { guardPermission } from "@/lib/auth-server";
 
 /**
  * GET /api/dashboard/accountant-kpi
@@ -14,7 +15,9 @@ import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
  * + Cảnh báo: HSD ≤7d, ≤30d, low_stock (tạm 0 — schema chưa có min_stock)
  * + Recent: 5 phiếu vừa cập nhật (mix Inbound + Adjustment, sort updated_at desc)
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "dashboard", "read");
+  if (denied) return denied;
   try {
     const now = new Date();
     const d7 = new Date(now.getTime() + 7 * 86400000);

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as bcrypt from "bcryptjs";
+import { guardPermission } from "@/lib/auth-server";
 
 // PUT /api/users/[id] — Sửa user (tên, vai trò, khóa, email, SĐT, đổi mật khẩu)
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission(req, "user", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const body = await req.json();
@@ -56,6 +59,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 // DELETE /api/users/[id] — Xóa user
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission(_req, "user", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     await prisma.user.delete({ where: { id } });

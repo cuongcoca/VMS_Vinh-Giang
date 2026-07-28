@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { unlink } from "fs/promises";
 import path from "path";
+import { guardPermission } from "@/lib/auth-server";
 
 // DELETE /api/attachments/[id] — Xóa file đính kèm
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission(_req, "attachment", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const attachment = await prisma.attachment.findUnique({ where: { id } });

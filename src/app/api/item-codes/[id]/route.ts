@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { recalcPalletLinesByItemCode } from "@/lib/pallet-recalc";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET: Chi tiết mã hàng
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "item_code", "read");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const itemCode = await prisma.itemCode.findUnique({
@@ -43,6 +46,8 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "item_code", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const body = await req.json();
@@ -244,6 +249,8 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "item_code", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const existing = await prisma.itemCode.findUnique({ where: { id } });

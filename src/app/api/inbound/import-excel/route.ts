@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
+import { guardPermission } from "@/lib/auth-server";
 
 // UC-IN-06: mapping nhóm BU cho file Unilever "Hàng U về"
 const BU_LABELS: Record<string, string> = {
@@ -24,6 +25,8 @@ interface ExcelRow {
 
 // POST /api/inbound/import-excel — Upload & parse file Excel
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "inbound", "write");
+  if (denied) return denied;
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

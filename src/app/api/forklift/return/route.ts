@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getRequestActor, logAudit } from "@/lib/audit";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/forklift/return — Hoàn trả pallet (IN_STAGING → IN_STORAGE)
 //
@@ -15,6 +16,8 @@ import { notifyByRoles } from "@/lib/notifications";
 //   pallet_id, location_id (target để trả về), reason (>= 5 ký tự)
 //   line_updates: Array<{ line_id, qty_box?, lot?, expiry_date?, manufactured_date? }>
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "forklift", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { pallet_id, location_id, reason } = body;

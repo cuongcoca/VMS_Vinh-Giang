@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CODE_PREFIX, formatYearlyCode } from "@/lib/codegen";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/stock-count?status=OPEN|COUNTING|RECONCILING|CLOSED — Danh sách phiên kiểm kê
 // Fix #3: hỗ trợ filter status; #4: trả thêm discrepancies count cho mobile tasks
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "stock_count", "read");
+  if (denied) return denied;
   try {
     const sp = req.nextUrl.searchParams;
     const status = sp.get("status") || "";
@@ -49,6 +52,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/stock-count — Tạo phiên kiểm kê mới
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "stock_count", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { type, note, location_ids, item_code_ids } = body;

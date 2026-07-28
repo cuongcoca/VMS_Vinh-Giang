@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET: Danh sách sản phẩm (search, filter, sort, paging)
 export async function GET(req: Request) {
+  const denied = await guardPermission(req, "item_code", "read");
+  if (denied) return denied;
   try {
     const url = new URL(req.url);
     const search = url.searchParams.get("search")?.trim() || "";
@@ -80,6 +83,8 @@ export async function GET(req: Request) {
 
 // POST: Thêm sản phẩm mới
 export async function POST(req: Request) {
+  const denied = await guardPermission(req, "item_code", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     let {

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET: Danh sách nhóm hàng (có search)
 export async function GET(request: NextRequest) {
+  const denied = await guardPermission(request, "product_group", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q") || "";
@@ -41,6 +44,8 @@ export async function GET(request: NextRequest) {
 
 // POST: Thêm nhóm hàng mới
 export async function POST(request: NextRequest) {
+  const denied = await guardPermission(request, "product_group", "write");
+  if (denied) return denied;
   try {
     const body = await request.json();
     const { name, description } = body;

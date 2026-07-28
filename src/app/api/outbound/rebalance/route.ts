@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/outbound/rebalance — Cân lại tồn khu chờ xuất (trừ SL đã xuất)
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "outbound", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { adjustments, file_name, source, export_date } = body;

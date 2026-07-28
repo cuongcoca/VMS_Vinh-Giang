@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/forklift/queue — Danh sách pallet chờ xếp vị trí (CONFIRMED) cho xe nâng
 // UC-FK-01: trả thêm tổng SL, date gần nhất, inbound code, KPI 3 nhóm
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "forklift", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const taskType = searchParams.get("task_type") || ""; // PUT_AWAY | RELOCATE | TO_STAGING_OUT | RETURN

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { guardPermission } from "@/lib/auth-server";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -10,6 +11,8 @@ const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 // GET /api/attachments?entity_type=...&entity_id=...
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "attachment", "read");
+  if (denied) return denied;
   try {
     const entity_type = req.nextUrl.searchParams.get("entity_type") || "";
     const entity_id = req.nextUrl.searchParams.get("entity_id") || "";
@@ -32,6 +35,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/attachments — Upload file đính kèm
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "attachment", "write");
+  if (denied) return denied;
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

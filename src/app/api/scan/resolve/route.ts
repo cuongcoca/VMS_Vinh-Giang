@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // UC-INT-01: Smart resolver — quét mã, hệ thống tự đoán mã đó là gì
 // Thứ tự match: Location → Pallet → ItemCode.code → Product.barcode → InboundRequest.code
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "scan", "write");
+  if (denied) return denied;
   try {
     const { code } = await req.json();
     if (!code || typeof code !== "string" || !code.trim()) {

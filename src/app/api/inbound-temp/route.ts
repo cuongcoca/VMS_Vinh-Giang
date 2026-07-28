@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { CODE_PREFIX, formatYearlyCode } from "@/lib/codegen";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // Helper: Sinh mã phiếu tạm PNT-{YYYY}-{SSSS}
 // Prefix theo CT-1 mockup wms_mockups_4.html v3.0.
@@ -36,6 +37,8 @@ function parseVnDateTime(value: unknown): Date {
 
 // GET /api/inbound-temp — Danh sách phiếu tạm + KPIs
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "inbound", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q") || "";
@@ -84,6 +87,8 @@ export async function GET(req: NextRequest) {
 // POST /api/inbound-temp — Tạo phiếu tạm mới
 // UC-INTMP-01: hỗ trợ thêm source_type, delivered_by, received_at, reason, reason_detail, photo_urls
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "inbound", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { supplier_id, note, lines, source_type, delivered_by, received_at, reason, reason_detail, photo_urls } = body;

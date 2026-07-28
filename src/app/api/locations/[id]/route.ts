@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { LocationType, LocationStatus } from "@prisma/client";
+import { guardPermission } from "@/lib/auth-server";
 
 const ZONE_REGEX = /^[A-Z]{1,3}$/;
 const RACK_REGEX = /^\d{1,3}$/;
@@ -15,6 +16,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(request, "location", "read");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const location = await prisma.location.findFirst({
@@ -43,6 +46,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(request, "location", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const body = await request.json();
@@ -148,6 +153,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(request, "location", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
 

@@ -10,14 +10,13 @@
  *  - Quyền = (role, resource) → LEVEL ∈ {none, read, full, special}.
  *  - Mỗi API route khai báo cần (resource, action) với action ∈ {read, write, special}.
  *  - Deny-by-default: role KHÔNG có trong ma trận, hoặc level thấp hơn yêu cầu → CHẶN.
- *  - KHÔNG còn wildcard: ADMIN/MANAGER/STAFF cũng phải có grant tường minh ở đây
- *    (grant tạm mức 'special' toàn bộ — sẽ di trú sang 5 vai trò baseline ở Pha 3).
+ *  - KHÔNG còn wildcard: ADMIN/MANAGER/STAFF cũng phải có grant tường minh (Pha 3 di trú).
  *
- * Đây là nguồn sự thật phía server. Pha 4 sẽ cho phép chỉnh sửa & lưu ở DB;
- * hiện tại để tĩnh trong code cho ổn định và dễ test.
+ * Pha 2: phủ guard toàn bộ route business. Ma trận đặt "sàn đọc" cho các resource
+ * nghiệp vụ (mọi baseline role đọc được) để KHÔNG làm gãy luồng đang chạy; nâng full ở
+ * resource vận hành của từng vai. Tinh chỉnh theo UC baseline (v3.1) sẽ làm ở Pha 4.
  */
 
-// Tài nguyên nghiệp vụ (gộp theo vùng chức năng)
 export type Resource =
   | "pallet"
   | "item_code"
@@ -30,6 +29,11 @@ export type Resource =
   | "inventory"
   | "movement"
   | "stock_count"
+  | "forklift"
+  | "dashboard"
+  | "notification"
+  | "attachment"
+  | "scan"
   | "user"
   | "system"
   | "audit";
@@ -37,77 +41,74 @@ export type Resource =
 // Nhóm hành động mà một route yêu cầu
 export type ActionType = "read" | "write" | "special";
 // read    = xem/list (GET)
-// write   = tạo/sửa/xoá nghiệp vụ thường (POST/PATCH/PUT/DELETE)
-// special = hành động nhạy cảm: duyệt/xác nhận/hủy/điều chỉnh tồn/mở khóa/cấu hình hệ thống
+// write   = tạo/sửa/xoá nghiệp vụ (POST/PATCH/PUT/DELETE)
+// special = hành động nhạy cảm mức quản trị (dành cho Pha 4: duyệt/điều chỉnh tồn/cấu hình)
 
-// Mức quyền một role nắm trên một resource
 export type Level = "none" | "read" | "full" | "special";
-// none    : không truy cập
-// read    : chỉ đọc
-// full    : đọc + ghi thường
-// special : đọc + ghi + hành động nhạy cảm
-
 const LEVEL_RANK: Record<Level, number> = { none: 0, read: 1, full: 2, special: 3 };
+const ACTION_MIN_LEVEL: Record<ActionType, Level> = { read: "read", write: "full", special: "special" };
 
-// action yêu cầu tối thiểu mức nào
-const ACTION_MIN_LEVEL: Record<ActionType, Level> = {
-  read: "read",
-  write: "full",
-  special: "special",
-};
-
-// 5 vai trò baseline (mục tiêu WMS-002)
 export const BASELINE_ROLES = ["QUAN_LY", "KE_TOAN", "THU_KHO", "XE_NANG", "KIEM_KE"] as const;
-// Vai trò legacy còn tồn tại trong DB — cấp grant tường minh (không wildcard), di trú ở Pha 3
 export const LEGACY_ROLES = ["ADMIN", "MANAGER", "STAFF"] as const;
 
-/**
- * Ma trận quyền: role → resource → level. Thiếu = "none" (deny-by-default).
- *
- * LƯU Ý: mức dưới đây bám theo cấu hình feature cũ (DEFAULT_ROLE_FEATURES trong rbac.ts)
- * để KHÔNG làm gãy luồng đang chạy; sẽ tinh chỉnh theo UC baseline (WMS_VinhGiang_UseCases_v3.1)
- * ở Pha 0/4. `movement` là báo cáo read-only nên tối đa 'read' cho hầu hết vai trò.
- */
-export const PERMISSION_MATRIX: Record<string, Partial<Record<Resource, Level>>> = {
-  // Quản lý — vai trò quản trị nghiệp vụ cao nhất trong nhóm baseline
-  QUAN_LY: {
-    pallet: "special", item_code: "full", supplier: "full", product_group: "full",
-    unit: "full", location: "full", inbound: "special", outbound: "special",
-    inventory: "special", movement: "read", stock_count: "special",
-    user: "special", system: "special", audit: "read",
-  },
-  // Kế toán — thiên về master data + chứng từ; tồn/kiểm kê chỉ đọc
-  KE_TOAN: {
-    pallet: "full", item_code: "full", supplier: "full", product_group: "full",
-    unit: "full", location: "read", inbound: "full", outbound: "full",
-    inventory: "read", movement: "read", stock_count: "read", audit: "read",
-  },
-  // Thủ kho — pallet + nhập + tồn (thao tác kho)
-  THU_KHO: {
-    pallet: "full", item_code: "read", inbound: "full", inventory: "read",
-    movement: "read", location: "read",
-  },
-  // Xe nâng — di chuyển pallet + tạo movement
-  XE_NANG: {
-    pallet: "full", movement: "full", location: "read", inventory: "read",
-  },
-  // Kiểm kê — tồn kho + kiểm kê
-  KIEM_KE: {
-    inventory: "full", stock_count: "special", pallet: "read", movement: "read",
-    item_code: "read", location: "read",
-  },
-};
-
-// Legacy roles: grant tường minh mức 'special' toàn bộ resource (KHÔNG wildcard).
-// Giữ cho các tài khoản ADMIN/MANAGER/STAFF hiện có không bị khóa trước khi di trú (Pha 3).
 const ALL_RESOURCES: Resource[] = [
   "pallet", "item_code", "supplier", "product_group", "unit", "location",
-  "inbound", "outbound", "inventory", "movement", "stock_count", "user", "system", "audit",
+  "inbound", "outbound", "inventory", "movement", "stock_count", "forklift",
+  "dashboard", "notification", "attachment", "scan", "user", "system", "audit",
 ];
+
+// "Sàn đọc": resource nghiệp vụ mọi baseline role đọc được (tránh gãy màn hình đọc dữ liệu).
+// KHÔNG gồm user/system/audit (nhạy cảm — cấp riêng).
+const READ_FLOOR: Resource[] = [
+  "pallet", "item_code", "supplier", "product_group", "unit", "location",
+  "inbound", "outbound", "inventory", "movement", "stock_count", "forklift",
+  "dashboard", "notification", "attachment", "scan",
+];
+
+// Tạo grant cho 1 role: bắt đầu từ sàn đọc, rồi nâng theo `up`.
+function grants(up: Partial<Record<Resource, Level>>): Partial<Record<Resource, Level>> {
+  const m: Partial<Record<Resource, Level>> = {};
+  for (const r of READ_FLOOR) m[r] = "read";
+  return { ...m, ...up };
+}
+function allSpecial(): Partial<Record<Resource, Level>> {
+  return Object.fromEntries(ALL_RESOURCES.map((r) => [r, "special" as Level]));
+}
+
+export const PERMISSION_MATRIX: Record<string, Partial<Record<Resource, Level>>> = {
+  // Quản lý — toàn quyền nghiệp vụ + quản trị hệ thống
+  QUAN_LY: allSpecial(),
+
+  // Kế toán — master data + chứng từ + báo cáo
+  KE_TOAN: grants({
+    item_code: "full", supplier: "full", product_group: "full", unit: "full", location: "full",
+    inbound: "full", outbound: "full", pallet: "full", inventory: "full", stock_count: "full",
+    notification: "full", attachment: "full", scan: "full", audit: "read",
+  }),
+
+  // Thủ kho — pallet + nhập + tồn + master data (tạo mã hàng ở mobile)
+  THU_KHO: grants({
+    pallet: "full", inbound: "full", inventory: "full", item_code: "full",
+    location: "full", product_group: "full", unit: "full", stock_count: "full",
+    scan: "full", notification: "full", attachment: "full",
+  }),
+
+  // Xe nâng — di chuyển pallet + movement
+  XE_NANG: grants({
+    forklift: "full", pallet: "full", movement: "full",
+    scan: "full", notification: "full", attachment: "full",
+  }),
+
+  // Kiểm kê — kiểm kê + tồn kho
+  KIEM_KE: grants({
+    stock_count: "full", inventory: "full",
+    scan: "full", notification: "full", attachment: "full",
+  }),
+};
+
+// Legacy roles: grant TƯỜNG MINH special toàn bộ (KHÔNG wildcard) — di trú ở Pha 3.
 for (const legacy of LEGACY_ROLES) {
-  PERMISSION_MATRIX[legacy] = Object.fromEntries(
-    ALL_RESOURCES.map((r) => [r, "special" as Level])
-  ) as Partial<Record<Resource, Level>>;
+  PERMISSION_MATRIX[legacy] = allSpecial();
 }
 
 /** Mức quyền của role trên resource (deny-by-default = "none"). */
@@ -116,12 +117,7 @@ export function levelOf(role: string | undefined | null, resource: Resource): Le
   return PERMISSION_MATRIX[role]?.[resource] ?? "none";
 }
 
-/**
- * role có được phép thực hiện action trên resource không.
- * Deny-by-default: thiếu grant → false.
- */
+/** role có được phép thực hiện action trên resource không. Deny-by-default. */
 export function can(role: string | undefined | null, resource: Resource, action: ActionType): boolean {
-  const have = LEVEL_RANK[levelOf(role, resource)];
-  const need = LEVEL_RANK[ACTION_MIN_LEVEL[action]];
-  return have >= need;
+  return LEVEL_RANK[levelOf(role, resource)] >= LEVEL_RANK[ACTION_MIN_LEVEL[action]];
 }

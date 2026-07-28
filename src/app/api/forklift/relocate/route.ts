@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getRequestActor, logAudit } from "@/lib/audit";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/forklift/relocate — Chuyển pallet sang vị trí mới (UC-FK-03)
 //
@@ -11,6 +12,8 @@ import { notifyByRoles } from "@/lib/notifications";
 //   - Validate QR format vị trí đích.
 //   - Hỗ trợ tra location bằng code (QR scan).
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "forklift", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { pallet_id, new_location_id: newLocIdInput, new_location_code, reason } = body;

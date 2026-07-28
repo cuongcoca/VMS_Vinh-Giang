@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getRequestActor, logAudit } from "@/lib/audit";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/forklift/stage-out — UC-FK-04
 // mode = "FULL"   : chuyển nguyên pallet IN_STORAGE → IN_STAGING
@@ -11,6 +12,8 @@ import { notifyByRoles } from "@/lib/notifications";
 //   - Pallet cha cạn sạch (tổng = 0) → chuyển nguyên pallet cha ra khu chờ
 //     xuất (không tạo con rỗng). "Hàng rút cuối cùng đi bằng chính pallet cha."
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "forklift", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { pallet_id, staging_location_id, mode = "FULL", partial_qty, pallet_line_id } = body;

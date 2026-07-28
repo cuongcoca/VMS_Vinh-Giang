@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/inbound-temp/summary — Tổng hợp tồn tạm
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "inbound", "read");
+  if (denied) return denied;
   try {
     const statusGroups = await prisma.inboundTemp.groupBy({
       by: ["status"],

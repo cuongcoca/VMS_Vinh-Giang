@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loadMailConfig, saveMailConfig, verifyMail, sendMail } from "@/lib/mailer";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/system/mail — Lấy cấu hình mail (mask sensitive fields)
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "system", "read");
+  if (denied) return denied;
   try {
     const data = await loadMailConfig();
     // Mask passwords/API keys — UI shows placeholder dots when saved
@@ -19,6 +22,8 @@ export async function GET() {
 
 // PUT /api/system/mail — Lưu cấu hình (ignore masked sentinel values)
 export async function PUT(req: NextRequest) {
+  const denied = await guardPermission(req, "system", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     for (const k of ["smtp_password", "mailgun_api_key", "sendgrid_api_key", "brevo_api_key"]) {
@@ -39,6 +44,8 @@ export async function PUT(req: NextRequest) {
  *   - {}                       → verify (legacy default)
  */
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "system", "write");
+  if (denied) return denied;
   try {
     let body: { action?: string; to?: string } = {};
     try {

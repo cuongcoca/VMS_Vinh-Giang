@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/audit-logs — Nhật ký hoạt động
 // Trả thêm:
 //   - entity_code: mã thân thiện thay UUID (vd: PL260528.001 thay vì f55ab717)
 //   - performed_by_name + role: thay vì chỉ ID
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "audit", "read");
+  if (denied) return denied;
   try {
     const from = req.nextUrl.searchParams.get("from");
     const to = req.nextUrl.searchParams.get("to");

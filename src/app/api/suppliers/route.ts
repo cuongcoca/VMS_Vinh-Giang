@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 const PHONE_REGEX = /^(0|\+84)[35789]\d{8}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // GET /api/suppliers — Danh sách + tìm kiếm
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "supplier", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q") || "";
@@ -39,6 +42,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/suppliers — Tạo mới NCC
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "supplier", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { code, name, tax_code, contact_person, phone, email, address, note } = body;

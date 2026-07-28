@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 /**
  * GET /api/locations/available — Vị trí còn nhận thêm pallet
@@ -22,6 +23,8 @@ import { prisma } from "@/lib/prisma";
  *   - can_fit (true/false khi có pallet_weight_kg)
  */
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "location", "read");
+  if (denied) return denied;
   try {
     const sp = req.nextUrl.searchParams;
     const palletWeight = Number(sp.get("pallet_weight_kg") || 0);

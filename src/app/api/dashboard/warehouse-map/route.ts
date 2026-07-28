@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { LocationType } from "@prisma/client";
+import { guardPermission } from "@/lib/auth-server";
 
 // Các loại vị trí hiển thị trên sơ đồ kho dashboard (khớp cách tính Tỷ lệ lấp đầy ở KPI)
 const MAP_TYPES: LocationType[] = [
@@ -13,7 +14,9 @@ const MAX_CELLS = 120;
 
 // GET /api/dashboard/warehouse-map
 // Trả về danh sách vị trí kho (rút gọn) + thống kê trạng thái để vẽ sơ đồ kho thật trên Dashboard.
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "dashboard", "read");
+  if (denied) return denied;
   try {
     const where = { is_active: true, type: { in: MAP_TYPES } };
 

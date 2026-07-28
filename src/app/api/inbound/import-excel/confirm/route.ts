@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // Helper: Sinh mã phiếu nhập PHN-{YYYY}-{SSSS}
 async function generateInboundCode(): Promise<{ code: string; codeYear: number; codeSeq: number }> {
@@ -27,6 +28,8 @@ interface ConfirmLine {
 
 // POST /api/inbound/import-excel/confirm — Xác nhận mapping & tạo phiếu nhập
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "inbound", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { supplier_id, expected_date, invoice_no, note, lines, import_type, warehouse } = body;

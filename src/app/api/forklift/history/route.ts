@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/forklift/history — Lịch sử toàn bộ Movement của forklift
 //
@@ -11,6 +12,8 @@ import { prisma } from "@/lib/prisma";
 // UC-FK-06_TC02: ô tìm kiếm hợp nhất — khớp mã pallet / mã hàng (kể cả pallet
 // nhiều mã hàng, join qua PalletLine) / vị trí kho (from/to location).
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "forklift", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const from = searchParams.get("from") || "";

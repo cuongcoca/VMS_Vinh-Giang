@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/movements — Lịch sử luân chuyển pallet (UC-FK-06)
 // Query: pallet_id, type (movement_type), from (date), to (date), q (search pallet/mã hàng), limit
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "movement", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const palletId = searchParams.get("pallet_id") || "";

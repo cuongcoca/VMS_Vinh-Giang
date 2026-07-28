@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // Helper: sinh mã PYX-YYYY-NNNN
 async function generateCode(): Promise<{ code: string; codeYear: number; codeSeq: number }> {
@@ -16,6 +17,8 @@ async function generateCode(): Promise<{ code: string; codeYear: number; codeSeq
 
 // GET /api/outbound/requests — Danh sách phiếu PYX
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "outbound", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status") || "";
@@ -56,6 +59,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/outbound/requests — Tạo phiếu PYX mới
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "outbound", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { customer, ship_date, note, lines } = body;

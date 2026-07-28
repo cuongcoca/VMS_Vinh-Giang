@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/inventory/by-lot — Tồn kho theo lô/HSD (FEFO)
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "inventory", "read");
+  if (denied) return denied;
   try {
     const lines = await prisma.palletLine.findMany({
       where: { pallet: { status: { in: STOCK_PALLET_STATUSES } } },

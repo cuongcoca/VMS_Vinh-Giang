@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/stock-count/[id] — Chi tiết phiên kiểm kê + pallet lines per count
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission(_req, "stock_count", "read");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const session = await prisma.stocktakeSession.findUnique({
@@ -158,6 +161,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 // PUT /api/stock-count/[id] — Cập nhật SL thực đếm
 // Fix #2: hỗ trợ cả batch (body.counts: [...]) và single (body.count_id)
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission(req, "stock_count", "write");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const body = await req.json();

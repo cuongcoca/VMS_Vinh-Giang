@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/outbound/staging — Danh sách pallet ở khu chờ xuất (IN_STAGING)
 // Hiển thị cả pallet nguyên (FULL) và pallet con từ split (PARTIAL).
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await guardPermission(req, "outbound", "read");
+  if (denied) return denied;
   try {
     const pallets = await prisma.pallet.findMany({
       where: { status: "IN_STAGING" },

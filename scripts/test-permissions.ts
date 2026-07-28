@@ -22,7 +22,16 @@ console.log("WMS-002 permission matrix — unit tests\n");
 // Deny-by-default
 check("role undefined -> pallet.read = false", can(undefined, "pallet", "read"), false);
 check("role lạ -> pallet.read = false (deny-by-default)", can("HACKER", "pallet", "read"), false);
-check("KIEM_KE không có grant supplier -> read = false", can("KIEM_KE", "supplier", "read"), false);
+// system/user KHÔNG ở sàn đọc → deny-by-default cho vai không phải quản lý
+check("KIEM_KE system.read = false (deny-by-default)", can("KIEM_KE", "system", "read"), false);
+check("THU_KHO user.write = false (chỉ QUAN_LY)", can("THU_KHO", "user", "write"), false);
+check("QUAN_LY system.special = true", can("QUAN_LY", "system", "special"), true);
+// sàn đọc: mọi baseline role đọc được resource nghiệp vụ (tránh gãy màn đọc)
+check("KIEM_KE supplier.read = true (sàn đọc)", can("KIEM_KE", "supplier", "read"), true);
+check("KIEM_KE supplier.write = false (chỉ đọc)", can("KIEM_KE", "supplier", "write"), false);
+// nâng theo vai vận hành
+check("XE_NANG forklift.write = true", can("XE_NANG", "forklift", "write"), true);
+check("KE_TOAN forklift.write = false (sàn đọc)", can("KE_TOAN", "forklift", "write"), false);
 
 // Tầng read
 check("KIEM_KE pallet.read = true", can("KIEM_KE", "pallet", "read"), true);

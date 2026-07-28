@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import * as XLSX from "xlsx";
+import { guardPermission } from "@/lib/auth-server";
 
 // UC-OUT-05_TC03/04/06 — Tải phiếu yêu cầu xuất (PYX) từ file Excel/CSV.
 // Đọc file → đối chiếu mã hàng với hệ thống → preview (dry_run) hoặc tạo OutboundRequest.
@@ -32,6 +33,8 @@ const FORMAT_ERROR =
   "File không đúng định dạng. Cần file Excel/CSV theo template (cột: Mã hàng, SL yêu cầu, Ghi chú).";
 
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "outbound", "write");
+  if (denied) return denied;
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

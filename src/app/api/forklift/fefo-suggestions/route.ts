@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "forklift", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const productId = searchParams.get("productId") || "";

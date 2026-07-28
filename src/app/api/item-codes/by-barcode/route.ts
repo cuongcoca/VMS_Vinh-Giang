@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/item-codes/by-barcode?barcode=8938523103142 — resolve barcode EAN
 // Thứ tự: Product.barcode (chuẩn) → ItemCode.code (mã NCC = barcode in vỏ thùng)
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "item_code", "read");
+  if (denied) return denied;
   try {
     const barcode = req.nextUrl.searchParams.get("barcode")?.trim();
     if (!barcode) {

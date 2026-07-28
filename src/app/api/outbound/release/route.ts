@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getRequestActor, logAudit } from "@/lib/audit";
 import { notifyByRoles } from "@/lib/notifications";
+import { guardPermission } from "@/lib/auth-server";
 
 // POST /api/outbound/release — DEMO XUẤT KHO ĐƠN GIẢN (UC-OUT-05_TC09).
 // Khách chưa chốt quy trình xuất kho chính thức → bản demo tối giản:
@@ -11,6 +12,8 @@ import { notifyByRoles } from "@/lib/notifications";
 // Giải phóng vị trí (nếu có) + ghi Movement type=SHIP (UC-FK-06_TC19: hiện trong
 // Lịch sử luân chuyển) + audit (kèm user).
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission(req, "outbound", "write");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { pallet_id } = body;
