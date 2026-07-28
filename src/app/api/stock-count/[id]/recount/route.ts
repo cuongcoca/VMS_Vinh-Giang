@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-server";
+import { requirePermission } from "@/lib/auth-server";
 import { notifyByRoles } from "@/lib/notifications";
 
 // POST /api/stock-count/[id]/recount — Yêu cầu kiểm lại các dòng chênh lệch
@@ -8,7 +8,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const { id } = await params;
     // Xác thực người dùng (Quản lý/Kế toán có quyền xử lý chênh lệch)
-    await requireAuth(req);
+    await requirePermission(req, "stock_count", "write");
     const body = await req.json();
     const { recounts } = body as { recounts: Array<{ count_id: string; note: string }> };
 

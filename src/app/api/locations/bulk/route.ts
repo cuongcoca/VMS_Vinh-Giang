@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { LocationType, LocationStatus } from "@prisma/client";
-import { requireAuth, apiErrorResponse } from "@/lib/auth-server";
+import { requirePermission, apiErrorResponse } from "@/lib/auth-server";
 
 const ZONE_REGEX = /^[A-Z]{1,3}$/;
 
@@ -12,7 +12,7 @@ function formatCode(zone: string, rack: number, level: number) {
 }
 
 export async function POST(request: NextRequest) {
-  try { await requireAuth(request); } catch (e) { return apiErrorResponse(e); }
+  try { await requirePermission(request, "location", "write"); } catch (e) { return apiErrorResponse(e); }
   try {
     const body = await request.json();
     const {

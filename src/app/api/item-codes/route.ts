@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, apiErrorResponse } from "@/lib/auth-server";
+import { requirePermission, guardPermission, apiErrorResponse } from "@/lib/auth-server";
 import { validateSpecification } from "@/lib/spec-validate";
 import { notifyByRoles } from "@/lib/notifications";
 
 // GET: Danh sách mã hàng (search, filter status, paging, sort)
 export async function GET(req: Request) {
+  const denied = await guardPermission(req, "item_code", "read");
+  if (denied) return denied;
   try {
     const url = new URL(req.url);
     const search = (url.searchParams.get("search") || url.searchParams.get("q"))?.trim() || "";
@@ -191,7 +193,7 @@ export async function GET(req: Request) {
 
 // POST: Tạo mã hàng mới (Thủ kho — TC_001_001 → TC_001_015)
 export async function POST(req: Request) {
-  try { await requireAuth(req); } catch (e) { return apiErrorResponse(e); }
+  try { await requirePermission(req, "item_code", "write"); } catch (e) { return apiErrorResponse(e); }
   try {
     const body = await req.json();
     let { code, barcode, short_name, unit_id, specification, units_per_box, weight_per_box, photo_url, note } = body;

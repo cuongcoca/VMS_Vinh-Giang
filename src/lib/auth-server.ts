@@ -35,8 +35,6 @@ export type SessionRole =
   | "XE_NANG"
   | "KIEM_KE";
 
-const SUPER_ROLES: SessionRole[] = ["ADMIN", "MANAGER", "STAFF"];
-
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -139,10 +137,12 @@ export async function requireAuth(
     sessionId = session.id;
   }
 
-  // Role gate: super-role tự pass; còn lại phải nằm trong allowedRoles.
+  // Role gate (deny-by-default, KHÔNG còn super-role bypass — WMS-002).
+  // Lưu ý: hầu hết route nay dùng requirePermission (ma trận permissions.ts);
+  // nhánh allowedRoles này giữ lại cho tương thích nhưng không ưu ái super-role.
   if (allowedRoles && allowedRoles.length > 0) {
     const role = user.role as SessionRole;
-    if (!SUPER_ROLES.includes(role) && !allowedRoles.includes(role)) {
+    if (!allowedRoles.includes(role)) {
       throw new ApiError(403, "Không có quyền thực hiện thao tác này");
     }
   }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
-import { requireAuth, apiErrorResponse } from "@/lib/auth-server";
+import { requirePermission, apiErrorResponse } from "@/lib/auth-server";
 import { notifyByRoles } from "@/lib/notifications";
 
 // POST /api/adjustments/[id]/approve — Phê duyệt phiếu điều chỉnh
@@ -19,7 +19,7 @@ export async function POST(
 ) {
   try {
     // UC-INV-09-TC17: chỉ Quản lý (+ super-role ADMIN/MANAGER/STAFF) được phê duyệt
-    const { user } = await requireAuth(req, ["QUAN_LY"]);
+    const { user } = await requirePermission(req, "inventory", "special");
     const { id } = await params;
     const voucher = await prisma.adjustmentVoucher.findUnique({
       where: { id },

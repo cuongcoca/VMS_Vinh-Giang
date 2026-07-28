@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { FEATURE_MAP, DEFAULT_ROLE_FEATURES } from "@/lib/rbac";
-import { requireAuth, apiErrorResponse } from "@/lib/auth-server";
+import { requireAuth, requirePermission, apiErrorResponse } from "@/lib/auth-server";
 import { logAudit } from "@/lib/audit";
 
 const CONFIG_KEY = "rbac_role_features";
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { user } = await requireAuth(req, ["ADMIN"]);
+    const { user } = await requirePermission(req, "system", "special");
     const body = await req.json();
     const { roleFeatures } = body;
 

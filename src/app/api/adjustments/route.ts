@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CODE_PREFIX, formatYearlyCode } from "@/lib/codegen";
 import { notifyByRoles } from "@/lib/notifications";
-import { requireAuth } from "@/lib/auth-server";
+import { requirePermission, guardPermission } from "@/lib/auth-server";
 
 // GET /api/adjustments — Danh sách phiếu điều chỉnh
 // Query params: ?session_id=xxx, ?type=STOCKTAKE_RESOLVE, ?status=PENDING
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission(req, "inventory", "read");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get("session_id") || "";
@@ -83,7 +85,7 @@ export async function GET(req: NextRequest) {
 // UC-INV-09: hỗ trợ thêm type (DECREASE/INCREASE/STOCKTAKE_RESOLVE), reason_code, pallet_id, lot, note per line
 export async function POST(req: NextRequest) {
   try {
-    const { user } = await requireAuth(req);
+    const { user } = await requirePermission(req, "inventory", "write");
     const body = await req.json();
     const { reason, type, reason_code, stocktake_session_id, lines } = body;
 

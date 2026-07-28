@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, apiErrorResponse } from "@/lib/auth-server";
+import { requirePermission, apiErrorResponse } from "@/lib/auth-server";
 import { notifyByRoles } from "@/lib/notifications";
 
 // POST /api/adjustments/[id]/reject — Từ chối phiếu điều chỉnh
 // UC-INV-09-TC17: chỉ Quản lý (+ super-role) · TC12/TC18: bắt buộc nhập lý do từ chối · TC11: audit người thực hiện
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { user } = await requireAuth(req, ["QUAN_LY"]);
+    const { user } = await requirePermission(req, "inventory", "special");
     const { id } = await params;
 
     const body = await req.json().catch(() => ({}));

@@ -4,7 +4,9 @@
  * Ma trận quyền theo vai trò: Mỗi role có danh sách route prefix được phép truy cập.
  * Route không nằm trong danh sách → bị chặn.
  *
- * ADMIN và MANAGER và STAFF: mặc định có quyền truy cập toàn bộ.
+ * WMS-002: KHÔNG còn wildcard super-role. ADMIN/MANAGER/STAFF đã di trú sang QUAN_LY.
+ * Nguồn quyền thực sự là SERVER (permissions.ts, deny-by-default); file này chỉ dùng
+ * để ẩn/hiện menu phía client (UX), không phải hàng rào bảo mật.
  */
 
 export type Role = "ADMIN" | "MANAGER" | "STAFF" | "QUAN_LY" | "KE_TOAN" | "THU_KHO" | "XE_NANG" | "KIEM_KE";
@@ -50,10 +52,9 @@ export const DEFAULT_ROLE_FEATURES: Record<string, string[]> = {
 export function getRoleRoutes(role: Role | string | undefined): string[] {
   if (!role) return [];
 
-  // ADMIN, MANAGER, STAFF luôn có toàn quyền
-  if (role === "ADMIN" || role === "MANAGER" || role === "STAFF") {
-    return ["*"];
-  }
+  // WMS-002: BỎ wildcard super-role. ADMIN/MANAGER/STAFF được di trú sang QUAN_LY
+  // (migration 2026-07-28). Server enforce quyền qua permissions.ts (deny-by-default);
+  // client chỉ dùng ma trận dưới để ẩn/hiện menu (UX). Không còn "*" toàn quyền.
 
   // Thử đọc từ localStorage của Client
   if (typeof window !== "undefined") {

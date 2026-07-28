@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { LocationType } from "@prisma/client";
-import { requireAuth, apiErrorResponse } from "@/lib/auth-server";
+import { requirePermission, apiErrorResponse } from "@/lib/auth-server";
 
 // UC-MD-05 / TC_LOC_001: Import vị trí kho từ Excel (bước 1 — phân tích & xem trước).
 // Regex đồng bộ với /api/locations và /api/locations/bulk để file nhập tuân thủ
@@ -39,7 +39,7 @@ interface LocationExcelRow {
 }
 
 export async function POST(req: NextRequest) {
-  try { await requireAuth(req); } catch (e) { return apiErrorResponse(e); }
+  try { await requirePermission(req, "location", "write"); } catch (e) { return apiErrorResponse(e); }
   try {
     const XLSX = await import("xlsx");
     const formData = await req.formData();

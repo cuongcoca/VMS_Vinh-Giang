@@ -2,13 +2,15 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { recalcPalletLinesByItemCode } from "@/lib/pallet-recalc";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/auth-server";
+import { requirePermission, guardPermission, apiErrorResponse, ApiError } from "@/lib/auth-server";
 
 // GET: Chi tiết sản phẩm
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardPermission(req, "item_code", "read");
+  if (denied) return denied;
   try {
     const { id } = await params;
     const product = await prisma.product.findUnique({
@@ -44,7 +46,7 @@ export async function PUT(
   try {
     // TC_PERMISSION_005: verify token (gồm hạn dùng exp) + quyền trước khi sửa.
     // Token hết hạn/không hợp lệ → requireAuth ném 401 → client redirect /auth.
-    await requireAuth(req, ["QUAN_LY"]);
+    await requirePermission(req, "item_code", "special");
 
     const { id } = await params;
     const body = await req.json();
@@ -251,7 +253,7 @@ export async function DELETE(
     // TC_MD_008 (lỗ hổng bảo mật): trước đây DELETE không verify token server-side
     // → gọi trực tiếp API (kể cả không cookie/không token) vẫn xoá được sản phẩm.
     // Yêu cầu đăng nhập + quyền Quản lý (super-role ADMIN/MANAGER/STAFF tự pass).
-    await requireAuth(req, ["QUAN_LY"]);
+    await requirePermission(req, "item_code", "special");
 
     const { id } = await params;
     const existing = await prisma.product.findUnique({ where: { id } });

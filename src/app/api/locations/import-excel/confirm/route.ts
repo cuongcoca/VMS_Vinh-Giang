@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma, LocationType, LocationStatus } from "@prisma/client";
-import { requireAuth, apiErrorResponse } from "@/lib/auth-server";
+import { requirePermission, apiErrorResponse } from "@/lib/auth-server";
 
 // UC-MD-05 / TC_LOC_001: Import vị trí kho từ Excel (bước 2 — ghi dữ liệu).
 // Mã code là unique toàn cục: dòng trùng mã sẽ cập nhật cấu hình (type / tải / pallet
@@ -25,7 +25,7 @@ function formatCode(zone: string, rack: string, level: string) {
 
 export async function POST(req: NextRequest) {
   let auth;
-  try { auth = await requireAuth(req); } catch (e) { return apiErrorResponse(e); }
+  try { auth = await requirePermission(req, "location", "write"); } catch (e) { return apiErrorResponse(e); }
   try {
     const body = await req.json();
     const { locations } = body as { locations: LocationImportItem[] };
