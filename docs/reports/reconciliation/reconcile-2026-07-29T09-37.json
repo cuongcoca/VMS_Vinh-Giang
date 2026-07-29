@@ -1,0 +1,165 @@
+{
+  "as_of": "2026-07-29T09:37:12.487Z",
+  "grand_total_box": 93,
+  "dimensions": {
+    "by_sku": {
+      "groups": 2,
+      "total": 93
+    },
+    "by_pallet": {
+      "groups": 9,
+      "total": 93
+    },
+    "by_location": {
+      "groups": 5,
+      "total": 93,
+      "unlocated_total": 35
+    },
+    "by_lot": {
+      "groups": 8,
+      "total": 93,
+      "no_expiry_total": 6
+    },
+    "available_blocked": {
+      "available": 93,
+      "blocked": 0,
+      "physical": 93
+    },
+    "movement": {
+      "by_type": {
+        "STAGE_OUT": 14
+      },
+      "null_qty_count": 6
+    }
+  },
+  "checks": [
+    {
+      "name": "D1 SKU = tổng chung",
+      "expected": 93,
+      "actual": 93,
+      "ok": true,
+      "delta": 0
+    },
+    {
+      "name": "D2 pallet = tổng chung",
+      "expected": 93,
+      "actual": 93,
+      "ok": true,
+      "delta": 0
+    },
+    {
+      "name": "D3 location(+unlocated) = tổng chung",
+      "expected": 93,
+      "actual": 93,
+      "ok": true,
+      "delta": 0
+    },
+    {
+      "name": "D4 lot/HSD = tổng chung",
+      "expected": 93,
+      "actual": 93,
+      "ok": true,
+      "delta": 0
+    },
+    {
+      "name": "D5 available+blocked = tổng vật lý",
+      "expected": 93,
+      "actual": 93,
+      "ok": true,
+      "delta": 0
+    }
+  ],
+  "discrepancies": [
+    {
+      "code": "UNITS_PER_BOX_UNCONFIGURED",
+      "severity": "WARN",
+      "entity": "line fba35a5f-cca8-419a-9253-8abaf2efed04 @ pallet PL260522.001 (VG-NM-500)",
+      "detail": "units_per_box=1 nhưng qty_unit=480 = qty_box×24 → hệ số quy đổi thực có vẻ là 24.",
+      "root_cause": "ItemCode.units_per_box chưa cấu hình (mặc định 1) trong khi qty_unit đã mang số đơn vị lẻ thật.",
+      "owner": "OPS/BE",
+      "disposition": "Cấu hình lại units_per_box cho mã hàng (không đổi tồn thùng qty_box → không ảnh hưởng tổng tồn)."
+    },
+    {
+      "code": "UNITS_PER_BOX_UNCONFIGURED",
+      "severity": "WARN",
+      "entity": "line 1b4756eb-8ee0-4e37-93f1-3c032d9a16a6 @ pallet PL260522.002 (VG-DA-1000)",
+      "detail": "units_per_box=1 nhưng qty_unit=180 = qty_box×12 → hệ số quy đổi thực có vẻ là 12.",
+      "root_cause": "ItemCode.units_per_box chưa cấu hình (mặc định 1) trong khi qty_unit đã mang số đơn vị lẻ thật.",
+      "owner": "OPS/BE",
+      "disposition": "Cấu hình lại units_per_box cho mã hàng (không đổi tồn thùng qty_box → không ảnh hưởng tổng tồn)."
+    },
+    {
+      "code": "UNITS_PER_BOX_UNCONFIGURED",
+      "severity": "WARN",
+      "entity": "line 96b9e8a5-e606-47b0-80de-7c4b84d7c01c @ pallet PL260520.001 (VG-NM-500)",
+      "detail": "units_per_box=1 nhưng qty_unit=240 = qty_box×24 → hệ số quy đổi thực có vẻ là 24.",
+      "root_cause": "ItemCode.units_per_box chưa cấu hình (mặc định 1) trong khi qty_unit đã mang số đơn vị lẻ thật.",
+      "owner": "OPS/BE",
+      "disposition": "Cấu hình lại units_per_box cho mã hàng (không đổi tồn thùng qty_box → không ảnh hưởng tổng tồn)."
+    },
+    {
+      "code": "UNITS_PER_BOX_UNCONFIGURED",
+      "severity": "WARN",
+      "entity": "line 81ede596-88b3-4661-a457-adee868959fa @ pallet PL260520.002 (VG-NM-500)",
+      "detail": "units_per_box=1 nhưng qty_unit=240 = qty_box×24 → hệ số quy đổi thực có vẻ là 24.",
+      "root_cause": "ItemCode.units_per_box chưa cấu hình (mặc định 1) trong khi qty_unit đã mang số đơn vị lẻ thật.",
+      "owner": "OPS/BE",
+      "disposition": "Cấu hình lại units_per_box cho mã hàng (không đổi tồn thùng qty_box → không ảnh hưởng tổng tồn)."
+    },
+    {
+      "code": "UNITS_PER_BOX_UNCONFIGURED",
+      "severity": "WARN",
+      "entity": "line 9843a3a2-fb83-4095-bc71-08bfaedf1183 @ pallet PL260521.001 (VG-DA-1000)",
+      "detail": "units_per_box=1 nhưng qty_unit=96 = qty_box×12 → hệ số quy đổi thực có vẻ là 12.",
+      "root_cause": "ItemCode.units_per_box chưa cấu hình (mặc định 1) trong khi qty_unit đã mang số đơn vị lẻ thật.",
+      "owner": "OPS/BE",
+      "disposition": "Cấu hình lại units_per_box cho mã hàng (không đổi tồn thùng qty_box → không ảnh hưởng tổng tồn)."
+    },
+    {
+      "code": "UNITS_PER_BOX_UNCONFIGURED",
+      "severity": "WARN",
+      "entity": "line a8a47a03-0a4a-4ad0-bb76-b185181cf211 @ pallet PLMULTI.001 (VG-NM-500)",
+      "detail": "units_per_box=1 nhưng qty_unit=240 = qty_box×24 → hệ số quy đổi thực có vẻ là 24.",
+      "root_cause": "ItemCode.units_per_box chưa cấu hình (mặc định 1) trong khi qty_unit đã mang số đơn vị lẻ thật.",
+      "owner": "OPS/BE",
+      "disposition": "Cấu hình lại units_per_box cho mã hàng (không đổi tồn thùng qty_box → không ảnh hưởng tổng tồn)."
+    },
+    {
+      "code": "UNITS_PER_BOX_UNCONFIGURED",
+      "severity": "WARN",
+      "entity": "line 3fcab14a-22ac-40dc-8e70-584f4de6c4f6 @ pallet PLMULTI.001-P2 (VG-DA-1000)",
+      "detail": "units_per_box=1 nhưng qty_unit=84 = qty_box×12 → hệ số quy đổi thực có vẻ là 12.",
+      "root_cause": "ItemCode.units_per_box chưa cấu hình (mặc định 1) trong khi qty_unit đã mang số đơn vị lẻ thật.",
+      "owner": "OPS/BE",
+      "disposition": "Cấu hình lại units_per_box cho mã hàng (không đổi tồn thùng qty_box → không ảnh hưởng tổng tồn)."
+    },
+    {
+      "code": "UNITS_PER_BOX_UNCONFIGURED",
+      "severity": "WARN",
+      "entity": "line 2abbd45c-75d3-4903-b591-103bc9151836 @ pallet PLDADU.002 (VG-NM-500)",
+      "detail": "units_per_box=1 nhưng qty_unit=144 = qty_box×24 → hệ số quy đổi thực có vẻ là 24.",
+      "root_cause": "ItemCode.units_per_box chưa cấu hình (mặc định 1) trong khi qty_unit đã mang số đơn vị lẻ thật.",
+      "owner": "OPS/BE",
+      "disposition": "Cấu hình lại units_per_box cho mã hàng (không đổi tồn thùng qty_box → không ảnh hưởng tổng tồn)."
+    },
+    {
+      "code": "UNITS_PER_BOX_UNCONFIGURED",
+      "severity": "WARN",
+      "entity": "line 021aaf35-b12d-43af-bf67-5be4b94358e4 @ pallet PLMULTI.001-P1 (VG-DA-1000)",
+      "detail": "units_per_box=1 nhưng qty_unit=84 = qty_box×12 → hệ số quy đổi thực có vẻ là 12.",
+      "root_cause": "ItemCode.units_per_box chưa cấu hình (mặc định 1) trong khi qty_unit đã mang số đơn vị lẻ thật.",
+      "owner": "OPS/BE",
+      "disposition": "Cấu hình lại units_per_box cho mã hàng (không đổi tồn thùng qty_box → không ảnh hưởng tổng tồn)."
+    },
+    {
+      "code": "MOVEMENT_NULL_QTY",
+      "severity": "INFO",
+      "entity": "movement ledger",
+      "detail": "6 movement thiếu qty_box (thường là bản ghi cũ).",
+      "root_cause": "Trước WVG-179 movement nguyên-pallet ghi qty=null.",
+      "owner": "BE",
+      "disposition": "Đã chuẩn hoá từ WVG-179 trở đi; KHÔNG truy hồi sửa bản ghi cũ (append-only)."
+    }
+  ],
+  "ok": true
+}
