@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma, PalletStatus } from "@prisma/client";
 import { guardPermission } from "@/lib/auth-server";
+import { PALLET_SOURCE_LABEL, type PalletSourceType } from "@/lib/pallet-source";
 
 // GET /api/inventory/by-pallet — UC-INV-03 Tồn theo Pallet
 // Query:
@@ -60,6 +61,12 @@ export async function GET(req: NextRequest) {
         location: { select: { id: true, code: true, zone: true } },
         supplier: { select: { id: true, name: true } },
         inbound_request: { select: { id: true, code: true } },
+        // WVG-97: nguồn truy vết chuẩn + relations để resolve mã chứng từ.
+        source_type: true,
+        source_id: true,
+        source_note: true,
+        inbound_temp: { select: { id: true, code: true } },
+        parent: { select: { id: true, code: true } },
         lines: { select: { qty_box: true } },
       },
     });
@@ -81,6 +88,19 @@ export async function GET(req: NextRequest) {
       outMap.set(m.pallet_id, Number(m._sum.qty_box || 0));
     }
 
+    // WVG-97: resolve mã phiếu điều chỉnh cho pallet nguồn ADJUSTMENT (batch).
+    const voucherIds = pallets
+      .filter((p) => p.source_type === "ADJUSTMENT" && p.source_id)
+      .map((p) => p.source_id as string);
+    const voucherMap = new Map<string, string>();
+    if (voucherIds.length) {
+      const vouchers = await prisma.adjustmentVoucher.findMany({
+        where: { id: { in: voucherIds } },
+        select: { id: true, code: true },
+      });
+      for (const v of vouchers) voucherMap.set(v.id, v.code);
+    }
+
     const data = pallets.map((p) => {
       const remaining = p.lines.reduce((s, l) => s + Number(l.qty_box), 0);
       const out = outMap.get(p.id) || 0;
@@ -100,6 +120,23 @@ export async function GET(req: NextRequest) {
         source_inbound: p.inbound_request
           ? { id: p.inbound_request.id, code: p.inbound_request.code }
           : null,
+        // WVG-97: nguồn truy vết đầy đủ cho mọi loại pallet.
+        source: {
+          type: p.source_type,
+          label: PALLET_SOURCE_LABEL[p.source_type as PalletSourceType],
+          id: p.source_id,
+          ref_code:
+            p.source_type === "INBOUND"
+              ? p.inbound_request?.code ?? null
+              : p.source_type === "INBOUND_TEMP"
+                ? p.inbound_temp?.code ?? null
+                : p.source_type === "SPLIT"
+                  ? p.parent?.code ?? null
+                  : p.source_type === "ADJUSTMENT"
+                    ? voucherMap.get(p.source_id || "") ?? null
+                    : null,
+          note: p.source_note ?? null,
+        },
       };
     });
 

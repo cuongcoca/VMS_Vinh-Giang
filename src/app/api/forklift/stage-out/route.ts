@@ -220,6 +220,9 @@ export async function POST(req: NextRequest) {
             inbound_date: pallet.inbound_date,
             parent_pallet_id: pallet_id,
             split_seq: nextSplitSeq,
+            // WVG-97: nguồn truy vết = tách từ pallet cha.
+            source_type: "SPLIT",
+            source_id: pallet_id,
             total_lines: 1,
             total_weight_kg: childLineWeight,
             note: `Split từ ${pallet.code} (${partialQtyNum}/${lineQty} thùng, mã ${itemCodeStr})`,

@@ -83,10 +83,16 @@ export async function POST(
           })),
         });
 
-        // Tự động gán inbound_request_id cho các pallet thuộc phiếu tạm này
+        // Tự động gán inbound_request_id cho các pallet thuộc phiếu tạm này.
+        // WVG-97: chuẩn hoá từ phiếu tạm sang PHN thật → nguồn thành INBOUND.
         await tx.pallet.updateMany({
           where: { inbound_temp_id: id },
-          data: { inbound_request_id: targetInboundId },
+          data: {
+            inbound_request_id: targetInboundId,
+            source_type: "INBOUND",
+            source_id: targetInboundId,
+            source_note: null,
+          },
         });
 
         const t = await tx.inboundTemp.update({
@@ -196,7 +202,12 @@ export async function POST(
       }),
       prisma.pallet.updateMany({
         where: { inbound_temp_id: id },
-        data: { inbound_request_id: newInbound.id },
+        data: {
+          inbound_request_id: newInbound.id,
+          source_type: "INBOUND",
+          source_id: newInbound.id,
+          source_note: null,
+        },
       }),
     ]);
 

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
 import { guardPermission } from "@/lib/auth-server";
+import { deriveCreateSource } from "@/lib/pallet-source";
 
 // Helper: Sinh mã pallet PLYYMMDD.STT
 // UC-PAL-01: phải race-safe khi nhiều thủ kho cùng tạo → dùng advisory lock theo ngày
@@ -330,6 +331,9 @@ export async function POST(req: NextRequest) {
         totalWeightKg = totalWeightKg.add(lineWeight);
       }
 
+      // WVG-97: xác định nguồn truy vết theo link (PHN/tạm) hoặc EXCEPTION.
+      const src = deriveCreateSource({ inbound_request_id, inbound_temp_id });
+
       // Phase 3.1 — TC_CREATE_PAL_011: pallet không line = "Chưa kích hoạt" (EMPTY).
       const newPallet = await tx.pallet.create({
         data: {
@@ -340,6 +344,9 @@ export async function POST(req: NextRequest) {
           supplier_id: resolvedSupplierId,
           inbound_request_id: inbound_request_id || null,
           inbound_temp_id: inbound_temp_id || null,
+          source_type: src.source_type,
+          source_id: src.source_id,
+          source_note: src.source_note,
           inbound_date: (inbound_date || receive_date) ? new Date(inbound_date || receive_date) : null,
           note: note?.trim() || null,
           total_lines: totalLines,

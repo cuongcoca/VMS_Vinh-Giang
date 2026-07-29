@@ -99,6 +99,9 @@ export async function POST(
               total_lines: 1,
               total_weight_kg: new Prisma.Decimal(weightKg),
               created_by: user.id,
+              // WVG-97: nguồn truy vết = phiếu điều chỉnh/kiểm kê.
+              source_type: "ADJUSTMENT",
+              source_id: voucher.id,
               note: `Pallet ngoài hệ thống — phát hiện khi kiểm kê (phiếu ${voucher.code})`,
             },
           });

@@ -19,6 +19,14 @@ type PalletRow = {
   location_zone: string | null;
   supplier_name: string | null;
   source_inbound: { id: string; code: string } | null;
+  // WVG-97: nguồn truy vết đầy đủ cho mọi loại pallet.
+  source?: {
+    type: "INBOUND" | "INBOUND_TEMP" | "SPLIT" | "ADJUSTMENT" | "EXCEPTION";
+    label: string;
+    id: string | null;
+    ref_code: string | null;
+    note: string | null;
+  } | null;
 };
 
 // Mapping status → label + color (theo mockup UC-INV-03)
@@ -82,7 +90,10 @@ export default function ByPalletPage() {
         String(r.qty_total_remaining),
         r.location_code || "—",
         STATUS_MAP[r.status]?.label || r.status,
-        r.source_inbound?.code || "—",
+        // WVG-97: nguồn truy vết (loại + mã chứng từ / lý do ngoại lệ).
+        r.source
+          ? `${r.source.label}${r.source.ref_code ? " " + r.source.ref_code : r.source.note ? " (" + r.source.note + ")" : ""}`
+          : r.source_inbound?.code || "—",
         r.supplier_name || "—",
         String(r.weight_kg),
       ]),
@@ -225,9 +236,23 @@ export default function ByPalletPage() {
                           {visualStatus.label}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-xs">
-                        {r.source_inbound ? (
-                          <Link href={`/inbound/${r.source_inbound.id}`} className="text-primary hover:underline">
+                      <td className="px-3 py-2.5 text-xs">
+                        {r.source && r.source.type === "INBOUND" && r.source.id ? (
+                          <Link href={`/inbound/${r.source.id}`} className="text-primary hover:underline font-mono">
+                            {r.source.ref_code || "PHN"}
+                          </Link>
+                        ) : r.source && r.source.type === "EXCEPTION" ? (
+                          <span className="inline-flex items-center gap-1 text-amber-700" title={r.source.note || ""}>
+                            <span className="material-symbols-outlined text-[14px]">warning</span>
+                            Ngoại lệ
+                          </span>
+                        ) : r.source ? (
+                          <span className="text-on-surface">
+                            <span className="text-[10px] text-on-surface-variant">{r.source.label}</span>
+                            {r.source.ref_code ? <span className="font-mono ml-1">· {r.source.ref_code}</span> : null}
+                          </span>
+                        ) : r.source_inbound ? (
+                          <Link href={`/inbound/${r.source_inbound.id}`} className="text-primary hover:underline font-mono">
                             {r.source_inbound.code}
                           </Link>
                         ) : (
