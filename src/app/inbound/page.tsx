@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ExcelExport } from "@/components/ExcelExport";
 import { useToast, useConfirm, useClientPagination, ListPageFooter } from "@/components/ui";
+import { inboundStep, INBOUND_TOTAL_STEPS } from "@/lib/inbound-status";
 
 type Supplier = { id: string; code: string; name: string };
 type InboundRequest = {
@@ -32,19 +33,12 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string; ico
   CANCELLED: { label: "Đã hủy", color: "text-rose-600", bg: "bg-rose-50", icon: "cancel" },
 };
 
-// UC-IN-05: Map DB status → step (8 bước) theo mockup
-const STATUS_TO_STEP: Record<string, { step: number; label: string }> = {
-  DRAFT: { step: 1, label: "Mới — chờ TK tiếp nhận" },
-  PENDING: { step: 2, label: "Chờ TK tiếp nhận" },
-  RECEIVING: { step: 4, label: "Đang kiểm đếm" },
-  RECONCILING: { step: 7, label: "Chờ chốt số" },
-  COMPLETED: { step: 8, label: "Đã chốt" },
-  CANCELLED: { step: 0, label: "Đã hủy" },
-};
-
+// WVG-131 / WMS-005: map status → bước LIÊN TIẾP khớp 6-status implementation
+// (helper dùng chung `inboundStep`). Trước đây map lên thang 8-bước mockup → nhảy
+// 1→2→4→7→8; nay 5 bước tuyến tính, CANCELLED tách riêng.
 function InboundStepper({ status }: { status: string }) {
-  const meta = STATUS_TO_STEP[status] || { step: 0, label: status };
-  const totalSteps = 8;
+  const meta = inboundStep(status);
+  const totalSteps = INBOUND_TOTAL_STEPS;
   // CANCELLED → tất cả dot xám
   if (meta.step === 0) {
     return (
