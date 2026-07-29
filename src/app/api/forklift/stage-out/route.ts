@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { getRequestActor, logAudit } from "@/lib/audit";
 import { notifyByRoles } from "@/lib/notifications";
 import { guardPermission } from "@/lib/auth-server";
+import { warehouseDateParts } from "@/lib/warehouse-date";
 
 // POST /api/forklift/stage-out — UC-FK-04
 // mode = "FULL"   : chuyển nguyên pallet IN_STORAGE → IN_STAGING
@@ -183,35 +184,27 @@ export async function POST(req: NextRequest) {
       const parentTotalWeight = Number(pallet.total_weight_kg);
       const newParentWeight = new Prisma.Decimal((parentTotalWeight - childWeightNum).toFixed(2));
 
-      // Tính seq cho pallet con
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const [maxSplit, maxToday] = await Promise.all([
-        prisma.pallet.aggregate({
-          where: { parent_pallet_id: pallet_id },
-          _max: { split_seq: true },
-        }),
-        prisma.pallet.aggregate({
-          where: { code_date: today },
-          _max: { code_seq: true },
-        }),
-      ]);
-      const nextSplitSeq = (maxSplit._max.split_seq || 0) + 1;
-      const nextCodeSeq = (maxToday._max.code_seq || 0) + 1;
-      const childCode = `${pallet.code}-P${nextSplitSeq}`;
-      if (childCode.length > 20) {
-        return NextResponse.json(
-          { success: false, error: `Mã pallet con quá dài: ${childCode} (>20 ký tự).` },
-          { status: 400 }
-        );
-      }
+      // WVG-98: ngày kho GMT+7; seq race-safe bằng advisory lock TRONG transaction.
+      const { codeDate, dayKey } = warehouseDateParts();
 
       // Transaction: tạo pallet con + line con + giảm qty/weight dòng cha + location + movement
       const child = await prisma.$transaction(async (tx) => {
+        // Advisory lock theo ngày kho → chặn race code_seq/split_seq khi split đồng thời.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${dayKey}))`;
+        const [maxSplit, maxToday] = await Promise.all([
+          tx.pallet.aggregate({ where: { parent_pallet_id: pallet_id }, _max: { split_seq: true } }),
+          tx.pallet.aggregate({ where: { code_date: codeDate }, _max: { code_seq: true } }),
+        ]);
+        const nextSplitSeq = (maxSplit._max.split_seq || 0) + 1;
+        const nextCodeSeq = (maxToday._max.code_seq || 0) + 1;
+        const childCode = `${pallet.code}-P${nextSplitSeq}`;
+        if (childCode.length > 20) {
+          throw new Error(`Mã pallet con quá dài: ${childCode} (>20 ký tự).`);
+        }
         const newChild = await tx.pallet.create({
           data: {
             code: childCode,
-            code_date: today,
+            code_date: codeDate,
             code_seq: nextCodeSeq,
             status: "IN_STAGING",
             supplier_id: pallet.supplier_id,

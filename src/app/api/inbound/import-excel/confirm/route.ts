@@ -4,13 +4,15 @@ import { Prisma } from "@prisma/client";
 import { notifyByRoles } from "@/lib/notifications";
 import { requirePermission, apiErrorResponse } from "@/lib/auth-server";
 import { buildUserIdentitySet, assertNotAccount } from "@/lib/item-code-guard";
+import { warehouseDateParts } from "@/lib/warehouse-date";
 
 // Regex mã hàng — đồng bộ với POST /api/item-codes (chặn ký tự lạ, kể cả '@').
 const ITEM_CODE_RE = /^[A-Za-z0-9\-_./]+$/;
 
 // Helper: Sinh mã phiếu nhập PHN-{YYYY}-{SSSS}
 async function generateInboundCode(): Promise<{ code: string; codeYear: number; codeSeq: number }> {
-  const year = new Date().getFullYear();
+  // WVG-98: năm theo giờ kho GMT+7 (không lệch ở ranh giới năm gần nửa đêm VN).
+  const year = warehouseDateParts().year;
   const maxSeq = await prisma.inboundRequest.aggregate({
     where: { code_year: year },
     _max: { code_seq: true },

@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
 import { guardPermission } from "@/lib/auth-server";
 import { deriveCreateSource } from "@/lib/pallet-source";
+import { warehouseDateParts } from "@/lib/warehouse-date";
 
 // Helper: Sinh mã pallet PLYYMMDD.STT
 // UC-PAL-01: phải race-safe khi nhiều thủ kho cùng tạo → dùng advisory lock theo ngày
@@ -11,26 +12,21 @@ async function generatePalletCode(
   tx: Prisma.TransactionClient,
   baseDate?: Date
 ): Promise<{ code: string; codeDate: Date; codeSeq: number }> {
-  const today = baseDate ? new Date(baseDate) : new Date();
-  today.setUTCHours(0, 0, 0, 0);
-
-  const yy = String(today.getUTCFullYear()).slice(-2);
-  const mm = String(today.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(today.getUTCDate()).padStart(2, "0");
-  const dayKey = `pallet_seq_${yy}${mm}${dd}`;
+  // WVG-98: ngày kho GMT+7 (không dùng UTC) để mã không lệch 1 ngày gần nửa đêm VN.
+  const { yy, mm, dd, codeDate, dayKey } = warehouseDateParts(baseDate);
 
   // Advisory lock theo dayKey — chỉ chặn các transaction cùng đang sinh mã pallet cùng ngày
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${dayKey}))`;
 
   const maxSeq = await tx.pallet.aggregate({
-    where: { code_date: today },
+    where: { code_date: codeDate },
     _max: { code_seq: true },
   });
   const nextSeq = (maxSeq._max.code_seq ?? 0) + 1;
   const stt = String(nextSeq).padStart(3, "0");
   const code = `PL${yy}${mm}${dd}.${stt}`;
 
-  return { code, codeDate: today, codeSeq: nextSeq };
+  return { code, codeDate, codeSeq: nextSeq };
 }
 
 // GET /api/pallets — Danh sách pallet + tìm kiếm + lọc
