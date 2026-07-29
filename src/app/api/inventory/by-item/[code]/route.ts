@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { expiryCutoff, isExpired } from "@/lib/inventory-expiry";
 import { guardPermission } from "@/lib/auth-server";
 
 /**
@@ -75,8 +76,14 @@ export async function GET(
       return order === "expiry_asc" ? dA - dB : dB - dA;
     });
 
-    // Tổng tồn
+    // WVG-239: tách tổng tồn (vật lý) vs khả dụng (loại hết hạn) vs bị chặn (hết hạn).
+    const cutoff = expiryCutoff();
     const totalQty = sorted.reduce((s, l) => s + Number(l.qty_box || 0), 0);
+    const blockedQty = sorted.reduce(
+      (s, l) => s + (isExpired(l.expiry_date, cutoff) ? Number(l.qty_box || 0) : 0),
+      0
+    );
+    const sellableQty = totalQty - blockedQty;
 
     // Đếm số vị trí distinct
     const locationSet = new Set(sorted.map((l) => l.pallet?.location?.code || l.pallet?.code || ""));
@@ -94,6 +101,8 @@ export async function GET(
           product: itemCode.product,
         },
         total_qty: totalQty,
+        sellable_qty: sellableQty,
+        blocked_qty: blockedQty,
         location_count: locationSet.size,
         lines: sorted.map((l) => ({
           id: l.id,
@@ -106,6 +115,7 @@ export async function GET(
           expiry_date: l.expiry_date,
           qty_box: Number(l.qty_box || 0),
           is_staging: l.pallet?.status === "IN_STAGING",
+          is_expired: isExpired(l.expiry_date, cutoff),
         })),
       },
     });

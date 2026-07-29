@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { availableLineWhere, expiredLineWhere, expiryCutoff } from "@/lib/inventory-expiry";
 import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/inventory/by-item — Tồn kho theo mã hàng
@@ -10,28 +11,40 @@ export async function GET(req: Request) {
   const denied = await guardPermission(req, "inventory", "read");
   if (denied) return denied;
   try {
+    // WVG-239: mốc cắt hết hạn theo giờ VN. available/staging/confirmed LOẠI hàng
+    // hết hạn; blocked = phần hết hạn; total (vật lý) = available+staging+confirmed+blocked.
+    const cutoff = expiryCutoff();
+    const notExpired = availableLineWhere(cutoff);
+
     const stockData = await prisma.palletLine.groupBy({
       by: ["item_code_id"],
       where: { pallet: { status: { in: STOCK_PALLET_STATUSES } } },
       _sum: { qty_box: true },
     });
 
-    // Tách theo từng trạng thái pallet
+    // Phần HẾT HẠN (bị chặn) trên toàn bộ tồn vật lý
+    const blockedData = await prisma.palletLine.groupBy({
+      by: ["item_code_id"],
+      where: { pallet: { status: { in: STOCK_PALLET_STATUSES } }, ...expiredLineWhere(cutoff) },
+      _sum: { qty_box: true },
+    });
+
+    // Tách theo từng trạng thái pallet — CHỈ hàng còn hạn (khả dụng thật)
     const storageData = await prisma.palletLine.groupBy({
       by: ["item_code_id"],
-      where: { pallet: { status: "IN_STORAGE" } },
+      where: { pallet: { status: "IN_STORAGE" }, ...notExpired },
       _sum: { qty_box: true },
     });
 
     const stagingData = await prisma.palletLine.groupBy({
       by: ["item_code_id"],
-      where: { pallet: { status: "IN_STAGING" } },
+      where: { pallet: { status: "IN_STAGING" }, ...notExpired },
       _sum: { qty_box: true },
     });
 
     const confirmedData = await prisma.palletLine.groupBy({
       by: ["item_code_id"],
-      where: { pallet: { status: "CONFIRMED" } },
+      where: { pallet: { status: "CONFIRMED" }, ...notExpired },
       _sum: { qty_box: true },
     });
 
@@ -64,6 +77,8 @@ export async function GET(req: Request) {
 
     const totalMap: Record<string, number> = {};
     for (const s of stockData) totalMap[s.item_code_id] = Number(s._sum.qty_box || 0);
+    const blockedMap: Record<string, number> = {};
+    for (const s of blockedData) blockedMap[s.item_code_id] = Number(s._sum.qty_box || 0);
     const storageMap: Record<string, number> = {};
     for (const s of storageData) storageMap[s.item_code_id] = Number(s._sum.qty_box || 0);
     const stagingMap: Record<string, number> = {};
@@ -73,9 +88,12 @@ export async function GET(req: Request) {
 
     const result = itemCodes.map(ic => {
       const total = totalMap[ic.id] || 0;
+      const blocked = blockedMap[ic.id] || 0;
       const available = storageMap[ic.id] || 0;
       const staging = stagingMap[ic.id] || 0;
       const confirmed = confirmedMap[ic.id] || 0;
+      // Tồn KHẢ DỤNG thật (đã loại hết hạn) — dùng cho cảnh báo thiếu/hết hàng.
+      const sellable = available + staging + confirmed;
       const minStock = Number(ic?.product?.min_stock || 0);
       const maxStock = Number(ic?.product?.max_stock || 0);
       const nearestExpiry = expiryMap[ic.id] || null;
@@ -91,15 +109,20 @@ export async function GET(req: Request) {
         available_qty: available,
         staging_qty: staging,
         confirmed_qty: confirmed,
+        blocked_qty: blocked,
+        sellable_qty: sellable,
         total_qty: total,
         min_stock: minStock,
         max_stock: maxStock,
         nearest_expiry: nearestExpiry,
         days_until_expiry: daysUntilExpiry,
-        alert_low_stock: minStock > 0 && total < minStock,
+        // WVG-239: cảnh báo thiếu/hết hàng theo tồn KHẢ DỤNG (loại hết hạn),
+        // không để hàng hết hạn "che" cảnh báo hết hàng.
+        alert_low_stock: minStock > 0 && sellable < minStock,
         alert_over_max: maxStock > 0 && total > maxStock,
         alert_expiry: daysUntilExpiry !== null && daysUntilExpiry <= 30,
-        alert_out_of_stock: total === 0 && !(minStock > 0 && total < minStock),
+        alert_blocked: blocked > 0,
+        alert_out_of_stock: sellable === 0 && !(minStock > 0 && sellable < minStock),
       };
     })
     .filter(r => r.total_qty > 0 || r.min_stock > 0 || r.max_stock > 0)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { guardPermission } from "@/lib/auth-server";
+import { availableLineWhere, expiryCutoff } from "@/lib/inventory-expiry";
 
 // GET /api/forklift/fefo-suggest?item_code_id=xxx — Gợi ý pallet theo FEFO
 export async function GET(req: NextRequest) {
@@ -12,9 +13,12 @@ export async function GET(req: NextRequest) {
 
     // Fix: bỏ điều kiện expiry_date NOT NULL — pallet không có HSD vẫn phải xuất hiện
     // (hàng không quản lý hạn). FEFO chỉ là gợi ý sort, không phải filter cứng.
+    // WVG-239: nhưng lô ĐÃ HẾT HẠN bị chặn xuất → loại khỏi gợi ý pick.
+    const cutoff = expiryCutoff();
     const whereClause: Record<string, unknown> = {
       pallet: { status: "IN_STORAGE" },
       qty_box: { gt: 0 }, // bỏ dòng đã rút sạch (qty=0) sau split — không gợi ý rút tiếp
+      ...availableLineWhere(cutoff),
     };
     if (itemCodeId) {
       whereClause.item_code_id = itemCodeId;

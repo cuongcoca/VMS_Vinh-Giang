@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { expiredLineWhere, expiryCutoff, isExpired } from "@/lib/inventory-expiry";
 import { guardPermission } from "@/lib/auth-server";
 
 /**
@@ -29,14 +30,23 @@ export async function GET(req: NextRequest) {
     else if (period === "week") from.setDate(now.getDate() - 7);
     else from.setMonth(now.getMonth() - 1);
 
-    // 1. Total SKU + tồn tổng
-    const [skuCount, stockSum] = await Promise.all([
+    const cutoff = expiryCutoff(now); // WVG-239: mốc hết hạn (GMT+7)
+
+    // 1. Total SKU + tồn tổng — WVG-239: tổng tồn = KHẢ DỤNG (loại hết hạn).
+    const [skuCount, stockSum, blockedSum] = await Promise.all([
       prisma.product.count({ where: { is_active: true } }),
       prisma.palletLine.aggregate({
         where: { pallet: { status: { in: STOCK_PALLET_STATUSES } } },
         _sum: { qty_box: true },
       }),
+      prisma.palletLine.aggregate({
+        where: { pallet: { status: { in: STOCK_PALLET_STATUSES } }, ...expiredLineWhere(cutoff) },
+        _sum: { qty_box: true },
+      }),
     ]);
+    const physicalStock = Number(stockSum._sum.qty_box || 0);
+    const blockedStock = Number(blockedSum._sum.qty_box || 0);
+    const sellableStock = physicalStock - blockedStock;
 
     // 2. Pallets đang dùng + tổng location
     const [palletsUsed, totalLocations] = await Promise.all([
@@ -54,18 +64,21 @@ export async function GET(req: NextRequest) {
       },
       select: { expiry_date: true, qty_box: true },
     });
+    let expiredLots = 0, expiredQty = 0;
     let d7Lots = 0, d7Qty = 0;
     let d30Lots = 0, d30Qty = 0;
     let safeLots = 0, safeQty = 0;
     for (const r of expiringRows) {
       if (!r.expiry_date) continue;
-      const days = Math.ceil((new Date(r.expiry_date).getTime() - Date.now()) / 86400000);
       const qty = Number(r.qty_box || 0);
+      // WVG-239: lô ĐÃ hết hạn tách riêng, không dồn vào bucket "≤7 ngày".
+      if (isExpired(r.expiry_date, cutoff)) { expiredLots++; expiredQty += qty; continue; }
+      const days = Math.ceil((new Date(r.expiry_date).getTime() - Date.now()) / 86400000);
       if (days <= 7) { d7Lots++; d7Qty += qty; }
       else if (days <= 30) { d30Lots++; d30Qty += qty; }
       else { safeLots++; safeQty += qty; }
     }
-    const alertCount = d7Lots + d30Lots;
+    const alertCount = expiredLots + d7Lots + d30Lots;
 
     // 4. Tồn theo nhóm hàng (top 6)
     const stockByGroup = await prisma.palletLine.findMany({
@@ -130,7 +143,9 @@ export async function GET(req: NextRequest) {
       data: {
         period,
         total_sku: skuCount,
-        total_stock: Number(stockSum._sum.qty_box || 0),
+        total_stock: sellableStock,
+        blocked_stock: blockedStock,
+        physical_stock: physicalStock,
         pallets_used: palletsUsed,
         total_locations: totalLocations,
         alerts: alertCount,
@@ -142,6 +157,7 @@ export async function GET(req: NextRequest) {
         })),
         top_outbound: topOutbound,
         expiring: {
+          expired_lots: expiredLots, expired_qty: expiredQty,
           d7_lots: d7Lots, d7_qty: d7Qty,
           d30_lots: d30Lots, d30_qty: d30Qty,
           safe_lots: safeLots, safe_qty: safeQty,

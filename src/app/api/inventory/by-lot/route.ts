@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { expiryCutoff, isExpired } from "@/lib/inventory-expiry";
 import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/inventory/by-lot — Tồn kho theo lô/HSD (FEFO)
@@ -19,14 +20,18 @@ export async function GET(req: Request) {
       orderBy: { expiry_date: "asc" },
     });
 
+    // WVG-239: đánh dấu lô ĐÃ HẾT HẠN (bị chặn xuất) tách khỏi "sắp hết hạn".
+    const cutoff = expiryCutoff();
     const result = lines.map(l => {
       const daysUntilExpiry = l.expiry_date ? Math.ceil((l.expiry_date.getTime() - Date.now()) / 86400000) : null;
-      let urgency: "critical" | "warning" | "normal" = "normal";
-      if (daysUntilExpiry !== null) {
+      const expired = isExpired(l.expiry_date, cutoff);
+      let urgency: "expired" | "critical" | "warning" | "normal" = "normal";
+      if (expired) urgency = "expired";
+      else if (daysUntilExpiry !== null) {
         if (daysUntilExpiry <= 7) urgency = "critical";
         else if (daysUntilExpiry <= 30) urgency = "warning";
       }
-      return { ...l, days_until_expiry: daysUntilExpiry, urgency };
+      return { ...l, days_until_expiry: daysUntilExpiry, is_expired: expired, is_blocked: expired, urgency };
     });
 
     return NextResponse.json({ success: true, data: result });

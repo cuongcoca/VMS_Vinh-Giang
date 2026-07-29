@@ -4,6 +4,7 @@ import { notifyByRoles } from "@/lib/notifications";
 import { Prisma } from "@prisma/client";
 import { getRequestActor, logAudit } from "@/lib/audit";
 import { guardPermission } from "@/lib/auth-server";
+import { availableLineWhere, expiryCutoff } from "@/lib/inventory-expiry";
 
 // GET /api/outbound/requests/[id] — Chi tiết phiếu PYX
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -26,6 +27,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: "Không tìm thấy phiếu." }, { status: 404 });
     }
 
+    // WVG-239: hàng HẾT HẠN bị chặn xuất → mọi tính tồn/gợi ý pick loại lô hết hạn.
+    const cutoff = expiryCutoff();
+
     // UC-OUT-05_TC11/13/14: tính tồn khu chờ (IN_STAGING) theo từng mã hàng để
     // đối chiếu với SL yêu cầu → trạng thái khớp/thiếu ở từng dòng.
     const itemIds = [...new Set(request.lines.map((l) => l.item_code_id))];
@@ -33,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (itemIds.length > 0) {
       const grouped = await prisma.palletLine.groupBy({
         by: ["item_code_id"],
-        where: { item_code_id: { in: itemIds }, pallet: { status: "IN_STAGING" } },
+        where: { item_code_id: { in: itemIds }, pallet: { status: "IN_STAGING" }, ...availableLineWhere(cutoff) },
         _sum: { qty_box: true },
       });
       for (const g of grouped) {
@@ -62,7 +66,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           qty_box: { gt: 0 },
           pallet: {
             status: { in: ["IN_STAGING", "IN_STORAGE"] }
-          }
+          },
+          // WVG-239: không gợi ý pick lô đã hết hạn.
+          ...availableLineWhere(cutoff),
         },
         include: {
           pallet: {
@@ -177,6 +183,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const request = await prisma.outboundRequest.findUnique({ where: { id }, include: { lines: true } });
     if (!request) return NextResponse.json({ success: false, error: "Không tìm thấy phiếu." }, { status: 404 });
 
+    // WVG-239: hàng HẾT HẠN bị chặn xuất → mọi tính tồn giữ chỗ/xuất loại lô hết hạn.
+    const cutoff = expiryCutoff();
+
     const validActions = ["START_PICKING", "SHIP", "CANCEL"];
     if (!validActions.includes(action)) {
       return NextResponse.json({ success: false, error: `action phải là ${validActions.join("/")}.` }, { status: 400 });
@@ -197,7 +206,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const itemIds = [...new Set(request.lines.map((l) => l.item_code_id))];
       const onHandRows = await prisma.palletLine.groupBy({
         by: ["item_code_id"],
-        where: { item_code_id: { in: itemIds }, qty_box: { gt: 0 }, pallet: { status: { in: ["IN_STORAGE", "IN_STAGING"] } } },
+        where: { item_code_id: { in: itemIds }, qty_box: { gt: 0 }, pallet: { status: { in: ["IN_STORAGE", "IN_STAGING"] } }, ...availableLineWhere(cutoff) },
         _sum: { qty_box: true },
       });
       const onHand = new Map<string, number>();
@@ -257,7 +266,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       // ── RC3: CHỐT CHẶN — tồn khu chờ xuất (IN_STAGING) phải đủ cho TỪNG mã hàng, thiếu thì không cho xuất ──
       const stagingByItem = await prisma.palletLine.groupBy({
         by: ["item_code_id"],
-        where: { item_code_id: { in: itemIds }, qty_box: { gt: 0 }, pallet: { status: "IN_STAGING" } },
+        where: { item_code_id: { in: itemIds }, qty_box: { gt: 0 }, pallet: { status: "IN_STAGING" }, ...availableLineWhere(cutoff) },
         _sum: { qty_box: true },
       });
       // RC6: trừ phần tồn khu chờ đang được giữ chỗ bởi các phiếu PICKING khác
@@ -289,7 +298,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           const unitsPerBox = ic?.units_per_box ?? 1;
 
           const stagingLines = await tx.palletLine.findMany({
-            where: { item_code_id: itemId, qty_box: { gt: 0 }, pallet: { status: "IN_STAGING" } },
+            // WVG-239: chỉ trừ/xuất lô CÒN hạn — lô hết hạn bị chặn khỏi luồng xuất thường.
+            where: { item_code_id: itemId, qty_box: { gt: 0 }, pallet: { status: "IN_STAGING" }, ...availableLineWhere(cutoff) },
             include: { pallet: { select: { id: true, location_id: true } } },
             orderBy: [{ expiry_date: { sort: "asc", nulls: "last" } }, { id: "asc" }],
           });

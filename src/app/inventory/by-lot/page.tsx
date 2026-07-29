@@ -10,20 +10,21 @@ type LotData = { id: string; qty_box: string; qty_unit?: string; lot: string | n
 // UC-INV-04-TC002: SL hiển thị theo đơn vị tính = số thùng × hệ số quy đổi (units_per_box)
 const toUnitQty = (d: LotData) => Number(d.qty_box) * (d.item_code.units_per_box || 1);
 const unitSym = (d: LotData) => d.item_code.unit?.symbol || d.item_code.unit?.name || "";
-const URGENCY = { critical: { label: "🔴 Khẩn", color: "bg-rose-50 text-rose-700", row: "bg-rose-50/30" }, warning: { label: "🟡 Cận", color: "bg-amber-50 text-amber-700", row: "bg-amber-50/20" }, normal: { label: "🟢 OK", color: "bg-emerald-50 text-emerald-700", row: "" } };
+// WVG-239: thêm mức "expired" (đã hết hạn → chặn xuất) tách khỏi "khẩn/cận".
+const URGENCY = { expired: { label: "⛔ Hết hạn", color: "bg-rose-200 text-rose-800", row: "bg-rose-100/50" }, critical: { label: "🔴 Khẩn", color: "bg-rose-50 text-rose-700", row: "bg-rose-50/30" }, warning: { label: "🟡 Cận", color: "bg-amber-50 text-amber-700", row: "bg-amber-50/20" }, normal: { label: "🟢 OK", color: "bg-emerald-50 text-emerald-700", row: "" } };
 
 export default function ByLotPage() {
   const [data, setData] = useState<LotData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [urgencyFilter, setUrgencyFilter] = useState<"all" | "critical" | "warning" | "normal">("all");
+  const [urgencyFilter, setUrgencyFilter] = useState<"all" | "expired" | "critical" | "warning" | "normal">("all");
 
   useEffect(() => { fetch("/wms/api/inventory/by-lot").then(r => r.json()).then(r => { if (r.success) setData(r.data); }).catch(console.error).finally(() => setLoading(false)); }, []);
 
   const summary = useMemo(() => {
-    const acc = { critical: { count: 0, qty: 0 }, warning: { count: 0, qty: 0 }, normal: { count: 0, qty: 0 } };
+    const acc = { expired: { count: 0, qty: 0 }, critical: { count: 0, qty: 0 }, warning: { count: 0, qty: 0 }, normal: { count: 0, qty: 0 } };
     data.forEach(d => {
-      const u = (d.urgency || "normal") as "critical" | "warning" | "normal";
+      const u = (d.urgency || "normal") as "expired" | "critical" | "warning" | "normal";
       if (acc[u]) { acc[u].count++; acc[u].qty += toUnitQty(d); }
     });
     return acc;
@@ -63,8 +64,13 @@ export default function ByLotPage() {
           <button onClick={exportExcel} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 flex items-center gap-2 self-start md:self-auto"><span className="material-symbols-outlined text-[18px]">download</span>Xuất Excel</button>
         </div>
 
-        {/* KPI 3 box urgency */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* KPI box urgency — WVG-239: thêm ô "Hết hạn" (chặn xuất) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <button onClick={() => setUrgencyFilter(urgencyFilter === "expired" ? "all" : "expired")} className={`text-left bg-rose-100 border ${urgencyFilter === "expired" ? "border-rose-600 ring-2 ring-rose-300" : "border-rose-300"} rounded-xl p-4 hover:shadow-md transition-all`}>
+            <div className="flex items-center justify-between"><span className="text-2xl">⛔</span><span className="text-xs font-semibold text-rose-800 uppercase">Hết hạn</span></div>
+            <div className="mt-2 flex items-baseline gap-2"><span className="text-3xl font-bold font-mono text-rose-800">{summary.expired.count}</span><span className="text-xs text-rose-700">lô</span></div>
+            <p className="text-xs text-rose-800 mt-1 font-semibold">Chặn xuất · SL: {summary.expired.qty.toLocaleString("vi-VN")}</p>
+          </button>
           <button onClick={() => setUrgencyFilter(urgencyFilter === "critical" ? "all" : "critical")} className={`text-left bg-rose-50 border ${urgencyFilter === "critical" ? "border-rose-500 ring-2 ring-rose-200" : "border-rose-200"} rounded-xl p-4 hover:shadow-md transition-all`}>
             <div className="flex items-center justify-between"><span className="text-2xl">🔴</span><span className="text-xs font-semibold text-rose-600 uppercase">Khẩn (≤7d)</span></div>
             <div className="mt-2 flex items-baseline gap-2"><span className="text-3xl font-bold font-mono text-rose-700">{summary.critical.count}</span><span className="text-xs text-rose-600">lô</span></div>

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma, PalletStatus } from "@prisma/client";
 import { guardPermission } from "@/lib/auth-server";
 import { PALLET_SOURCE_LABEL, type PalletSourceType } from "@/lib/pallet-source";
+import { expiryCutoff, isExpired } from "@/lib/inventory-expiry";
 
 // GET /api/inventory/by-pallet — UC-INV-03 Tồn theo Pallet
 // Query:
@@ -67,7 +68,7 @@ export async function GET(req: NextRequest) {
         source_note: true,
         inbound_temp: { select: { id: true, code: true } },
         parent: { select: { id: true, code: true } },
-        lines: { select: { qty_box: true } },
+        lines: { select: { qty_box: true, expiry_date: true } },
       },
     });
 
@@ -101,8 +102,14 @@ export async function GET(req: NextRequest) {
       for (const v of vouchers) voucherMap.set(v.id, v.code);
     }
 
+    const cutoff = expiryCutoff();
     const data = pallets.map((p) => {
       const remaining = p.lines.reduce((s, l) => s + Number(l.qty_box), 0);
+      // WVG-239: phần hàng hết hạn (bị chặn) trên pallet.
+      const blocked = p.lines.reduce(
+        (s, l) => s + (isExpired(l.expiry_date, cutoff) ? Number(l.qty_box) : 0),
+        0
+      );
       const out = outMap.get(p.id) || 0;
       const original = remaining + out;
       return {
@@ -113,6 +120,9 @@ export async function GET(req: NextRequest) {
         line_count: p.total_lines || p.lines.length,
         qty_total_original: original,
         qty_total_remaining: remaining,
+        qty_blocked: blocked,
+        qty_sellable: remaining - blocked,
+        has_expired: blocked > 0,
         weight_kg: Number(p.total_weight_kg),
         location_code: p.location?.code || null,
         location_zone: p.location?.zone || null,

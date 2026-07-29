@@ -6,7 +6,7 @@ import { ExcelExport } from "@/components/ExcelExport";
 import { useClientPagination, ListPageFooter } from "@/components/ui";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
-type InventoryItem = { item_code_id: string; item_code: string; item_name: string; group_code: string | null; group_name: string | null; unit_name: string | null; unit_symbol: string | null; available_qty: number; staging_qty: number; total_qty: number; min_stock: number; max_stock: number; nearest_expiry: string | null; days_until_expiry: number | null; alert_low_stock: boolean; alert_over_max: boolean; alert_expiry: boolean; alert_out_of_stock: boolean };
+type InventoryItem = { item_code_id: string; item_code: string; item_name: string; group_code: string | null; group_name: string | null; unit_name: string | null; unit_symbol: string | null; available_qty: number; staging_qty: number; confirmed_qty?: number; blocked_qty?: number; sellable_qty?: number; total_qty: number; min_stock: number; max_stock: number; nearest_expiry: string | null; days_until_expiry: number | null; alert_low_stock: boolean; alert_over_max: boolean; alert_expiry: boolean; alert_blocked?: boolean; alert_out_of_stock: boolean };
 
 // UC-INV-01: dòng lô cận date — schema từ /api/inventory/by-lot
 type LotLine = {
@@ -60,7 +60,8 @@ export default function InventoryPage() {
     if (statusFilter === "low" && !d.alert_low_stock) return false;
     if (statusFilter === "over" && !d.alert_over_max) return false;
     if (statusFilter === "expiry" && !d.alert_expiry) return false;
-    if (statusFilter === "normal" && (d.alert_out_of_stock || d.alert_low_stock || d.alert_over_max || d.alert_expiry)) return false;
+    if (statusFilter === "blocked" && !(Number(d.blocked_qty || 0) > 0)) return false;
+    if (statusFilter === "normal" && (d.alert_out_of_stock || d.alert_low_stock || d.alert_over_max || d.alert_expiry || Number(d.blocked_qty || 0) > 0)) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return d.item_code.toLowerCase().includes(q) || d.item_name.toLowerCase().includes(q) || (d.group_name || "").toLowerCase().includes(q);
@@ -86,6 +87,8 @@ export default function InventoryPage() {
   const totalSKU = data.length;
   const totalAvailable = data.reduce((s, d) => s + Number(d.available_qty || 0), 0);
   const totalStaging = data.reduce((s, d) => s + Number(d.staging_qty || 0), 0);
+  const totalBlocked = data.reduce((s, d) => s + Number(d.blocked_qty || 0), 0); // WVG-239
+  const blockedSkuCount = data.filter(d => Number(d.blocked_qty || 0) > 0).length;
   const outOfStockCount = data.filter(d => d.alert_out_of_stock).length;
   const alertCount = data.filter(d => d.alert_low_stock || d.alert_expiry || d.alert_over_max).length;
 
@@ -261,7 +264,7 @@ export default function InventoryPage() {
         </div>
 
         {/* UC-INV-01: 4 KPI khớp mockup — Tổng SKU / Khả dụng / Đang chờ / Hết hàng */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div className="bg-white p-3.5 rounded-xl border shadow-sm">
             <span className="text-[10px] font-semibold text-on-surface-variant uppercase">Tổng SKU</span>
             <span className="text-xl font-bold mt-1 block">{totalSKU}</span>
@@ -273,6 +276,11 @@ export default function InventoryPage() {
           <div className="bg-white p-3.5 rounded-xl border shadow-sm">
             <span className="text-[10px] font-semibold text-on-surface-variant uppercase">Đang chờ</span>
             <span className="text-xl font-bold mt-1 block text-amber-600 font-mono">{totalStaging.toLocaleString()}</span>
+          </div>
+          {/* WVG-239: SL hàng hết hạn bị chặn xuất */}
+          <div className="bg-white p-3.5 rounded-xl border shadow-sm" title={`${blockedSkuCount} mã có hàng hết hạn`}>
+            <span className="text-[10px] font-semibold text-on-surface-variant uppercase">Chặn xuất (HSD)</span>
+            <span className={`text-xl font-bold mt-1 block font-mono ${totalBlocked > 0 ? "text-rose-600" : "text-on-surface-variant"}`}>{totalBlocked.toLocaleString()}</span>
           </div>
           <div className="bg-white p-3.5 rounded-xl border shadow-sm">
             <span className="text-[10px] font-semibold text-on-surface-variant uppercase">Hết hàng</span>
@@ -289,6 +297,7 @@ export default function InventoryPage() {
             <option value="low">Dưới min</option>
             <option value="over">Vượt max</option>
             <option value="expiry">Sắp hết hạn (≤30 ngày)</option>
+            <option value="blocked">Đã hết hạn (chặn xuất)</option>
           </select>
         </div>
 
@@ -302,14 +311,15 @@ export default function InventoryPage() {
                 <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant hidden md:table-cell">ĐVT</th>
                 <th className="text-right px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">Khả dụng</th>
                 <th className="text-right px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">Đang chờ</th>
+                <th className="text-right px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant" title="Hàng hết hạn — bị chặn xuất">Chặn (HSD)</th>
                 <th className="text-right px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">Tổng tồn</th>
                 <th className="text-right px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant hidden lg:table-cell">Min / Max</th>
                 <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant hidden md:table-cell">HSD gần nhất</th>
                 <th className="text-center px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">Hành động</th>
               </tr></thead>
               <tbody>
-                {loading ? <tr><td colSpan={10} className="text-center py-12"><span className="material-symbols-outlined animate-spin text-[24px] text-primary">progress_activity</span></td></tr>
-                : filtered.length === 0 ? <tr><td colSpan={10} className="text-center py-12 text-on-surface-variant">Không có dữ liệu.</td></tr>
+                {loading ? <tr><td colSpan={11} className="text-center py-12"><span className="material-symbols-outlined animate-spin text-[24px] text-primary">progress_activity</span></td></tr>
+                : filtered.length === 0 ? <tr><td colSpan={11} className="text-center py-12 text-on-surface-variant">Không có dữ liệu.</td></tr>
                 : paged.map(d => (
                   <tr key={d.item_code_id} className="border-b border-outline-variant/40 hover:bg-surface-low/50">
                     <td className="px-4 py-2.5 font-mono font-bold text-primary text-sm">{d.item_code}</td>
@@ -318,13 +328,16 @@ export default function InventoryPage() {
                     <td className="px-4 py-2.5 text-xs hidden md:table-cell text-on-surface-variant font-medium">{d.unit_symbol || d.unit_name || "—"}</td>
                     <td className="px-4 py-2.5 text-right font-mono font-semibold text-emerald-600">{d.available_qty}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-amber-600">{d.staging_qty || "—"}</td>
+                    <td className="px-4 py-2.5 text-right font-mono">{Number(d.blocked_qty || 0) > 0 ? <span className="text-rose-600 font-semibold" title="Hàng hết hạn — chặn xuất">{d.blocked_qty}</span> : <span className="text-on-surface-variant/60">—</span>}</td>
                     <td className="px-4 py-2.5 text-right font-mono font-bold">{d.total_qty}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-xs hidden lg:table-cell text-on-surface-variant">
                       {d.min_stock || "—"} / {d.max_stock || "—"}
                     </td>
                     <td className="px-4 py-2.5 text-xs hidden md:table-cell">{d.nearest_expiry ? new Date(d.nearest_expiry).toLocaleDateString("vi-VN") : "—"}</td>
                     <td className="px-4 py-2.5 text-center">
-                      {d.alert_low_stock ? (
+                      {Number(d.blocked_qty || 0) > 0 ? (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700" title="Có hàng hết hạn — chặn xuất">Hết hạn</span>
+                      ) : d.alert_low_stock ? (
                         <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600">Dưới min</span>
                       ) : d.alert_out_of_stock ? (
                         <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-mid text-on-surface">Hết hàng</span>

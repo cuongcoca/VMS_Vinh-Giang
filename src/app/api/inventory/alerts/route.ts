@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STOCK_PALLET_STATUSES } from "@/lib/inventory-constants";
+import { expiredLineWhere, expiryCutoff, isExpired } from "@/lib/inventory-expiry";
 import { guardPermission } from "@/lib/auth-server";
 
 // GET /api/inventory/alerts — Trung tâm cảnh báo
@@ -12,6 +13,7 @@ export async function GET(req: Request) {
     const now = new Date();
     const d7 = new Date(now.getTime() + 7 * 86400000);
     const d30 = new Date(now.getTime() + 30 * 86400000);
+    const cutoff = expiryCutoff(now); // WVG-239: mốc hết hạn (GMT+7)
 
     // ===== 1. HSD cảnh báo (urgent + warning) =====
     const expiryAlerts = await prisma.palletLine.findMany({
@@ -73,8 +75,10 @@ export async function GET(req: Request) {
         l.expiry_date != null
           ? Math.ceil((l.expiry_date.getTime() - now.getTime()) / 86400000)
           : null;
-      let level: "urgent" | "warning" | "normal" = "normal";
-      if (days !== null) {
+      // WVG-239: lô đã hết hạn → mức "expired" (bị chặn xuất), tách khỏi "urgent".
+      let level: "expired" | "urgent" | "warning" | "normal" = "normal";
+      if (isExpired(l.expiry_date, cutoff)) level = "expired";
+      else if (days !== null) {
         if (days < 7) level = "urgent";
         else if (days < 30) level = "warning";
       }
@@ -97,6 +101,8 @@ export async function GET(req: Request) {
     });
 
     // ===== 2. Tồn dưới min + Tồn vượt max =====
+    // WVG-239: tồn dưới min tính theo tồn KHẢ DỤNG (loại hết hạn) để hàng hết hạn
+    // không "che" cảnh báo thiếu hàng; vượt max tính theo tồn vật lý (chiếm chỗ thật).
     const currentStock = await prisma.palletLine.groupBy({
       by: ["item_code_id"],
       where: { pallet: { status: { in: STOCK_PALLET_STATUSES } } },
@@ -104,6 +110,16 @@ export async function GET(req: Request) {
     });
     const stockMap: Record<string, number> = {};
     for (const s of currentStock) stockMap[s.item_code_id] = Number(s._sum.qty_box || 0);
+
+    const blockedStock = await prisma.palletLine.groupBy({
+      by: ["item_code_id"],
+      where: { pallet: { status: { in: STOCK_PALLET_STATUSES } }, ...expiredLineWhere(cutoff) },
+      _sum: { qty_box: true },
+    });
+    const sellableMap: Record<string, number> = { ...stockMap };
+    for (const s of blockedStock) {
+      sellableMap[s.item_code_id] = (stockMap[s.item_code_id] || 0) - Number(s._sum.qty_box || 0);
+    }
 
     const itemCodes = await prisma.itemCode.findMany({
       where: { status: "standardized" },
@@ -118,15 +134,15 @@ export async function GET(req: Request) {
     const lowStockAlerts = itemCodes
       .filter((ic) => {
         const minStock = Number(ic.product?.min_stock || 0);
-        return minStock > 0 && (stockMap[ic.id] || 0) < minStock;
+        return minStock > 0 && (sellableMap[ic.id] || 0) < minStock;
       })
       .map((ic) => ({
         item_code_id: ic.id,
         item_code: ic.code,
         item_name: ic.short_name,
-        current_stock: stockMap[ic.id] || 0,
+        current_stock: sellableMap[ic.id] || 0,
         min_stock: Number(ic.product?.min_stock || 0),
-        shortage: Number(ic.product?.min_stock || 0) - (stockMap[ic.id] || 0),
+        shortage: Number(ic.product?.min_stock || 0) - (sellableMap[ic.id] || 0),
       }))
       .sort((a, b) => b.shortage - a.shortage);
 
@@ -266,6 +282,10 @@ export async function GET(req: Request) {
 
     const oldStockLocationCount = new Set(oldStockByLocation.map((o) => o.location_code)).size;
 
+    // WVG-239: lô đã HẾT HẠN (bị chặn xuất) — tách riêng để BA/QA thấy rõ.
+    const expiredLines = expiryList.filter((e) => e.level === "expired");
+    const expiredQtyUnit = expiredLines.reduce((s, l) => s + Number(l.qty_unit || 0), 0);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -278,8 +298,11 @@ export async function GET(req: Request) {
         over_max: { items: overMaxAlerts, total: overMaxAlerts.length },
         old_stock_by_location: oldStockByLocation,
         expiry_list: expiryList,
+        expired: { items: expiredLines, total: expiredLines.length },
       },
       summary: {
+        expired: expiredLines.length,
+        expired_qty_unit: Math.round(expiredQtyUnit),
         urgent_expiry: urgentExpiry.length,
         urgent_qty_unit: Math.round(urgentQtyUnit),
         warning_expiry: warningExpiry.length,

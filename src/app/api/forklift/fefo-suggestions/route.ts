@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { guardPermission } from "@/lib/auth-server";
+import { availableLineWhere, expiryCutoff } from "@/lib/inventory-expiry";
 
 export async function GET(req: NextRequest) {
   const denied = await guardPermission(req, "forklift", "read");
@@ -18,6 +19,8 @@ export async function GET(req: NextRequest) {
         item_code_id: productId,
         pallet: { status: "IN_STORAGE" },
         qty_box: { gt: 0 },
+        // WVG-239: lô đã hết hạn bị chặn xuất → không gợi ý pick.
+        ...availableLineWhere(expiryCutoff()),
       },
       include: {
         pallet: {
