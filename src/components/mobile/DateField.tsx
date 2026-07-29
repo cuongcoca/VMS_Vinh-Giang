@@ -32,19 +32,26 @@ function todayISO() {
   return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`;
 }
 // Tự chèn dấu "/" khi gõ: chỉ giữ số, tối đa 8 chữ số (ddmmyyyy) → "dd/mm/yyyy".
-function formatTyping(raw: string) {
+// Kẹp số vô lý ngay khi đủ 2 chữ số: ngày > 31 → 31, tháng > 12 → 12.
+export function formatTyping(raw: string) {
   const dg = raw.replace(/\D/g, "").slice(0, 8);
-  let out = dg.slice(0, 2);
-  if (dg.length >= 3) out += "/" + dg.slice(2, 4);
-  if (dg.length >= 5) out += "/" + dg.slice(4, 8);
+  let dd = dg.slice(0, 2);
+  let mm = dg.slice(2, 4);
+  const yyyy = dg.slice(4, 8);
+  if (dd.length === 2 && +dd > 31) dd = "31";
+  if (mm.length === 2 && +mm > 12) mm = "12";
+  let out = dd;
+  if (dg.length >= 3) out += "/" + mm;
+  if (dg.length >= 5) out += "/" + yyyy;
   return out;
 }
-// Parse "dd/mm/yyyy" → "YYYY-MM-DD" nếu là NGÀY THẬT (chặn 31/02, 00/…), else null.
-function parseDisplay(s: string): string | null {
+// Parse "dd/mm/yyyy" → "YYYY-MM-DD" nếu là NGÀY THẬT (chặn 31/02, 31/04, 29/02 năm
+// thường, 00/…). KHÔNG giới hạn năm (mọi yyyy 4 chữ số). else → null.
+export function parseDisplay(s: string): string | null {
   const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!m) return null;
   const d = +m[1], mo = +m[2], y = +m[3];
-  if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900) return null;
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1) return null;
   const dt = new Date(y, mo - 1, d);
   if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
   return `${y}-${pad(mo)}-${pad(d)}`;
@@ -72,26 +79,50 @@ export function DateField({
   // khi không focus (để lịch/parent cập nhật vẫn hiển thị đúng).
   const [text, setText] = useState(() => toDisplay(value));
   const [focused, setFocused] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const errId = id ? `${id}-err` : undefined;
   useEffect(() => {
-    if (!focused) setText(toDisplay(value));
+    if (!focused) {
+      setText(toDisplay(value));
+      setError(null);
+    }
   }, [value, focused]);
 
   const handleTextChange = (raw: string) => {
     const f = formatTyping(raw);
     setText(f);
     if (f === "") {
+      setError(null);
       onChange("");
       return;
     }
+    if (f.length < 10) {
+      setError(null); // đang gõ dở → chưa báo lỗi
+      return;
+    }
     const iso = parseDisplay(f);
-    if (iso) onChange(iso); // chỉ commit khi đã là ngày thật, đủ dd/mm/yyyy
+    if (iso) {
+      setError(null);
+      onChange(iso); // đủ dd/mm/yyyy + ngày thật → commit
+    } else {
+      setError("Ngày không tồn tại. Nhập theo dd/mm/yyyy.");
+    }
   };
   const handleBlur = () => {
     setFocused(false);
+    if (text.trim() === "") {
+      setError(null);
+      onChange("");
+      return;
+    }
     const iso = parseDisplay(text);
-    if (iso) onChange(iso);
-    else if (text.trim() === "") onChange("");
-    else setText(toDisplay(value)); // gõ dở/sai → khôi phục giá trị hợp lệ gần nhất
+    if (iso) {
+      setError(null);
+      onChange(iso);
+    } else {
+      // KHÔNG xoá âm thầm — giữ nguyên chuỗi + báo lỗi để người dùng sửa.
+      setError("Ngày không hợp lệ. Nhập theo dd/mm/yyyy (ví dụ 15/08/2027).");
+    }
   };
 
   const base = value ? new Date(value + "T00:00:00") : new Date();
@@ -156,6 +187,7 @@ export function DateField({
 
   const pick = (day: number) => {
     onChange(`${view.y}-${pad(view.m + 1)}-${pad(day)}`);
+    setError(null);
     setOpen(false);
   };
 
@@ -172,7 +204,7 @@ export function DateField({
     <div className="relative" ref={ref}>
       {/* Ô nhập: GÕ TAY dd/mm/yyyy (tự chèn "/"), + icon lịch để chọn bằng lịch */}
       <div
-        className={`relative w-full min-h-[44px] border rounded-lg bg-white flex items-center ${disabled ? "opacity-50" : ""} ${className}`}
+        className={`relative w-full min-h-[44px] border rounded-lg bg-white flex items-center ${disabled ? "opacity-50" : ""} ${error ? "border-rose-500" : className}`}
       >
         <input
           type="text"
@@ -182,6 +214,8 @@ export function DateField({
           placeholder={placeholder}
           value={text}
           maxLength={10}
+          aria-invalid={!!error}
+          aria-describedby={error ? errId : undefined}
           onFocus={() => setFocused(true)}
           onChange={(e) => handleTextChange(e.target.value)}
           onBlur={handleBlur}
@@ -204,6 +238,12 @@ export function DateField({
           <span className="material-symbols-outlined text-[18px]">calendar_month</span>
         </button>
       </div>
+
+      {error && (
+        <p id={errId} role="alert" className="mt-1 text-[11px] md:text-xs font-medium text-rose-600">
+          {error}
+        </p>
+      )}
 
       {open && (
         <>
@@ -399,6 +439,7 @@ export function DateField({
               type="button"
               onClick={() => {
                 onChange("");
+                setError(null);
                 setOpen(false);
               }}
               className="text-xs font-semibold text-rose-600 px-2 py-1.5 rounded hover:bg-rose-50"
@@ -409,6 +450,7 @@ export function DateField({
               type="button"
               onClick={() => {
                 onChange(tdy);
+                setError(null);
                 setOpen(false);
               }}
               className="text-xs font-semibold text-primary px-2 py-1.5 rounded hover:bg-primary/5"
