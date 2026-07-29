@@ -5,6 +5,7 @@ import { getRequestActor, logAudit } from "@/lib/audit";
 import { notifyByRoles } from "@/lib/notifications";
 import { guardPermission } from "@/lib/auth-server";
 import { warehouseDateParts } from "@/lib/warehouse-date";
+import { buildMovementSnapshot } from "@/lib/movement-snapshot";
 
 // POST /api/forklift/stage-out — UC-FK-04
 // mode = "FULL"   : chuyển nguyên pallet IN_STORAGE → IN_STAGING
@@ -338,17 +339,20 @@ export async function POST(req: NextRequest) {
         prisma.location.update({ where: { id: staging_location_id }, data: { status: "USING" } })
       );
     }
+    // WVG-179: ledger snapshot — 1 movement / mỗi dòng pallet (đủ item/lot/qty/HSD).
     txOps.push(
-      prisma.movement.create({
-        data: {
-          pallet_id,
-          movement_type: "STAGE_OUT",
-          from_location_id: oldLocationId,
-          to_location_id: staging_location_id || null,
-          qty_box: new Prisma.Decimal(totalQty),
-          mode: "FULL",
-          performed_by: actor.userId ?? undefined,
-        },
+      prisma.movement.createMany({
+        data: buildMovementSnapshot(
+          {
+            pallet_id,
+            movement_type: "STAGE_OUT",
+            from_location_id: oldLocationId,
+            to_location_id: staging_location_id || null,
+            performed_by: actor.userId ?? null,
+            mode: "FULL",
+          },
+          pallet.lines
+        ),
       })
     );
 

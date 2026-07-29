@@ -20,6 +20,9 @@ type MovementItem = {
   from_location?: { code?: string } | null;
   to_location?: { code?: string } | null;
   item_code?: { code?: string; short_name?: string } | null;
+  lot?: string | null;
+  qty_box?: number | string | null;
+  expiry_date?: string | null;
   performer?: { full_name?: string } | null;
 };
 
@@ -135,6 +138,9 @@ export default function ThukhoMovementsPage() {
                   {m.item_code?.code && (
                     <span className="text-[11px] md:text-xs text-on-surface-variant/80 mt-0.5">
                       {m.item_code.code}{m.item_code.short_name ? ` · ${m.item_code.short_name}` : ""}
+                      {m.qty_box != null && Number(m.qty_box) > 0 ? ` · ${Number(m.qty_box)} thùng` : ""}
+                      {m.lot ? ` · lô ${m.lot}` : ""}
+                      {m.expiry_date ? ` · HSD ${new Date(m.expiry_date).toLocaleDateString("vi-VN")}` : ""}
                     </span>
                   )}
                   <span className="text-[11px] md:text-xs text-on-surface-variant/60 mt-0.5">

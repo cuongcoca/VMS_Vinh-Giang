@@ -316,6 +316,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
                 to_location_id: null,
                 item_code_id: itemId,
                 qty_box: take,
+                // WVG-179: snapshot lot + HSD của dòng FEFO đang xuất để ledger đủ truy vết.
+                lot: pl.lot ?? null,
+                expiry_date: pl.expiry_date ?? null,
                 mode: "PARTIAL",
                 reason: `Xuất kho từ phiếu ${request.code}.`,
                 performed_by: actor.userId ?? undefined,

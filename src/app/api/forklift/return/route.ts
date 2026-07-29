@@ -217,13 +217,26 @@ export async function POST(req: NextRequest) {
       }
       await tx.location.update({ where: { id: location_id }, data: { status: "USING" } });
 
-      // 4. Movement record — giữ id để gắn audit_log_id (UC-FK-06_TC20)
+      // 4. Movement record — giữ id để gắn audit_log_id (UC-FK-06_TC20).
+      // WVG-179: bổ sung snapshot nội dung pallet (item/lot/qty/HSD) để ledger đủ
+      // truy vết. Return giữ 1 movement (để gắn audit) → snapshot dòng chính; pallet
+      // 1 dòng (phổ biến) là chính xác, nhiều dòng thì lấy dòng đầu làm đại diện.
+      const rLines = await tx.palletLine.findMany({
+        where: { pallet_id },
+        select: { item_code_id: true, lot: true, expiry_date: true, qty_box: true, qty_unit: true },
+      });
+      const primary = rLines[0];
       const returnMv = await tx.movement.create({
         data: {
           pallet_id,
           movement_type: "RETURN",
           from_location_id: oldLocationId,
           to_location_id: location_id,
+          item_code_id: primary?.item_code_id ?? null,
+          qty_box: primary?.qty_box ?? null,
+          qty_unit: primary?.qty_unit ?? null,
+          lot: primary?.lot ?? null,
+          expiry_date: primary?.expiry_date ?? null,
           reason: reason.trim(),
           performed_by: actor.userId ?? undefined,
         },
