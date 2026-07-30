@@ -108,10 +108,15 @@ export const DEFAULT_MATRIX: Record<string, Partial<Record<Resource, Level>>> = 
   }),
 };
 
-// Legacy roles: grant TƯỜNG MINH special toàn bộ (KHÔNG wildcard) — di trú ở Pha 3.
+// WVG-16 (review 2026-07-29 · gate 4): legacy ADMIN/MANAGER/STAFF sau khi di trú
+// KHÔNG còn quyền — cấp grant RỖNG → deny-by-default cho MỌI resource. Trước đây để
+// allSpecial() "phòng thủ" trong lúc di trú; nay di trú xong nên vô hiệu hoá hẳn để
+// một tài khoản còn sót/role mặc định không thể trở thành super-admin.
 for (const legacy of LEGACY_ROLES) {
-  DEFAULT_MATRIX[legacy] = allSpecial();
+  DEFAULT_MATRIX[legacy] = {};
 }
+// Vai trò "PENDING" (default DB mới cho user chưa gán vai) KHÔNG có trong matrix →
+// deny-by-default hoàn toàn. Không cần khai báo; để đây làm mốc tài liệu.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pha 4 — Ma trận ĐANG HIỆU LỰC: mặc định = DEFAULT_MATRIX, override lưu ở DB.

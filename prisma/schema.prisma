@@ -16,6 +16,7 @@ enum Role {
   THU_KHO
   XE_NANG
   KIEM_KE
+  PENDING // WVG-16: vai "chờ gán" — 0 quyền (deny-by-default). Default an toàn cho user mới.
 }
 
 model User {
@@ -26,7 +27,7 @@ model User {
   password_hash         String    @db.VarChar(255)
   full_name             String    @db.VarChar(100)
   avatar_url            String?   @db.Text
-  role                  Role      @default(STAFF)
+  role                  Role      @default(PENDING) // WVG-16: user mới = PENDING (0 quyền) tới khi Quản lý gán vai
   is_locked             Boolean   @default(false)
   must_change_password  Boolean   @default(false)
   failed_login_attempts Int       @default(0)

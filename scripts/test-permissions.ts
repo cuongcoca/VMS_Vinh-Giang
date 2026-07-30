@@ -45,9 +45,14 @@ check("THU_KHO pallet.special = false (full chưa special)", can("THU_KHO", "pal
 check("QUAN_LY pallet.special = true", can("QUAN_LY", "pallet", "special"), true);
 check("KE_TOAN pallet.special = false (full)", can("KE_TOAN", "pallet", "special"), false);
 
-// Legacy grant tường minh (KHÔNG wildcard)
-check("ADMIN pallet.special = true (grant tường minh)", can("ADMIN", "pallet", "special"), true);
-check("ADMIN system.special = true", can("ADMIN", "system", "special"), true);
+// WVG-16 (review gate 4): legacy đã di trú → DENY hoàn toàn (không còn allSpecial)
+check("ADMIN pallet.read = false (legacy đã vô hiệu)", can("ADMIN", "pallet", "read"), false);
+check("ADMIN system.special = false (legacy đã vô hiệu)", can("ADMIN", "system", "special"), false);
+check("STAFF pallet.read = false (legacy đã vô hiệu)", can("STAFF", "pallet", "read"), false);
+// PENDING = default DB cho user mới → 0 quyền tuyệt đối
+check("PENDING pallet.read = false", can("PENDING", "pallet", "read"), false);
+check("PENDING dashboard.read = false", can("PENDING", "dashboard", "read"), false);
+check("PENDING system.special = false", can("PENDING", "system", "special"), false);
 
 // levelOf
 check("levelOf KIEM_KE pallet = read", levelOf("KIEM_KE", "pallet"), "read");
@@ -79,10 +84,12 @@ check("KIEM_KE inbound.write = false", can("KIEM_KE", "inbound", "write"), false
 check("XE_NANG item_code.write = false", can("XE_NANG", "item_code", "write"), false);
 check("KE_TOAN forklift.write = false", can("KE_TOAN", "forklift", "write"), false);
 
-console.log("-- Legacy (di trú) vẫn full phòng thủ (không wildcard) --");
+console.log("-- Legacy (đã di trú) bị VÔ HIỆU HOÁ hoàn toàn — deny-by-default --");
 for (const legacy of ["ADMIN", "MANAGER", "STAFF"] as const) {
-  check(`${legacy} pallet.special = true`, can(legacy, "pallet", "special"), true);
-  check(`${legacy} user.write = true`, can(legacy, "user", "write"), true);
+  check(`${legacy} pallet.read = false`, can(legacy, "pallet", "read"), false);
+  check(`${legacy} pallet.special = false`, can(legacy, "pallet", "special"), false);
+  check(`${legacy} user.write = false`, can(legacy, "user", "write"), false);
 }
+check("PENDING (default) user.write = false", can("PENDING", "user", "write"), false);
 
 console.log(`\n✅ ${passed} assertions passed`);

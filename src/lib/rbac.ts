@@ -105,9 +105,7 @@ export function canAccess(role: Role | string | undefined, pathname: string): bo
   const routes = getRoleRoutes(role);
   if (!routes) return false;
 
-  // Wildcard = toàn quyền
-  if (routes.includes("*")) return true;
-
+  // WMS-002: KHÔNG còn wildcard "*" — mọi vai đều phải khớp prefix tường minh.
   // Auth page luôn cho phép
   if (pathname === "/auth") return true;
 
@@ -123,8 +121,6 @@ export function canAccess(role: Role | string | undefined, pathname: string): bo
  */
 export function getVisibleRoutes(role: Role | string | undefined): string[] {
   if (!role) return [];
-  const routes = getRoleRoutes(role);
-  if (!routes || routes.includes("*")) return ["*"];
-  return routes;
+  return getRoleRoutes(role); // WMS-002: không còn wildcard "*"
 }
 
