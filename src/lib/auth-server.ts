@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import * as jwt from "jsonwebtoken";
 import { prisma } from "./prisma";
 import { can, ensurePermissionMatrixLoaded, type Resource, type ActionType } from "./permissions";
+import { getJwtSecret } from "./jwt";
 
 /**
  * Lớp helper xác thực + RBAC dùng cho mọi API route business.
@@ -42,16 +43,8 @@ export class ApiError extends Error {
   }
 }
 
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    // Trong helper mới này KHÔNG fallback. AUTH-003 yêu cầu rotate + bỏ literal.
-    // Throw ở call-time (không ở module load) để dev không bị block khi
-    // import file này từ route khác mà chưa cần verify token.
-    throw new ApiError(500, "Server chưa cấu hình JWT_SECRET");
-  }
-  return secret;
-}
+// WVG-19/AUTH-003: getJwtSecret() nay dùng chung từ "./jwt" (nguồn secret DUY NHẤT,
+// throw khi thiếu — không literal). Import ở đầu file.
 
 export interface AuthContext {
   user: {

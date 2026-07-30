@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "vinhgiang_super_secret_key_2026";
+import { getJwtSecret } from "@/lib/jwt";
 
 function verifyToken(req: Request): { userId: string; sessionId?: string } | null {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
   try {
-    return jwt.verify(authHeader.split(" ")[1], JWT_SECRET) as { userId: string; sessionId?: string };
+    return jwt.verify(authHeader.split(" ")[1], getJwtSecret()) as { userId: string; sessionId?: string };
   } catch {
     return null;
   }

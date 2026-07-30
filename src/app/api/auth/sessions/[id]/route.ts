@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "vinhgiang_super_secret_key_2026";
+import { getJwtSecret } from "@/lib/jwt";
 
 // DELETE /api/auth/sessions/[id] — Đăng xuất một phiên cụ thể
 export async function DELETE(
@@ -18,7 +18,7 @@ export async function DELETE(
     const token = authHeader.split(" ")[1];
     let decoded: { userId: string; sessionId?: string };
     try {
-      decoded = jwt.verify(token, JWT_SECRET) as { userId: string; sessionId?: string };
+      decoded = jwt.verify(token, getJwtSecret()) as { userId: string; sessionId?: string };
     } catch {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }

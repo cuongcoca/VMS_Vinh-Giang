@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
+import { getJwtSecret } from "@/lib/jwt";
 
-const JWT_SECRET = process.env.JWT_SECRET || "vinhgiang_super_secret_key_2026";
 const MAX_FAILED_ATTEMPTS = 5;
 
 function parseDeviceInfo(userAgent: string): string {
@@ -103,9 +103,10 @@ export async function POST(req: Request) {
 
     if (!isPasswordValid) {
       const newAttempts = user.failed_login_attempts + 1;
+      const willLock = newAttempts >= MAX_FAILED_ATTEMPTS;
       let errorMsg = "Mật khẩu không chính xác. Vui lòng thử lại.";
 
-      if (newAttempts >= MAX_FAILED_ATTEMPTS) {
+      if (willLock) {
         // Khóa tài khoản
         await prisma.user.update({
           where: { id: user.id },
@@ -119,6 +120,30 @@ export async function POST(req: Request) {
           data: { failed_login_attempts: newAttempts },
         });
         errorMsg = `Mật khẩu không chính xác. Bạn còn ${MAX_FAILED_ATTEMPTS - newAttempts} lượt nhập. Nếu sai ${MAX_FAILED_ATTEMPTS} lần tài khoản sẽ bị khóa.`;
+      }
+
+      // WVG-19/G2: audit đăng nhập THẤT BẠI + KHOÁ tài khoản (phát hiện brute-force).
+      // Best-effort — không chặn response nếu ghi log lỗi.
+      try {
+        const ua = req.headers.get("user-agent") || "Unknown";
+        const fwd = req.headers.get("x-forwarded-for");
+        const ip = fwd ? fwd.split(",")[0].trim() : req.headers.get("x-real-ip") || "Unknown";
+        await prisma.auditLog.create({
+          data: {
+            entity_type: "user",
+            entity_id: user.id,
+            action: willLock ? "ACCOUNT_LOCKED" : "LOGIN_FAILED",
+            old_value: { failed_login_attempts: user.failed_login_attempts },
+            new_value: { failed_login_attempts: newAttempts, is_locked: willLock },
+            reason: willLock ? "Khoá tài khoản do sai mật khẩu 5 lần" : "Đăng nhập thất bại (sai mật khẩu)",
+            performed_by: user.id,
+            performed_by_role: user.role,
+            ip_address: ip,
+            user_agent: ua.slice(0, 255),
+          },
+        });
+      } catch (err) {
+        console.error("Login-failed audit log error:", err);
       }
 
       return NextResponse.json(
@@ -150,7 +175,7 @@ export async function POST(req: Request) {
         userId: user.id,
         role: user.role,
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: tokenExpiry } as jwt.SignOptions
     );
 
@@ -172,7 +197,7 @@ export async function POST(req: Request) {
         role: user.role,
         sessionId: session.id,
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: tokenExpiry } as jwt.SignOptions
     );
 

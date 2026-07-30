@@ -80,11 +80,8 @@ export default function LoginPage() {
         KIEM_KE: { url: "/kiemke", label: "Kiểm kê" },
       };
 
-      // Bảng label cho Desktop roles
+      // Bảng label cho Desktop roles (WVG-16: legacy ADMIN/MANAGER/STAFF đã di trú QUAN_LY).
       const DESKTOP_LABELS: Record<string, string> = {
-        ADMIN: "Quản trị hệ thống",
-        MANAGER: "Quản lý",
-        STAFF: "Nhân viên",
         QUAN_LY: "Quản lý kho",
         KE_TOAN: "Kế toán kho",
       };

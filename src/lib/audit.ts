@@ -2,7 +2,7 @@ import * as jwt from "jsonwebtoken";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { prisma as defaultPrisma } from "./prisma";
 
-const JWT_SECRET = process.env.JWT_SECRET || "vinhgiang_super_secret_key_2026";
+import { getJwtSecret } from "@/lib/jwt";
 
 export interface RequestActor {
   userId: string | null;
@@ -23,7 +23,7 @@ export function getRequestActor(req: Request): RequestActor {
   if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
     const token = authHeader.slice(7).trim();
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as {
+      const decoded = jwt.verify(token, getJwtSecret()) as {
         userId?: string;
         role?: string;
       };

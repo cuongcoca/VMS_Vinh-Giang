@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "vinhgiang_super_secret_key_2026";
+import { getJwtSecret } from "@/lib/jwt";
 
 // Password validation rules
 const PASSWORD_MIN_LENGTH = 8;
@@ -49,7 +49,7 @@ export async function PUT(req: Request) {
     let decoded: { userId: string; sessionId?: string };
 
     try {
-      decoded = jwt.verify(token, JWT_SECRET) as { userId: string; sessionId?: string };
+      decoded = jwt.verify(token, getJwtSecret()) as { userId: string; sessionId?: string };
     } catch {
       return NextResponse.json(
         { success: false, error: "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại." },
