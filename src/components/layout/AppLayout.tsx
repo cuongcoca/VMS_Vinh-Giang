@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Sidebar } from "./Sidebar";
+import { Sidebar, SIDEBAR_WIDTH } from "./Sidebar";
 import { UcHeader } from "./UcHeader";
 import { auth } from "@/lib/auth";
 import { canAccess } from "@/lib/rbac";
@@ -79,9 +79,9 @@ export function AppLayout({
     return (
       <div className="flex min-h-screen">
         <Sidebar />
-        <div 
+        <div
           className="flex-1 w-0 flex flex-col min-h-screen"
-          style={{ marginLeft: "240px" }}
+          style={{ marginLeft: `${SIDEBAR_WIDTH}px` }}
         >
           <UcHeader title="KHÔNG CÓ QUYỀN" />
           <main className="flex-1 flex items-center justify-center">
@@ -103,9 +103,9 @@ export function AppLayout({
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <div 
+      <div
         className="flex-1 w-0 flex flex-col min-h-screen min-w-0"
-        style={{ marginLeft: "288px" }}
+        style={{ marginLeft: `${SIDEBAR_WIDTH}px` }}
       >
         <UcHeader title={title} />
         <main className="flex-1 overflow-y-auto overflow-x-hidden scroll-container pb-8">
