@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { FEATURE_MAP, DEFAULT_ROLE_FEATURES } from "@/lib/rbac";
 import { requireAuth, requirePermission, apiErrorResponse } from "@/lib/auth-server";
-import { logAudit } from "@/lib/audit";
+import { logAudit, keyToUuid } from "@/lib/audit";
 
 const CONFIG_KEY = "rbac_role_features";
 
@@ -47,22 +47,15 @@ export async function GET(req: NextRequest) {
 
     const roleRoutes = generateRoleRoutes(roleFeatures);
 
-    // Include ADMIN với full access
-    const allFeatureIds = FEATURE_MAP.map(f => f.id);
-    const fullRoleFeatures = {
-      ADMIN: allFeatureIds,
-      ...roleFeatures,
-    };
-    const fullRoleRoutes = {
-      ADMIN: ["*"],
-      ...roleRoutes,
-    };
-
+    // WVG-34 / UC-AUTH-05: BỎ tiêm ADMIN full-access ("*") — legacy ADMIN/MANAGER/STAFF
+    // đã di trú sang QUAN_LY (WVG-16) và bị deny-by-default ở ma trận enforce. Trước đây
+    // response gắn ADMIN: ["*"] khiến FE hiển thị "toàn quyền" sai lệch (đúng điều Audit nêu).
+    // Nay chỉ trả cấu hình 5 vai baseline; menu do ma trận thật + guard server quyết định.
     return NextResponse.json({
       success: true,
       data: {
-        roleFeatures: fullRoleFeatures,
-        roleRoutes: fullRoleRoutes,
+        roleFeatures,
+        roleRoutes,
         featureMap: FEATURE_MAP,
         defaultRoleFeatures: DEFAULT_ROLE_FEATURES,
       },
@@ -122,7 +115,7 @@ export async function PUT(req: NextRequest) {
     // Ghi audit cho thay đổi RBAC (CP-10 — cần truy vết ai/khi nào sửa quyền)
     await logAudit(req, {
       entity_type: "system_config",
-      entity_id: saved.key,
+      entity_id: keyToUuid(saved.key), // key chuỗi → UUID tất định (cột @db.Uuid)
       action: "UPDATE_RBAC_MATRIX",
       old_value: oldValue,
       new_value: sanitizedRoleFeatures,

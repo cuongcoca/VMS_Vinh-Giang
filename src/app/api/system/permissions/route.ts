@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, apiErrorResponse } from "@/lib/auth-server";
-import { logAudit } from "@/lib/audit";
+import { logAudit, keyToUuid } from "@/lib/audit";
 import {
   PERMISSION_CONFIG_KEY,
-  BASELINE_ROLES,
   getPermissionMatrixForAdmin,
   reloadPermissionMatrix,
   ensurePermissionMatrixLoaded,
+  validatePermissionMatrix,
 } from "@/lib/permissions";
 
 // WVG-16 / Pha 4 — Cấu hình ma trận quyền API (server RBAC), lưu ở systemConfig.
@@ -33,11 +33,14 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Ma trận không hợp lệ." }, { status: 400 });
     }
 
-    // Chỉ lưu 5 vai trò baseline (legacy cố định allSpecial ở default, không sửa).
-    const clean: Record<string, Record<string, string>> = {};
-    for (const role of BASELINE_ROLES) {
-      const g = matrix[role];
-      clean[role] = g && typeof g === "object" ? (g as Record<string, string>) : {};
+    // WVG-34 / UC-AUTH-05: validate CHẶT trước khi lưu — role/resource/level sai → 400,
+    // KHÔNG ghi một phần (AC: negative case không tạo thay đổi dữ liệu một phần).
+    const { valid, errors, clean } = validatePermissionMatrix(matrix);
+    if (!valid) {
+      return NextResponse.json(
+        { success: false, error: "Ma trận quyền không hợp lệ.", errors },
+        { status: 400 }
+      );
     }
 
     const oldCfg = await prisma.systemConfig.findUnique({ where: { key: PERMISSION_CONFIG_KEY } });
@@ -53,7 +56,7 @@ export async function PUT(req: NextRequest) {
 
     await logAudit(req, {
       entity_type: "system_config",
-      entity_id: saved.key,
+      entity_id: keyToUuid(saved.key), // key "rbac_permission_matrix" → UUID tất định (cột @db.Uuid)
       action: "UPDATE_PERMISSION_MATRIX",
       old_value: oldCfg?.value ? safeParse(oldCfg.value) : null,
       new_value: clean,

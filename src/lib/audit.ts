@@ -1,8 +1,24 @@
 import * as jwt from "jsonwebtoken";
+import { createHash } from "node:crypto";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { prisma as defaultPrisma } from "./prisma";
 
 import { getJwtSecret } from "@/lib/jwt";
+
+/**
+ * WVG-34 / UC-AUTH-05 — Sinh UUID TẤT ĐỊNH (v5) từ một khoá chuỗi.
+ *
+ * `audit_logs.entity_id` là cột @db.Uuid. Các entity định danh bằng CHUỖI (vd
+ * systemConfig.key = "rbac_permission_matrix") không phải UUID → insert audit sẽ
+ * lỗi P2007 "invalid input syntax for type uuid" và bị nuốt (audit mất thầm lặng).
+ * Helper này ánh xạ khoá → UUID hợp lệ, ỔN ĐỊNH (cùng khoá luôn ra cùng UUID) để
+ * ghi audit được mà KHÔNG cần đổi schema. Khoá gốc vẫn lưu ở reason/new_value.
+ */
+export function keyToUuid(key: string): string {
+  const h = createHash("sha1").update("systemconfig:" + key).digest("hex");
+  const variant = ((parseInt(h[16], 16) & 0x3) | 0x8).toString(16);
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
 
 export interface RequestActor {
   userId: string | null;

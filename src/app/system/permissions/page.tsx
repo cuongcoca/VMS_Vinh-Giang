@@ -34,12 +34,18 @@ export default function PermissionsPage() {
   const [matrix, setMatrix] = useState<Record<string, Record<string, string>>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [denied, setDenied] = useState(false); // WVG-35: trạng thái 403 rõ ràng
   const [alert, setAlert] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     apiFetch("/wms/api/system/permissions")
-      .then((r) => r.json())
+      .then(async (r) => {
+        // WVG-35 / UC-AUTH-05: 401/403 → không có quyền (guard tại page, không chỉ ẩn menu).
+        if (r.status === 401 || r.status === 403) { setDenied(true); return null; }
+        return r.json();
+      })
       .then((r) => {
+        if (!r) return;
         if (r.success) { setData(r.data); setMatrix(clone(r.data.matrix)); }
         else setAlert({ type: "error", message: r.error || "Không tải được ma trận." });
       })
@@ -52,15 +58,42 @@ export default function PermissionsPage() {
     setMatrix((prev) => ({ ...prev, [role]: { ...(prev[role] || {}), [res]: lvl } }));
   const resetDefaults = () => { if (data) setMatrix(clone(data.defaults)); };
 
+  // WVG-35: đếm số ô đổi so với bản đã lưu (data.matrix) để confirm trước khi lưu.
+  function countChanges(): number {
+    if (!data) return 0;
+    let n = 0;
+    for (const role of data.roles) {
+      for (const res of data.resources) {
+        const now = matrix[role]?.[res] ?? "none";
+        const saved = data.matrix[role]?.[res] ?? "none";
+        if (now !== saved) n++;
+      }
+    }
+    return n;
+  }
+
   async function save() {
+    // WVG-35 / AC #5: hộp xác nhận (confirm) trước khi áp thay đổi quyền.
+    const changes = countChanges();
+    if (changes === 0) {
+      setAlert({ type: "error", message: "Chưa có thay đổi nào để lưu." });
+      return;
+    }
+    if (!window.confirm(`Xác nhận cập nhật ma trận quyền: ${changes} ô thay đổi.\nThay đổi áp dụng trên toàn hệ thống trong ~15 giây. Tiếp tục?`)) {
+      return;
+    }
     setSaving(true); setAlert(null);
     try {
-      const r = await apiFetch("/wms/api/system/permissions", {
+      const res = await apiFetch("/wms/api/system/permissions", {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ matrix }),
-      }).then((x) => x.json());
+      });
+      const r = await res.json();
       if (r.success) { setData(r.data); setMatrix(clone(r.data.matrix)); setAlert({ type: "success", message: r.message || "Đã lưu." }); }
-      else setAlert({ type: "error", message: r.error || "Lưu thất bại." });
+      else {
+        const detail = Array.isArray(r.errors) && r.errors.length ? ` (${r.errors[0]})` : "";
+        setAlert({ type: "error", message: (r.error || "Lưu thất bại.") + detail });
+      }
     } catch { setAlert({ type: "error", message: "Lỗi khi lưu." }); }
     finally { setSaving(false); }
   }
@@ -82,6 +115,14 @@ export default function PermissionsPage() {
 
         {loading ? (
           <div className="text-on-surface-variant">Đang tải…</div>
+        ) : denied ? (
+          <div className="p-8 text-center border rounded-xl bg-rose-50/40">
+            <span className="material-symbols-outlined text-[48px] text-rose-300 block mb-2">block</span>
+            <h2 className="text-lg font-bold text-on-surface mb-1">Không có quyền truy cập</h2>
+            <p className="text-sm text-on-surface-variant">
+              Chỉ vai trò <b>Quản lý</b> mới được cấu hình ma trận quyền. Backend đã từ chối yêu cầu (không chỉ ẩn menu).
+            </p>
+          </div>
         ) : data ? (
           <>
             <div className="overflow-x-auto border rounded-xl">
@@ -128,8 +169,9 @@ export default function PermissionsPage() {
               </button>
             </div>
             <p className="text-xs text-on-surface-variant mt-3">
-              Lưu ý: vai trò legacy (ADMIN/MANAGER/STAFF) cố định toàn quyền, không hiển thị ở đây (đã di trú sang <b>Quản lý</b>).
-              Thay đổi áp dụng trong ~15 giây trên toàn hệ thống.
+              Lưu ý: vai trò legacy (ADMIN/MANAGER/STAFF) đã di trú sang <b>Quản lý</b> và
+              <b> không còn quyền</b> (deny-by-default) — không hiển thị ở đây. Đây là ma trận
+              <b> enforce thật</b> ở backend; thay đổi áp dụng trong ~15 giây trên toàn hệ thống.
             </p>
           </>
         ) : null}

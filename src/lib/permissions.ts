@@ -178,6 +178,61 @@ export async function reloadPermissionMatrix(): Promise<void> {
   await ensurePermissionMatrixLoaded();
 }
 
+/**
+ * WVG-34 / UC-AUTH-05 — Validate input ma trận trước khi lưu (deny một phần).
+ * Trả { valid, errors, clean }: chỉ chấp nhận baseline role + resource + level hợp lệ.
+ * Nếu có BẤT KỲ role/resource/level sai → valid=false (route trả 400, KHÔNG ghi một phần).
+ */
+export function validatePermissionMatrix(input: unknown): {
+  valid: boolean;
+  errors: string[];
+  clean: Record<string, Partial<Record<Resource, Level>>>;
+} {
+  const errors: string[] = [];
+  const clean: Record<string, Partial<Record<Resource, Level>>> = {};
+
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return { valid: false, errors: ["Ma trận phải là object { role: { resource: level } }."], clean };
+  }
+
+  const baseline = new Set<string>(BASELINE_ROLES);
+  const resourceSet = new Set<string>(ALL_RESOURCES);
+  const levelSet = new Set<string>(LEVELS);
+  const obj = input as Record<string, unknown>;
+
+  for (const role of Object.keys(obj)) {
+    if (!baseline.has(role)) {
+      errors.push(`Vai trò không hợp lệ: "${role}" (chỉ nhận ${BASELINE_ROLES.join(", ")}).`);
+      continue;
+    }
+    const grants = obj[role];
+    if (!grants || typeof grants !== "object" || Array.isArray(grants)) {
+      errors.push(`Cấu hình vai "${role}" phải là object { resource: level }.`);
+      continue;
+    }
+    const cleanRole: Partial<Record<Resource, Level>> = {};
+    for (const [res, lvl] of Object.entries(grants as Record<string, unknown>)) {
+      if (!resourceSet.has(res)) {
+        errors.push(`Tài nguyên không hợp lệ ở vai "${role}": "${res}".`);
+        continue;
+      }
+      if (typeof lvl !== "string" || !levelSet.has(lvl)) {
+        errors.push(`Mức quyền không hợp lệ ở "${role}.${res}": "${String(lvl)}" (chỉ nhận ${LEVELS.join(", ")}).`);
+        continue;
+      }
+      cleanRole[res as Resource] = lvl as Level;
+    }
+    clean[role] = cleanRole;
+  }
+
+  // Bảo đảm đủ 5 vai baseline (thiếu → coi như deny toàn bộ cho vai đó).
+  for (const role of BASELINE_ROLES) {
+    if (!(role in clean)) clean[role] = {};
+  }
+
+  return { valid: errors.length === 0, errors, clean };
+}
+
 /** Dữ liệu cho UI cấu hình: ma trận hiệu lực (baseline) + metadata. */
 export function getPermissionMatrixForAdmin() {
   const matrix: Record<string, Partial<Record<Resource, Level>>> = {};

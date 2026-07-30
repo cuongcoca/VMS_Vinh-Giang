@@ -84,21 +84,14 @@ export default function RBACPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
-              <span className="material-symbols-outlined text-[28px]">admin_panel_settings</span> 
-              Ma trận phân quyền
+              <span className="material-symbols-outlined text-[28px]">visibility</span>
+              Hiển thị menu theo vai trò
             </h1>
             <p className="text-sm text-on-surface-variant mt-1">
-              Quản lý phân quyền truy cập các chức năng cho từng vai trò người dùng. Các vai trò ADMIN, MANAGER & STAFF luôn có toàn quyền.
+              Bật/tắt các mục menu hiển thị cho từng vai trò (trải nghiệm giao diện).
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => window.alert("Tính năng đang phát triển — tạo vai trò mới sẽ available ở Sprint kế tiếp.")}
-              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-primary text-primary text-xs font-semibold rounded-lg hover:bg-primary/5 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[16px]">add</span>Tạo vai trò
-            </button>
             <button
               type="button"
               onClick={() => {
@@ -119,7 +112,7 @@ export default function RBACPage() {
                 apiFetch("/wms/api/system/rbac/reset", { method: "POST" }).then(r => r.json()).then(r => {
                   if (r.success) { setRoleFeatures(r.data.roleFeatures); setAlert({ type: "success", message: "Đã khôi phục cấu hình mặc định." }); }
                   else setAlert({ type: "error", message: "Không thể reset: " + (r.error || "lỗi không xác định") });
-                }).catch(() => setAlert({ type: "error", message: "API /reset chưa được build — tính năng đang phát triển." }));
+                }).catch(() => setAlert({ type: "error", message: "Lỗi kết nối khi khôi phục cấu hình." }));
               }}
               className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold rounded-lg hover:bg-amber-100 transition-colors"
             >
@@ -143,6 +136,18 @@ export default function RBACPage() {
               )}
             </button>
           </div>
+        </div>
+
+        {/* WVG-35 / UC-AUTH-05: nói rõ trang này KHÔNG phải hàng rào bảo mật. */}
+        <div className="p-4 rounded-lg flex items-start gap-3 border bg-amber-50 border-amber-200 text-amber-900">
+          <span className="material-symbols-outlined text-[22px]">info</span>
+          <p className="text-sm">
+            Trang này chỉ điều khiển <b>hiển thị menu</b> (trải nghiệm giao diện), <b>KHÔNG phải hàng rào bảo mật</b>.
+            Quyền thực thi thật do <b>ma trận quyền API</b> quyết định và được backend enforce (deny-by-default).{" "}
+            <a href="/wms/system/permissions" className="font-semibold underline hover:no-underline">
+              Mở Ma trận quyền API →
+            </a>
+          </p>
         </div>
 
         {alert && (
