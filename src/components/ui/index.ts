@@ -22,3 +22,4 @@ export { Stepper, type StepperStep } from "./Stepper";
 export { Tabs, type TabItem } from "./Tabs";
 export { Card } from "./Card";
 export { Badge } from "./Badge";
+export { Skeleton, TableSkeleton } from "./Skeleton";

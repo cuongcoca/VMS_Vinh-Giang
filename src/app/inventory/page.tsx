@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ExcelExport } from "@/components/ExcelExport";
-import { useClientPagination, ListPageFooter } from "@/components/ui";
+import { useClientPagination, ListPageFooter, TableSkeleton } from "@/components/ui";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 type InventoryItem = { item_code_id: string; item_code: string; item_name: string; group_code: string | null; group_name: string | null; unit_name: string | null; unit_symbol: string | null; available_qty: number; staging_qty: number; confirmed_qty?: number; blocked_qty?: number; sellable_qty?: number; total_qty: number; min_stock: number; max_stock: number; nearest_expiry: string | null; days_until_expiry: number | null; alert_low_stock: boolean; alert_over_max: boolean; alert_expiry: boolean; alert_blocked?: boolean; alert_out_of_stock: boolean };
@@ -318,7 +318,7 @@ export default function InventoryPage() {
                 <th className="text-center px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-on-surface-variant">Hành động</th>
               </tr></thead>
               <tbody>
-                {loading ? <tr><td colSpan={11} className="text-center py-12"><span className="material-symbols-outlined animate-spin text-[24px] text-primary">progress_activity</span></td></tr>
+                {loading ? <TableSkeleton rows={10} cols={11} />
                 : filtered.length === 0 ? <tr><td colSpan={11} className="text-center py-12 text-on-surface-variant">Không có dữ liệu.</td></tr>
                 : paged.map(d => (
                   <tr key={d.item_code_id} className="border-b border-outline-variant/40 hover:bg-surface-low/50">

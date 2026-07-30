@@ -97,15 +97,25 @@ const NAV_SECTIONS: NavSection[] = [
 
 export const SIDEBAR_WIDTH = 240;
 
+// Cờ: đã qua lần hydrate đầu chưa. Lần render SSR + hydrate đầu phải để user=null
+// (khớp HTML server, tránh hydration mismatch); các lần MOUNT sau (điều hướng SPA)
+// đọc user ngay từ localStorage → không nháy về mặc định.
+let clientReady = false;
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
+  // Đọc user ĐỒNG BỘ khi mount (client-nav đã có localStorage) → không nháy
+  // tên/vai/logo về mặc định mỗi lần điều hướng.
+  const [user, setUser] = useState<AuthUser | null>(() =>
+    clientReady && typeof window !== "undefined" ? auth.getUser() : null
+  );
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { config } = useSystemConfig();
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
   useEffect(() => {
+    clientReady = true;
     setUser(auth.getUser());
   }, []);
 
@@ -158,8 +168,22 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Nav scrollable */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2 sidebar-scroll">
+      {/* Nav scrollable — giữ vị trí cuộn qua các lần điều hướng (sidebar remount
+          nhưng khôi phục scrollTop tức thì → cảm giác liền mạch như mount 1 lần). */}
+      <nav
+        ref={(el) => {
+          if (el && typeof window !== "undefined") {
+            const s = sessionStorage.getItem("vg_sidebar_scroll");
+            if (s) el.scrollTop = parseInt(s, 10) || 0;
+          }
+        }}
+        onScroll={(e) => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("vg_sidebar_scroll", String(e.currentTarget.scrollTop));
+          }
+        }}
+        className="flex-1 overflow-y-auto overflow-x-hidden py-2 sidebar-scroll"
+      >
         {NAV_SECTIONS.map((section, idx) => {
           const visibleItems = section.items.filter((it) => showLink(it.href));
           if (visibleItems.length === 0) return null;
@@ -239,7 +263,7 @@ export function Sidebar() {
 
           {/* Dropdown */}
           {showUserMenu && (
-            <div className="absolute bottom-full left-2 right-2 mb-2 bg-white rounded-lg shadow-2xl py-1 text-on-surface">
+            <div className="absolute bottom-full left-2 right-2 mb-2 bg-white rounded-lg shadow-2xl py-1 text-on-surface animate-slide-up-fade origin-bottom">
               <Link
                 href="/system/profile"
                 className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-surface-low transition-colors"

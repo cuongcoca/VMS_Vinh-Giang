@@ -1,6 +1,6 @@
 "use client";
 import { fetchJson } from "@/lib/api";
-import { useToast, ListPageFooter } from "@/components/ui";
+import { useToast, ListPageFooter, TableSkeleton } from "@/components/ui";
 
 import React, { Suspense, useState, useEffect, useRef } from "react";
 import { useDebouncedValue, readSavedPaging } from "@/lib/use-debounced-value";
@@ -447,10 +447,7 @@ function PalletsContent() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="text-center py-12 text-on-surface-variant">
-                    <span className="material-symbols-outlined animate-spin text-[24px]">progress_activity</span>
-                    <p className="mt-2 text-sm">Đang tải...</p>
-                  </td></tr>
+                  <TableSkeleton rows={10} cols={8} />
                 ) : pallets.length === 0 ? (
                   <tr><td colSpan={8} className="text-center py-12 text-on-surface-variant">
                     <span className="material-symbols-outlined text-[40px] opacity-30">pallet</span>

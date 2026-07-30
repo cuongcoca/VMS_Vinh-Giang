@@ -1,5 +1,5 @@
 "use client";
-import { useToast } from "@/components/ui";
+import { useToast, TableSkeleton } from "@/components/ui";
 import dynamic from "next/dynamic";
 
 const BarcodeScannerModal = dynamic(
@@ -414,12 +414,7 @@ export default function ItemCodesPage() {
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center text-on-surface-variant">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                      Đang tải dữ liệu...
-                    </div>
-                  </td></tr>
+                  <TableSkeleton rows={10} cols={8} />
                 ) : items.length === 0 ? (
                   <tr><td colSpan={8} className="px-4 py-12 text-center text-on-surface-variant">
                     <span className="material-symbols-outlined text-[32px] mb-2 block opacity-40">qr_code_2</span>

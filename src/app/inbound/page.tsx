@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ExcelExport } from "@/components/ExcelExport";
-import { useToast, useConfirm, useClientPagination, ListPageFooter } from "@/components/ui";
+import { useToast, useConfirm, useClientPagination, ListPageFooter, TableSkeleton } from "@/components/ui";
 import { inboundStep, INBOUND_TOTAL_STEPS } from "@/lib/inbound-status";
 
 type Supplier = { id: string; code: string; name: string };
@@ -452,10 +452,7 @@ export default function InboundPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={9} className="text-center py-12 text-on-surface-variant">
-                    <span className="material-symbols-outlined animate-spin text-[24px]">progress_activity</span>
-                    <p className="mt-2 text-sm">Đang tải...</p>
-                  </td></tr>
+                  <TableSkeleton rows={10} cols={9} />
                 ) : requests.length === 0 ? (
                   <tr><td colSpan={9} className="text-center py-12 text-on-surface-variant">
                     <span className="material-symbols-outlined text-[40px] opacity-30">inbox</span>

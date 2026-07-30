@@ -194,6 +194,9 @@
   .bar:hover { opacity: 0.8; }
   .bar-light { background: linear-gradient(180deg, #adc8f4 0%, #8aaee0 100%); }
 
+  /* UX polish: giữ chỗ cho thanh cuộn dọc → nội dung KHÔNG giật ngang khi
+     scrollbar xuất hiện/biến mất (chỉ áp desktop; mobile đã overflow riêng). */
+  .scroll-container { scrollbar-gutter: stable; }
   .scroll-container::-webkit-scrollbar { width: 6px; height: 6px; }
   .scroll-container::-webkit-scrollbar-track { background: transparent; }
   .scroll-container::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: 3px; }
@@ -294,10 +297,17 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* UX polish: dropdown mở LÊN (user menu ở đáy sidebar) — trượt nhẹ + mờ dần. */
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @layer utilities {
   .animate-fade-in { animation: fade-in 0.2s ease-out; }
   .animate-scale-in { animation: scale-in 0.2s ease-out; }
   .animate-slide-in-right { animation: slide-in-right 0.2s ease-out; }
+  .animate-slide-up-fade { animation: slide-up-fade 0.16s ease-out; }
 
   /* Sidebar scroll: dark mode subtle scrollbar */
   .sidebar-scroll::-webkit-scrollbar { width: 4px; }
@@ -308,5 +318,16 @@
   }
   .sidebar-scroll::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* UX polish: tôn trọng cài đặt "giảm chuyển động" của hệ điều hành (a11y) —
+   tắt animation/transition dài để không gây chóng mặt, vẫn giữ chức năng. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
