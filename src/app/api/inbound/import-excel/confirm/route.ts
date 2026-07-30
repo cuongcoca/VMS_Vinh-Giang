@@ -3,11 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { notifyByRoles } from "@/lib/notifications";
 import { requirePermission, apiErrorResponse } from "@/lib/auth-server";
-import { buildUserIdentitySet, assertNotAccount } from "@/lib/item-code-guard";
+import { buildUserIdentitySet } from "@/lib/item-code-guard";
+import { prevalidateImportLines, type LinePlan } from "@/lib/import-item-validate";
 import { warehouseDateParts } from "@/lib/warehouse-date";
-
-// Regex mã hàng — đồng bộ với POST /api/item-codes (chặn ký tự lạ, kể cả '@').
-const ITEM_CODE_RE = /^[A-Za-z0-9\-_./]+$/;
 
 // Helper: Sinh mã phiếu nhập PHN-{YYYY}-{SSSS}
 async function generateInboundCode(): Promise<{ code: string; codeYear: number; codeSeq: number }> {
@@ -74,164 +72,97 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // WVG-63: nạp danh tính tài khoản 1 lần để chặn account lọt thành mã hàng.
-    // (Chỉ cần khi có dòng tạo mã tạm — nhưng users nhỏ nên nạp luôn cho gọn.)
-    const needAccountGuard = lines.some(
-      (l: ConfirmLine) => l.create_temp_code && !l.item_code_id
+    // WVG-63: nạp danh tính tài khoản để chặn account lọt thành mã hàng.
+    const userIdentitySet = buildUserIdentitySet(
+      await prisma.user.findMany({
+        select: { email: true, phone: true, username: true, full_name: true },
+      })
     );
-    const userIdentitySet = needAccountGuard
-      ? buildUserIdentitySet(
-          await prisma.user.findMany({
-            select: { email: true, phone: true, username: true, full_name: true },
-          })
-        )
-      : new Set<string>();
 
-    // Xử lý từng dòng: tạo ItemCode tạm nếu cần
-    const processedLines: {
-      item_code_id: string;
-      qty_expected: number;
-      lot?: string;
-      expiry_date?: string;
-    }[] = [];
+    // ── Giai đoạn A: PRE-VALIDATE TOÀN batch (KHÔNG ghi) — gom HẾT lỗi trả 1 lần ──
+    const { errors, plan, tempCodes } = prevalidateImportLines(lines, userIdentitySet);
 
-    for (let i = 0; i < lines.length; i++) {
-      const line: ConfirmLine = lines[i];
-
-      // Validate qty
-      if (!line.qty_expected || Number(line.qty_expected) <= 0) {
-        return NextResponse.json(
-          { success: false, error: `Dòng ${i + 1}: Số lượng dự kiến phải > 0.` },
-          { status: 400 }
-        );
-      }
-
-      let itemCodeId = line.item_code_id;
-
-      // Nếu create_temp_code = true và chưa có item_code_id → tạo ItemCode tạm
-      if (line.create_temp_code && !itemCodeId) {
-        const tempCode = line.excel_code?.trim();
-        const tempName = line.excel_name?.trim();
-
-        if (!tempCode) {
-          return NextResponse.json(
-            { success: false, error: `Dòng ${i + 1}: Cần excel_code để tạo mã hàng tạm.` },
-            { status: 400 }
-          );
+    // Kiểm tra tồn tại cho dòng đã map sẵn mã (đọc DB — vẫn TRƯỚC khi ghi).
+    const mappedIds = [
+      ...new Set(
+        plan.filter((p): p is Extract<LinePlan, { kind: "mapped" }> => p.kind === "mapped").map((p) => p.item_code_id)
+      ),
+    ];
+    if (mappedIds.length) {
+      const found = await prisma.itemCode.findMany({ where: { id: { in: mappedIds } }, select: { id: true } });
+      const foundSet = new Set(found.map((f) => f.id));
+      lines.forEach((l: ConfirmLine, idx: number) => {
+        if (l.item_code_id && !l.create_temp_code && !foundSet.has(l.item_code_id)) {
+          errors.push(`Dòng ${idx + 1}: Mã hàng không tồn tại (id: ${l.item_code_id}).`);
         }
-
-        // WVG-63: chặn ký tự lạ + dữ liệu tài khoản (email/SĐT/trùng account)
-        // để account không lọt thành mã hàng khi import nhầm file/sheet.
-        if (!ITEM_CODE_RE.test(tempCode)) {
-          return NextResponse.json(
-            { success: false, error: `Dòng ${i + 1}: Mã hàng "${tempCode}" chứa ký tự không hợp lệ (chỉ chữ, số, - _ . /).` },
-            { status: 400 }
-          );
-        }
-        const codeAcctErr = assertNotAccount(tempCode, userIdentitySet, "Mã hàng");
-        if (codeAcctErr) {
-          return NextResponse.json(
-            { success: false, error: `Dòng ${i + 1}: ${codeAcctErr}` },
-            { status: 400 }
-          );
-        }
-        const nameAcctErr = assertNotAccount(tempName, userIdentitySet, "Tên hàng");
-        if (nameAcctErr) {
-          return NextResponse.json(
-            { success: false, error: `Dòng ${i + 1}: ${nameAcctErr}` },
-            { status: 400 }
-          );
-        }
-
-        // Kiểm tra đã tồn tại chưa (tránh trùng code)
-        const existing = await prisma.itemCode.findUnique({
-          where: { code: tempCode },
-        });
-
-        if (existing) {
-          // Nếu đã tồn tại → dùng luôn
-          itemCodeId = existing.id;
-        } else {
-          // Tạo ItemCode tạm với status = 'pending' — GHI created_by để truy vết.
-          const tempItem = await prisma.itemCode.create({
-            data: {
-              code: tempCode,
-              short_name: tempName || tempCode,
-              status: "pending",
-              note: "Tạo tự động từ import Excel",
-              created_by: userId,
-            },
-          });
-          itemCodeId = tempItem.id;
-        }
-      }
-
-      // Kiểm tra item_code_id cuối cùng
-      if (!itemCodeId) {
-        return NextResponse.json(
-          { success: false, error: `Dòng ${i + 1}: Thiếu mã hàng (item_code_id hoặc create_temp_code).` },
-          { status: 400 }
-        );
-      }
-
-      // Xác minh item_code tồn tại
-      const itemCode = await prisma.itemCode.findUnique({ where: { id: itemCodeId } });
-      if (!itemCode) {
-        return NextResponse.json(
-          { success: false, error: `Dòng ${i + 1}: Mã hàng không tồn tại (id: ${itemCodeId}).` },
-          { status: 400 }
-        );
-      }
-
-      processedLines.push({
-        item_code_id: itemCodeId,
-        qty_expected: Number(line.qty_expected),
-        lot: line.lot,
-        expiry_date: line.expiry_date,
       });
     }
 
-    // Sinh mã phiếu
+    // Có bất kỳ lỗi nào → trả 400 DUY NHẤT, KHÔNG tạo bất kỳ record nào.
+    if (errors.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: errors.length === 1 ? errors[0] : `${errors.length} lỗi cần sửa trước khi tạo phiếu: ${errors.join(" | ")}`,
+          errors,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Sinh mã phiếu (đọc seq; trùng hiếm sẽ bắt ở unique 409 phía dưới).
     const { code, codeYear, codeSeq } = await generateInboundCode();
 
-    // Tạo phiếu nhập + dòng hàng
-    const inbound = await prisma.inboundRequest.create({
-      data: {
-        code,
-        code_year: codeYear,
-        code_seq: codeSeq,
-        status: "DRAFT",
-        supplier_id: supplier_id || null,
-        expected_date: expected_date ? new Date(expected_date) : null,
-        invoice_no: String(invoice_no).trim(),
-        import_type: import_type || null,
-        warehouse: warehouse || null,
-        note: note?.trim() || null,
-        lines: {
-          create: processedLines.map((pl) => ({
-            item_code_id: pl.item_code_id,
-            qty_expected: new Prisma.Decimal(pl.qty_expected),
-            lot: pl.lot?.trim() || null,
-            expiry_date: pl.expiry_date ? new Date(pl.expiry_date) : null,
-          })),
+    // ── Giai đoạn B: 1 TRANSACTION — tạo mã tạm (dedupe) + phiếu + dòng, ALL-OR-NOTHING ──
+    const inbound = await prisma.$transaction(async (tx) => {
+      // Tạo/khớp mã tạm DISTINCT trong batch → map code → id (tránh trùng chính batch).
+      const codeToId = new Map<string, string>();
+      for (const tempCode of tempCodes) {
+        const existing = await tx.itemCode.findUnique({ where: { code: tempCode } });
+        if (existing) { codeToId.set(tempCode, existing.id); continue; }
+        const p = plan.find((x): x is Extract<LinePlan, { kind: "temp" }> => x.kind === "temp" && x.temp_code === tempCode);
+        const created = await tx.itemCode.create({
+          data: {
+            code: tempCode,
+            short_name: p?.temp_name || tempCode,
+            status: "pending",
+            note: "Tạo tự động từ import Excel",
+            created_by: userId,
+          },
+        });
+        codeToId.set(tempCode, created.id);
+      }
+
+      const lineData = plan.map((p) => ({
+        item_code_id: p.kind === "temp" ? codeToId.get(p.temp_code)! : p.item_code_id,
+        qty_expected: new Prisma.Decimal(p.qty_expected),
+        lot: p.lot?.trim() || null,
+        expiry_date: p.expiry_date ? new Date(p.expiry_date) : null,
+      }));
+
+      return tx.inboundRequest.create({
+        data: {
+          code,
+          code_year: codeYear,
+          code_seq: codeSeq,
+          status: "DRAFT",
+          supplier_id: supplier_id || null,
+          expected_date: expected_date ? new Date(expected_date) : null,
+          invoice_no: String(invoice_no).trim(),
+          import_type: import_type || null,
+          warehouse: warehouse || null,
+          note: note?.trim() || null,
+          lines: { create: lineData },
         },
-      },
-      include: {
-        supplier: { select: { id: true, code: true, name: true } },
-        lines: {
-          include: {
-            item_code: {
-              select: {
-                id: true,
-                code: true,
-                short_name: true,
-                full_name: true,
-                status: true,
-              },
+        include: {
+          supplier: { select: { id: true, code: true, name: true } },
+          lines: {
+            include: {
+              item_code: { select: { id: true, code: true, short_name: true, full_name: true, status: true } },
             },
           },
         },
-      },
+      });
     });
 
     // Notify THU_KHO khi tạo phiếu nhập từ Excel
