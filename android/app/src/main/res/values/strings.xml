@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vĩnh Giang WMS</string>
+    <string name="title_activity_main">Vĩnh Giang WMS</string>
+    <string name="package_name">vn.vinhgiang.wms</string>
+    <string name="custom_url_scheme">vn.vinhgiang.wms</string>
+</resources>
