@@ -15,6 +15,7 @@ const ROLE_COLORS: Record<string, string> = { ADMIN: "bg-rose-50 text-rose-700",
 export default function UsersPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [denied, setDenied] = useState(false); // UC-SYS-04: 403 — không phải Quản lý
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", role: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState<"" | "active" | "locked">("");
   const { toast: toastApi } = useToast();
 
-  const fetchUsers = useCallback(() => { fetch("/wms/api/users").then(r => { if (r.status === 401) { window.location.href = "/wms/auth"; return null; } return r.json(); }).then(r => { if (r?.success) setUsers(r.data); }).catch(console.error).finally(() => setLoading(false)); }, []);
+  const fetchUsers = useCallback(() => { fetch("/wms/api/users").then(r => { if (r.status === 401) { window.location.href = "/wms/auth"; return null; } if (r.status === 403) { setDenied(true); return null; } return r.json(); }).then(r => { if (r?.success) { setUsers(r.data); setDenied(false); } }).catch(console.error).finally(() => setLoading(false)); }, []);
   useEffect(fetchUsers, [fetchUsers]);
 
   // UC_SYS_04_TC34: session hết hạn -> chuyển về đăng nhập
@@ -62,8 +63,13 @@ export default function UsersPage() {
   const toggleLock = async (id: string, locked: boolean) => {
     const ok = window.confirm(locked ? "Bạn có chắc chắn muốn mở khóa tài khoản này?" : "Bạn có chắc chắn muốn khóa tài khoản này?");
     if (!ok) return;
-    await fetch(`/wms/api/users/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_locked: !locked }) });
-    fetchUsers();
+    try {
+      const res = await fetch(`/wms/api/users/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_locked: !locked }) });
+      if (checkAuth(res)) return;
+      const result = await res.json();
+      if (result.success) { toastApi.success(locked ? "Đã mở khóa tài khoản." : "Đã khóa tài khoản."); fetchUsers(); }
+      else toastApi.error(result.error || "Không đổi được trạng thái khóa.");
+    } catch { toastApi.error("Lỗi kết nối."); }
   };
 
   const handleDelete = async () => {
@@ -137,6 +143,23 @@ export default function UsersPage() {
                   <tr>
                     <td colSpan={7} className="text-center py-12">
                       <span className="material-symbols-outlined animate-spin text-[24px] text-primary">progress_activity</span>
+                    </td>
+                  </tr>
+                ) : denied ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-14 px-4">
+                      <span className="material-symbols-outlined text-[32px] text-on-surface-variant/50">lock</span>
+                      <p className="mt-2 text-sm font-semibold text-on-surface">Không có quyền quản lý người dùng</p>
+                      <p className="text-xs text-on-surface-variant mt-0.5">Chỉ vai <strong>Quản lý</strong> được truy cập chức năng này.</p>
+                    </td>
+                  </tr>
+                ) : pagedUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-14 px-4">
+                      <span className="material-symbols-outlined text-[32px] text-on-surface-variant/40">group_off</span>
+                      <p className="mt-2 text-sm text-on-surface-variant">
+                        {users.length === 0 ? "Chưa có người dùng nào." : "Không tìm thấy người dùng phù hợp bộ lọc."}
+                      </p>
                     </td>
                   </tr>
                 ) : (
