@@ -129,10 +129,22 @@ export function Sidebar() {
     return canAccess(role, href);
   };
 
-  const isActive = (href: string) => {
-    if (href === "/") return pathname === "/";
-    return pathname === href || pathname?.startsWith(href + "/") || false;
-  };
+  // Mục active = href KHỚP DÀI NHẤT với pathname (trong các mục đang hiển thị).
+  // Tránh lỗi "2 menu cùng sáng": route con (vd /inbound/import) trước đây làm cả
+  // mục cha (/inbound) lẫn mục con cùng active vì dùng startsWith. Nay chỉ mục khớp
+  // dài nhất mới sáng → cha nhường con.
+  const matchesPath = (href: string) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname?.startsWith(href + "/") || false;
+
+  let activeHref = "";
+  for (const section of NAV_SECTIONS) {
+    for (const it of section.items) {
+      if (!showLink(it.href)) continue;
+      if (matchesPath(it.href) && it.href.length > activeHref.length) activeHref = it.href;
+    }
+  }
+
+  const isActive = (href: string) => href === activeHref;
 
   const handleLogout = () => {
     auth.removeToken();

@@ -643,14 +643,36 @@ export default function MasterDataPage() {
                         {p.volume_per_box ? `${Number(p.volume_per_box).toFixed(4)} m³` : <span className="text-on-surface-variant/70">—</span>}
                       </td>
                       <td className="px-4 py-3">
-                        {p.is_active ? (
-                          <Badge variant="success">HOẠT ĐỘNG</Badge>
-                        ) : (
-                          <Badge variant="error">NGỪNG</Badge>
-                        )}
-                        <div className="flex gap-1 mt-1">
-                          {p.manage_lot && <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-medium">LÔ</span>}
-                          {p.manage_expiry && <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded font-medium">HSD</span>}
+                        <div className="flex flex-col items-start gap-1.5">
+                          {p.is_active ? (
+                            <Badge variant="success">HOẠT ĐỘNG</Badge>
+                          ) : (
+                            <Badge variant="error">NGỪNG</Badge>
+                          )}
+                          {/* Thuộc tính quản lý (Lô/HSD) — chip phụ, đồng bộ hệ thiết kế,
+                              phân cấp dưới badge trạng thái. Chỉ hiện khi có bật. */}
+                          {(p.manage_lot || p.manage_expiry) && (
+                            <div className="flex flex-wrap items-center gap-1">
+                              {p.manage_lot && (
+                                <span
+                                  title="Quản lý theo lô"
+                                  className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700"
+                                >
+                                  <span className="material-symbols-outlined text-[13px] leading-none">inventory_2</span>
+                                  Lô
+                                </span>
+                              )}
+                              {p.manage_expiry && (
+                                <span
+                                  title="Quản lý hạn sử dụng (FEFO)"
+                                  className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700"
+                                >
+                                  <span className="material-symbols-outlined text-[13px] leading-none">event_available</span>
+                                  HSD
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
