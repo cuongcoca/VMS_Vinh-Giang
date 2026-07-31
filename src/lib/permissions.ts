@@ -81,11 +81,14 @@ export const DEFAULT_MATRIX: Record<string, Partial<Record<Resource, Level>>> = 
   // Quản lý — toàn quyền nghiệp vụ + quản trị hệ thống
   QUAN_LY: allSpecial(),
 
-  // Kế toán — master data + chứng từ + báo cáo
+  // Kế toán — master data + chứng từ + báo cáo.
+  // WVG-49/UC-SYS-03: BỎ audit:read — Nhật ký thao tác là chức năng của QUẢN LÝ
+  // ("As a Quản lý"); trước đây API cho KE_TOAN đọc nhưng menu chỉ QUAN_LY → lệch
+  // granularity (đúng điều Audit nêu). Nay đồng bộ: chỉ QUAN_LY xem audit.
   KE_TOAN: grants({
     item_code: "full", supplier: "full", product_group: "full", unit: "full", location: "full",
     inbound: "full", outbound: "full", pallet: "full", inventory: "full", stock_count: "full",
-    notification: "full", attachment: "full", scan: "full", audit: "read",
+    notification: "full", attachment: "full", scan: "full",
   }),
 
   // Thủ kho — pallet + nhập + tồn + master data (tạo mã hàng ở mobile)

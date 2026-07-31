@@ -3,7 +3,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ExcelExport } from "@/components/ExcelExport";
-import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
+import { Pagination } from "@/components/ui/Pagination";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import {
   AUDIT_ACTION_LABEL,
   AUDIT_ACTION_TONE,
@@ -64,10 +65,20 @@ export default function AuditLogPage() {
   const [entityFilter, setEntityFilter] = useState("");
   const [userFilter, setUserFilter] = useState("");
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [denied, setDenied] = useState(false); // WVG-50: 403 tường minh (không chỉ ẩn menu)
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const LIMIT = 50;
   const router = useRouter();
+  // WVG-50: lọc + phân trang chạy SERVER (đúng khi lịch sử > 200). Text người dùng debounce.
+  const debouncedUser = useDebouncedValue(userFilter, 400);
 
   // UC_SYS_03_TC21: ngày bắt đầu không được lớn hơn ngày kết thúc
   const dateError = from && to && from > to ? "Ngày bắt đầu không được lớn hơn ngày kết thúc." : null;
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+
+  // Đổi bất kỳ bộ lọc nào → quay về trang 1.
+  useEffect(() => { setPage(1); }, [from, to, actionFilter, entityFilter, debouncedUser]);
 
   const fetchLogs = useCallback(() => {
     if (from && to && from > to) { setLoading(false); return; } // UC_SYS_03_TC21
@@ -76,35 +87,32 @@ export default function AuditLogPage() {
     const params = new URLSearchParams();
     if (from) params.set("from", from);
     if (to) params.set("to", to);
+    if (entityFilter) params.set("entity_type", entityFilter);
+    if (actionFilter) params.set("action", actionFilter);
+    if (debouncedUser) params.set("actor", debouncedUser);
+    params.set("page", String(page));
+    params.set("limit", String(LIMIT));
     fetch(`/wms/api/audit-logs?${params.toString()}`)
       .then((r) => {
         if (r.status === 401) { router.replace("/wms/auth"); return null; } // UC_SYS_03_TC22
+        if (r.status === 403) { setDenied(true); return null; } // WVG-50: 403 → không có quyền
         return r.json();
       })
       .then((r) => {
-        if (r && r.success) setLogs(r.data);
-        else if (r && !r.success) setFetchError(r.error || "Lỗi tải dữ liệu."); // UC_SYS_03_TC24
+        if (!r) return;
+        if (r.success) { setLogs(r.data); setTotal(r.total ?? r.data.length); setDenied(false); }
+        else setFetchError(r.error || "Lỗi tải dữ liệu."); // UC_SYS_03_TC24
       })
       .catch((e) => { console.error(e); setFetchError("Lỗi kết nối. Vui lòng thử lại."); }) // UC_SYS_03_TC24
       .finally(() => setLoading(false));
-  }, [from, to, router]);
+  }, [from, to, entityFilter, actionFilter, debouncedUser, page, router]);
 
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
 
-  // UC_SYS_03_TC04/05/06/07: lọc theo hành động / đối tượng / người dùng (client-side, kết hợp với lọc ngày từ API)
-  const displayLogs = logs.filter((l) =>
-    (!actionFilter || l.action === actionFilter) &&
-    (!entityFilter || l.entity_type === entityFilter) &&
-    (!userFilter || (l.performed_by_name || "").toLowerCase().includes(userFilter.toLowerCase()))
-  );
-
-  // Phân trang client-side cho danh sách nhật ký hiển thị
-  const pg = useClientPagination(displayLogs, {
-    resetKey: `${actionFilter}|${entityFilter}|${userFilter}|${from}|${to}`,
-  });
-  const { paged: pagedLogs } = pg;
+  // Server đã lọc + phân trang → logs chính là danh sách của trang hiện tại.
+  const pagedLogs = logs;
 
   return (
     <AppLayout title="NHẬT KÝ">
@@ -150,7 +158,7 @@ export default function AuditLogPage() {
             <input type="text" value={userFilter} onChange={(e) => setUserFilter(e.target.value)} placeholder="Tên người dùng" className="px-3 py-2 text-sm border border-outline-variant rounded-lg w-40" />
           </div>
           <ExcelExport
-            data={displayLogs as unknown as Record<string, unknown>[]}
+            data={logs as unknown as Record<string, unknown>[]}
             columns={[
               { key: "performed_at", header: "Thời gian", transform: (v) => new Date(v as string).toLocaleString("vi-VN") },
               { key: "action", header: "Hành động", transform: (v) => labelOf(AUDIT_ACTION_LABEL, v as string) },
@@ -163,7 +171,7 @@ export default function AuditLogPage() {
             ]}
             filename="nhat_ky_hoat_dong"
           />
-          <span className="text-xs text-on-surface-variant/70 py-2">{displayLogs.length} bản ghi</span>
+          <span className="text-xs text-on-surface-variant/70 py-2">{total} bản ghi (trang {page}/{totalPages})</span>
         </div>
         {dateError && <p className="text-sm text-rose-600">{dateError}</p>}
         {fetchError && <div className="text-sm text-rose-600 bg-rose-50 p-3 rounded-lg">{fetchError}</div>}
@@ -190,7 +198,15 @@ export default function AuditLogPage() {
                     <span className="material-symbols-outlined animate-spin text-[24px] text-primary">progress_activity</span>
                   </td>
                 </tr>
-              ) : displayLogs.length === 0 ? (
+              ) : denied ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-on-surface-variant">
+                    <span className="material-symbols-outlined text-[40px] text-rose-300 block mb-2">block</span>
+                    <p className="font-semibold text-on-surface">Không có quyền xem Nhật ký</p>
+                    <p className="text-sm">Chỉ vai <b>Quản lý</b> mới được xem Nhật ký thao tác. Backend đã từ chối yêu cầu (không chỉ ẩn menu).</p>
+                  </td>
+                </tr>
+              ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-on-surface-variant">
                     Không có nhật ký.
@@ -265,7 +281,14 @@ export default function AuditLogPage() {
               )}
             </tbody>
           </table>
-          <ListPageFooter {...pg} unit="bản ghi" />
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant">
+              <span className="text-xs text-on-surface-variant">
+                {total === 0 ? "0" : `${(page - 1) * LIMIT + 1}–${Math.min(page * LIMIT, total)}`} / {total} bản ghi
+              </span>
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>
