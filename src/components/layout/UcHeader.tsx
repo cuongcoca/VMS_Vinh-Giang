@@ -41,7 +41,8 @@ export function UcHeader({ title = "TỔNG QUAN" }: { title?: string }) {
 
   // Global search
   useEffect(() => {
-    if (!query || query.length < 2) {
+    // Gợi ý từ KÝ TỰ ĐẦU (đồng bộ với các ô tìm khác). Mỗi endpoint đã limit=5.
+    if (!query || query.trim().length < 1) {
       setResults([]);
       setShowResults(false);
       return;

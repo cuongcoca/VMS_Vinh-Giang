@@ -64,7 +64,8 @@ export default function StageOutPage() {
   const [stagedPallets, setStagedPallets] = useState<StagedPallet[]>([]);
   const [loadingStaged, setLoadingStaged] = useState(false);
 
-  const searchItems = async (q: string) => {
+  const searchItems = async (raw: string) => {
+    const q = raw.trim();
     if (q.length < 1) { setItemOptions([]); return; }
     try {
       const res = await fetch(`${basePath}/api/item-codes?q=${encodeURIComponent(q)}`);
