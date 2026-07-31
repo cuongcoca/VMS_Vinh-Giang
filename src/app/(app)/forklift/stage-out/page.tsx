@@ -262,8 +262,12 @@ export default function StageOutPage() {
             chạm được nút xác nhận. Trước đây items-center + không max-h/overflow →
             nút "Rút…" bị cắt dưới, không bấm được (lỗi "không hiện chỗ xuất"). */}
         {extractModal && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setExtractModal(null)}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg my-auto max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div
+            className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top))", paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+            onClick={() => setExtractModal(null)}
+          >
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="px-6 py-4 border-b border-outline-variant">
                 <h3 className="text-lg font-bold text-on-surface flex items-start gap-2">
                   <span className="material-symbols-outlined text-amber-500 shrink-0">output</span>
