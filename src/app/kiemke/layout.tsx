@@ -59,9 +59,9 @@ export default function KiemkeLayout({ children }: { children: React.ReactNode }
   ];
 
   return (
-    <div className="min-h-screen bg-surface-variant/20 py-0 sm:py-4">
+    <div className="h-dvh bg-surface-variant/20 overflow-hidden">
       <div
-        className="w-full max-w-md sm:max-w-none sm:mx-0 mx-auto h-dvh sm:h-auto sm:min-h-screen bg-bg flex flex-col relative overflow-hidden"
+        className="w-full max-w-md sm:max-w-none sm:mx-0 mx-auto h-dvh bg-bg flex flex-col relative overflow-hidden"
         style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom))" }}
       >
         <header

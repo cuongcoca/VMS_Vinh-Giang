@@ -135,16 +135,17 @@ export default function ForkliftLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-surface-variant/20 py-0 sm:py-4">
+    <div className="h-dvh bg-surface-variant/20 overflow-hidden">
       {/*
-        Mobile: chiều cao = đúng 1 màn (h-dvh) → header cố định trên, main cuộn ở
-        giữa, nav cố định dưới. TRƯỚC dùng min-h-screen (chỉ là chiều cao TỐI
-        THIỂU) + overflow-hidden + main thiếu min-h-0 → không tạo được vùng cuộn,
-        1 ngón không lướt được, phải chụm 2 ngón (gốc lỗi cuộn khó chịu).
-        Desktop (sm:) trả lại chiều cao tự nhiên để cuộn trang bình thường.
+        Chiều cao = đúng 1 màn (h-dvh) ở MỌI kích thước → header cố định trên,
+        main cuộn ở giữa, nav cố định dưới. TRƯỚC dùng sm:h-auto sm:min-h-screen
+        cho desktop → main không còn bị giới hạn chiều cao nên KHÔNG phải vùng cuộn
+        thật, cộng overscroll-contain chặn wheel lan lên trang → lăn chuột không
+        cuộn được trên trình duyệt. Nay giữ h-dvh + main là scroller thật → wheel
+        và cảm ứng đều cuộn nhất quán.
       */}
       <div
-        className="w-full max-w-md sm:max-w-none sm:mx-0 mx-auto h-dvh sm:h-auto sm:min-h-screen bg-bg flex flex-col relative overflow-hidden"
+        className="w-full max-w-md sm:max-w-none sm:mx-0 mx-auto h-dvh bg-bg flex flex-col relative overflow-hidden"
         style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom))" }}
       >
 
