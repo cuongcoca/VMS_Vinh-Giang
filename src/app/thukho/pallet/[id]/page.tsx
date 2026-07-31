@@ -121,6 +121,7 @@ export default function ThukhoPalletDetailPage() {
   // Add line form
   const [itemSearch, setItemSearch] = useState("");
   const [searchResults, setSearchResults] = useState<ItemCode[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ItemCode | null>(null);
   // Hướng A: phiếu mà DÒNG đang thêm thuộc về (có thể khác phiếu gốc của pallet).
   const [selectedPhn, setSelectedPhn] = useState<OpenPhn | null>(null);
@@ -189,17 +190,21 @@ export default function ThukhoPalletDetailPage() {
 
   // Hướng A: chỉ tìm mã thuộc CÁC PHIẾU ĐANG MỞ (tránh nhập sai), kèm phiếu nào chứa mã.
   useEffect(() => {
-    if (itemSearch.length < 2) { setSearchResults([]); return; }
+    const q = itemSearch.trim();
+    // Gợi ý ngay từ ký tự ĐẦU TIÊN; khi bấm vào ô mà chưa gõ → hiện TOÀN BỘ mã thuộc
+    // các phiếu đang mở (danh sách gọn) để thủ kho chọn nhanh, không phải nhớ/gõ đủ mã.
+    if (!searchFocused && q.length === 0) { setSearchResults([]); return; }
     const t = setTimeout(async () => {
       try {
-        const params = new URLSearchParams({ q: itemSearch, inbound_scope: "open" });
+        const params = new URLSearchParams({ inbound_scope: "open", limit: "50" });
+        if (q) params.set("q", q);
         const res = await fetch(`${basePath}/api/item-codes?${params.toString()}`);
         const json = await res.json();
         if (json.success) setSearchResults(json.data || []);
       } catch (err) { console.error(err); }
-    }, 300);
+    }, q ? 250 : 0);
     return () => clearTimeout(t);
-  }, [itemSearch, basePath]);
+  }, [itemSearch, basePath, searchFocused]);
 
   // Tập PHN hiện có trên pallet = phiếu của các dòng + phiếu gốc (nếu có).
   const currentPhnIds = new Set<string>();
@@ -490,9 +495,11 @@ export default function ThukhoPalletDetailPage() {
                       <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-[18px]">search</span>
                       <input
                         type="text"
-                        placeholder="Tìm hoặc quét..."
+                        placeholder="Bấm để xem tất cả, hoặc gõ để tìm..."
                         value={itemSearch}
                         onChange={(e) => setItemSearch(e.target.value)}
+                        onFocus={() => setSearchFocused(true)}
+                        onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
                         className="w-full pl-10 pr-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-white focus:outline-none focus:border-primary"
                       />
                       {searchResults.length > 0 && (
