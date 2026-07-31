@@ -87,3 +87,12 @@ _plan_*.json
 # Playwright artifacts
 test-results/
 playwright-report/
+
+# Capacitor mobile-app wrapper (build .apk/.ipa) — chỉ phát triển ở nhánh cuongdd_app_test.
+# Ở nhánh web KHÔNG lẫn các file/cache Android vào commit. Lưu ý: android/ SOURCE đã được
+# TRACK ở nhánh cuongdd_app_test (gitignore không untrack file đã commit), nên an toàn cho
+# cả 2 nhánh — chỉ ẩn thư mục + cache build khi chúng còn sót trong working dir.
+/android/
+/ios/
+/mobile-shell/
+/capacitor.config.json
