@@ -263,7 +263,7 @@ export default function StageOutPage() {
             nút "Rút…" bị cắt dưới, không bấm được (lỗi "không hiện chỗ xuất"). */}
         {extractModal && (
           <div
-            className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            className="fixed inset-0 bg-black/40 z-[60] flex items-end sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
             style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top))", paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
             onClick={() => setExtractModal(null)}
           >
@@ -375,7 +375,7 @@ export default function StageOutPage() {
                 </div>
               </div>
 
-              <div className="px-6 py-4 border-t border-outline-variant flex justify-end gap-3">
+              <div className="sticky bottom-0 bg-white rounded-b-2xl px-6 py-4 border-t border-outline-variant flex justify-end gap-3">
                 <button onClick={() => setExtractModal(null)} className="px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-low rounded-lg">Hủy</button>
                 <button
                   onClick={() => {
