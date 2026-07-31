@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { HelpGuideButton } from "./HelpGuideButton";
+import { useSidebar } from "./sidebar-context";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
@@ -18,6 +19,7 @@ type SearchResult = {
 
 export function UcHeader({ title = "TỔNG QUAN" }: { title?: string }) {
   const router = useRouter();
+  const { setOpen } = useSidebar(); // mở drawer sidebar (mobile)
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -165,12 +167,22 @@ export function UcHeader({ title = "TỔNG QUAN" }: { title?: string }) {
   };
 
   return (
-    <header className="sticky top-0 h-[64px] bg-surface border-b border-surface-variant flex items-center px-6 z-20">
-      <div className="flex-1 flex items-center gap-6">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-on-surface-variant label-caps">Vĩnh Giang WMS</span>
-          <span className="material-symbols-outlined text-[16px] text-on-surface-variant">chevron_right</span>
-          <span className="font-semibold label-caps text-primary">{title}</span>
+    <header className="sticky top-0 h-[64px] bg-surface border-b border-surface-variant flex items-center px-4 lg:px-6 z-20">
+      {/* Hamburger mở menu — chỉ mobile (< lg) */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="lg:hidden w-10 h-10 -ml-1 mr-1 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-low flex-shrink-0"
+        aria-label="Mở menu"
+      >
+        <span className="material-symbols-outlined text-[24px]">menu</span>
+      </button>
+      <div className="flex-1 min-w-0 flex items-center gap-6">
+        <div className="flex items-center gap-2 text-sm min-w-0">
+          {/* Ẩn tiền tố breadcrumb ở mobile cho gọn */}
+          <span className="text-on-surface-variant label-caps hidden sm:inline">Vĩnh Giang WMS</span>
+          <span className="material-symbols-outlined text-[16px] text-on-surface-variant hidden sm:inline">chevron_right</span>
+          <span className="font-semibold label-caps text-primary truncate">{title}</span>
         </div>
         
         {/* UC-INT-01: Global Search Bar */}

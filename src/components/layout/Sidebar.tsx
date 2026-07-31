@@ -19,6 +19,7 @@ import { auth, type AuthUser } from "@/lib/auth";
 import { canAccess } from "@/lib/rbac";
 import { useSystemConfig } from "@/lib/use-system-config";
 import { ROLE_THEME } from "@/lib/role-theme";
+import { useSidebar } from "./sidebar-context";
 
 type NavItem = {
   href: string;
@@ -113,6 +114,7 @@ export function Sidebar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { config } = useSystemConfig();
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const { open, setOpen } = useSidebar(); // drawer mobile (< lg)
 
   useEffect(() => {
     clientReady = true;
@@ -155,8 +157,19 @@ export function Sidebar() {
   const roleLabel = role ? ROLE_THEME[role]?.label || role : "";
 
   return (
+    <>
+    {/* Backdrop — chỉ mobile khi drawer mở; chạm để đóng */}
+    {open && (
+      <div
+        className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+        onClick={() => setOpen(false)}
+        aria-hidden="true"
+      />
+    )}
     <aside
-      className="fixed left-0 top-0 h-screen bg-primary text-white flex flex-col z-40 shadow-xl"
+      className={`fixed left-0 top-0 h-screen bg-primary text-white flex flex-col z-40 shadow-xl transition-transform duration-200 lg:translate-x-0 ${
+        open ? "translate-x-0" : "-translate-x-full"
+      }`}
       style={{ width: `${SIDEBAR_WIDTH}px` }}
     >
       {/* Header: Logo + Brand — nền trắng, chữ đen */}
@@ -178,6 +191,15 @@ export function Sidebar() {
           </p>
           <p className="text-sm font-bold text-on-surface truncate leading-tight">{appShort}</p>
         </div>
+        {/* Nút đóng drawer — chỉ mobile */}
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="lg:hidden w-9 h-9 -mr-1 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-low flex-shrink-0"
+          aria-label="Đóng menu"
+        >
+          <span className="material-symbols-outlined text-[22px]">close</span>
+        </button>
       </div>
 
       {/* Nav scrollable — giữ vị trí cuộn qua các lần điều hướng (sidebar remount
@@ -214,6 +236,7 @@ export function Sidebar() {
                       <Link
                         href={item.href}
                         aria-current={active ? "page" : undefined}
+                        onClick={() => setOpen(false)}
                         className={`relative flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors ${
                           active
                             ? "bg-white/15 text-white"
@@ -306,5 +329,6 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }

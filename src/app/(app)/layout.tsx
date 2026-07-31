@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Sidebar, SIDEBAR_WIDTH } from "@/components/layout/Sidebar";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { SidebarContext } from "@/components/layout/sidebar-context";
 import { UcHeader } from "@/components/layout/UcHeader";
 import { auth, type AuthUser } from "@/lib/auth";
 import { canAccess } from "@/lib/rbac";
@@ -45,9 +46,12 @@ export default function AppGroupLayout({ children }: { children: React.ReactNode
   const [user, setUser] = useState<AuthUser | null>(() =>
     typeof window !== "undefined" ? auth.getUser() : null
   );
+  // Drawer sidebar (chỉ tác dụng < lg). Đóng lại mỗi khi điều hướng.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     setUser(auth.getUser());
+    setSidebarOpen(false);
   }, [pathname]);
 
   // Chuyển hướng đăng nhập / vai mobile — chạy sau render, không chặn hiển thị.
@@ -93,12 +97,11 @@ export default function AppGroupLayout({ children }: { children: React.ReactNode
   const denied = !!user && !canAccess(user.role, pathname);
 
   return (
+    <SidebarContext.Provider value={{ open: sidebarOpen, setOpen: setSidebarOpen }}>
     <div className="flex min-h-screen">
       <Sidebar />
-      <div
-        className="flex-1 w-0 min-w-0 flex flex-col min-h-screen"
-        style={{ marginLeft: `${SIDEBAR_WIDTH}px` }}
-      >
+      {/* Mobile: content chiếm toàn bộ ngang (ml-0); từ lg mới chừa chỗ sidebar 240px. */}
+      <div className="flex-1 w-0 min-w-0 flex flex-col min-h-screen ml-0 lg:ml-60">
         {denied ? (
           <>
             <UcHeader title="KHÔNG CÓ QUYỀN" />
@@ -128,5 +131,6 @@ export default function AppGroupLayout({ children }: { children: React.ReactNode
         )}
       </div>
     </div>
+    </SidebarContext.Provider>
   );
 }
