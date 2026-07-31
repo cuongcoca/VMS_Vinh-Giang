@@ -10,6 +10,7 @@ const BarcodeScannerModal = dynamic(
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { apiFetch } from "@/lib/api";
+import { auth } from "@/lib/auth";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 
@@ -70,6 +71,7 @@ export default function ItemCodesPage() {
   const [limit, setLimit] = useState(10);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(""); // WVG-65: phân biệt lỗi tải vs rỗng
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showStdModal, setShowStdModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ItemCode | null>(null);
@@ -85,6 +87,14 @@ export default function ItemCodesPage() {
 
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
   const suggestTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // UC-MD-02 (MD02-RBAC-01): chỉ Kế toán/Quản lý được chuẩn hóa. Ẩn nút với vai khác
+  // (BE vẫn là chốt chặn 403 — FE chỉ hỗ trợ, không thay backend authorization).
+  const [canStandardize, setCanStandardize] = useState(true);
+  useEffect(() => {
+    const r = auth.getUser()?.role;
+    setCanStandardize(r === "KE_TOAN" || r === "QUAN_LY");
+  }, []);
 
   // Fetch meta (once)
   useEffect(() => {
@@ -117,6 +127,7 @@ export default function ItemCodesPage() {
   // Fetch item codes
   const fetchItems = useCallback(async () => {
     setIsLoading(true);
+    setLoadError("");
     try {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
@@ -128,13 +139,21 @@ export default function ItemCodesPage() {
       params.set("limit", limit.toString());
 
       const res = await fetch(`/wms/api/item-codes?${params.toString()}`);
+      if (res.status === 401) { window.location.href = "/wms/auth"; return; }
       const data = await res.json();
       if (data.success) {
         setItems(data.data);
         setPagination(data.pagination);
         setStats(data.stats);
+      } else {
+        // WVG-65: lỗi/deny từ API KHÔNG được biến thành empty state.
+        setItems([]);
+        setLoadError(data.error || "Không tải được danh sách mã hàng.");
       }
-    } catch { /* silent */ }
+    } catch {
+      setItems([]);
+      setLoadError("Không tải được dữ liệu. Kiểm tra kết nối và thử lại.");
+    }
     finally { setIsLoading(false); }
   }, [search, filterStatus, filterGroup, sortBy, sortOrder, page, limit]);
 
@@ -415,6 +434,15 @@ export default function ItemCodesPage() {
               <tbody>
                 {isLoading ? (
                   <TableSkeleton rows={10} cols={8} />
+                ) : loadError ? (
+                  /* WVG-65: lỗi tải → error state riêng (KHÔNG hiển thị thành empty) */
+                  <tr><td colSpan={8} className="px-4 py-12 text-center">
+                    <span className="material-symbols-outlined text-[32px] mb-2 block text-error/70">error</span>
+                    <p className="text-sm text-on-surface font-medium">{loadError}</p>
+                    <button onClick={() => fetchItems()} className="mt-3 px-4 py-1.5 text-sm border border-outline-variant rounded-lg hover:bg-surface-low inline-flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px]">refresh</span> Thử lại
+                    </button>
+                  </td></tr>
                 ) : items.length === 0 ? (
                   <tr><td colSpan={8} className="px-4 py-12 text-center text-on-surface-variant">
                     <span className="material-symbols-outlined text-[32px] mb-2 block opacity-40">qr_code_2</span>
@@ -449,9 +477,11 @@ export default function ItemCodesPage() {
                       <td className="px-4 py-3 text-right">
                         {item.status === "pending" ? (
                           <>
-                            <button onClick={() => openStdModal(item)} className="p-1 hover:bg-primary/10 rounded transition-colors mr-1" title="Chuẩn hóa">
-                              <span className="material-symbols-outlined text-[18px] text-primary">verified</span>
-                            </button>
+                            {canStandardize && (
+                              <button onClick={() => openStdModal(item)} className="p-1 hover:bg-primary/10 rounded transition-colors mr-1" title="Chuẩn hóa">
+                                <span className="material-symbols-outlined text-[18px] text-primary">verified</span>
+                              </button>
+                            )}
                             <button onClick={() => setDeleteConfirm(item)} className="p-1 hover:bg-error/10 rounded transition-colors" title="Xóa">
                               <span className="material-symbols-outlined text-[18px] text-error">delete</span>
                             </button>

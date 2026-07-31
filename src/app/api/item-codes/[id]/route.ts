@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { recalcPalletLinesByItemCode } from "@/lib/pallet-recalc";
 import { notifyByRoles } from "@/lib/notifications";
-import { guardPermission } from "@/lib/auth-server";
+import { guardPermission, requirePermission, apiErrorResponse } from "@/lib/auth-server";
+import { logAudit } from "@/lib/audit";
+
+// UC-MD-02 (MD02-RBAC-01/03): chỉ Kế toán chuẩn hóa; Quản lý xử lý ngoại lệ. Thủ kho KHÔNG.
+const CAN_STANDARDIZE = ["KE_TOAN", "QUAN_LY"];
 
 // GET: Chi tiết mã hàng
 export async function GET(
@@ -46,8 +50,8 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const denied = await guardPermission(req, "item_code", "write");
-  if (denied) return denied;
+  let ctx;
+  try { ctx = await requirePermission(req, "item_code", "write"); } catch (e) { return apiErrorResponse(e); }
   try {
     const { id } = await params;
     const body = await req.json();
@@ -133,6 +137,14 @@ export async function PUT(
     // TC_STANDARD_001: Chuẩn hóa → chuyển status
     const isStandardizing = status === "standardized" && existing.status === "pending";
     if (isStandardizing) {
+      // MD02-RBAC-01/03: chỉ Kế toán (Quản lý ngoại lệ) được chuyển Chờ xử lý → Đã chuẩn hóa.
+      // Thủ kho có item_code:write để tạo/sửa mã Chờ xử lý nhưng KHÔNG được tự chuẩn hóa.
+      if (!CAN_STANDARDIZE.includes(ctx.user.role)) {
+        return NextResponse.json(
+          { success: false, error: "Chỉ Kế toán được chuẩn hóa mã hàng." },
+          { status: 403 }
+        );
+      }
       // TC_STANDARD_006: Validate fields bắt buộc khi chuẩn hóa
       const finalFullName = full_name !== undefined ? full_name : existing.full_name;
       if (!finalFullName) {
@@ -143,7 +155,7 @@ export async function PUT(
       }
       updateData.status = "standardized";
       updateData.standardized_at = new Date();
-      // TODO: updateData.standardized_by = currentUserId (khi có auth)
+      updateData.standardized_by = ctx.user.id; // UC-MD-02: truy vết Kế toán chuẩn hóa
     } else if (status !== undefined) {
       updateData.status = status;
     }
@@ -230,6 +242,18 @@ export async function PUT(
       }).catch((err) => console.error("notifyByRoles ITEM_CODE_STANDARDIZED:", err));
     }
 
+    // UC-MD-02: audit chuẩn hóa / cập nhật mã hàng — best-effort.
+    await logAudit(req, {
+      entity_type: "item_code",
+      entity_id: id,
+      action: isStandardizing ? "STANDARDIZE_ITEM_CODE" : "UPDATE_ITEM_CODE",
+      old_value: { code: existing.code, short_name: existing.short_name, full_name: existing.full_name, group_id: existing.group_id, product_id: existing.product_id, status: existing.status },
+      new_value: { code: updated.code, short_name: updated.short_name, full_name: updated.full_name, group_id: updated.group_id, product_id: updated.product_id, status: updated.status },
+      reason: isStandardizing
+        ? `${ctx.user.full_name} chuẩn hóa mã hàng ${updated.code} (Chờ xử lý → Đã chuẩn hóa)`
+        : `${ctx.user.full_name} cập nhật mã hàng ${updated.code}`,
+    });
+
     return NextResponse.json({ success: true, data: updated, cascade: cascadeInfo });
   } catch (error) {
     console.error("PUT /api/item-codes/[id] error:", error);
@@ -249,8 +273,8 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const denied = await guardPermission(req, "item_code", "write");
-  if (denied) return denied;
+  let ctx;
+  try { ctx = await requirePermission(req, "item_code", "write"); } catch (e) { return apiErrorResponse(e); }
   try {
     const { id } = await params;
     const existing = await prisma.itemCode.findUnique({ where: { id } });
@@ -269,6 +293,15 @@ export async function DELETE(
     }
 
     await prisma.itemCode.delete({ where: { id } });
+    // UC-MD-02: audit xóa mã hàng (chỉ khi Chờ xử lý) — best-effort.
+    await logAudit(req, {
+      entity_type: "item_code",
+      entity_id: id,
+      action: "DELETE_ITEM_CODE",
+      old_value: { code: existing.code, short_name: existing.short_name, status: existing.status },
+      new_value: null,
+      reason: `${ctx.user.full_name} xóa mã hàng ${existing.code} (Chờ xử lý)`,
+    });
     return NextResponse.json({ success: true, message: "Đã xóa mã hàng." });
   } catch (error) {
     console.error("DELETE /api/item-codes/[id] error:", error);

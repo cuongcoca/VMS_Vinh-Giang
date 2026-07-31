@@ -4,6 +4,7 @@ import { requirePermission, guardPermission, apiErrorResponse } from "@/lib/auth
 import { validateSpecification } from "@/lib/spec-validate";
 import { notifyByRoles } from "@/lib/notifications";
 import { buildUserIdentitySet, assertNotAccount } from "@/lib/item-code-guard";
+import { logAudit } from "@/lib/audit";
 
 // GET: Danh sách mã hàng (search, filter status, paging, sort)
 export async function GET(req: Request) {
@@ -194,7 +195,8 @@ export async function GET(req: Request) {
 
 // POST: Tạo mã hàng mới (Thủ kho — TC_001_001 → TC_001_015)
 export async function POST(req: Request) {
-  try { await requirePermission(req, "item_code", "write"); } catch (e) { return apiErrorResponse(e); }
+  let ctx;
+  try { ctx = await requirePermission(req, "item_code", "write"); } catch (e) { return apiErrorResponse(e); }
   try {
     const body = await req.json();
     let { code, barcode, short_name, unit_id, specification, units_per_box, weight_per_box, photo_url, note } = body;
@@ -319,12 +321,23 @@ export async function POST(req: Request) {
         photo_url: photo_url || null,
         note: note || null,
         status: "pending",
+        created_by: ctx.user.id, // UC-MD-02: truy vết Thủ kho tạo mã
       },
       include: {
         unit: { select: { id: true, name: true, symbol: true } },
         group: { select: { id: true, name: true } },
         creator: { select: { id: true, full_name: true } },
       },
+    });
+
+    // UC-MD-02: audit tạo mã hàng (Chờ xử lý) — best-effort, không chặn nghiệp vụ.
+    await logAudit(req, {
+      entity_type: "item_code",
+      entity_id: itemCode.id,
+      action: "CREATE_ITEM_CODE",
+      old_value: null,
+      new_value: { code: itemCode.code, short_name: itemCode.short_name, unit_id: itemCode.unit_id, status: itemCode.status },
+      reason: `${ctx.user.full_name} tạo mã hàng ${itemCode.code} (Chờ xử lý)`,
     });
 
     // Notify KE_TOAN khi thủ kho tạo mã hàng (cần chuẩn hóa) — giữ tính năng Push của 42
