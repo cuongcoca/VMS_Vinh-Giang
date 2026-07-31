@@ -97,6 +97,12 @@ export function canAccess(role: Role | string | undefined, pathname: string): bo
   // Các trang cá nhân (Hồ sơ, Đổi mật khẩu) luôn được phép truy cập đối với mọi tài khoản đã xác thực
   if (pathname === "/system/change-password" || pathname === "/system/profile") return true;
 
+  // QUẢN LÝ (QUAN_LY) là vai quản trị — server-side là allSpecial (toàn quyền). Cho FULL
+  // menu/route ở client để KHỚP quyền thật, miễn nhiễm cache role_routes cũ hoặc cấu hình
+  // rbac_role_features bị giới hạn nhầm (tránh admin tự khóa mình khỏi menu). Server vẫn
+  // enforce quyền qua permissions.ts nên đây KHÔNG phải lỗ hổng bảo mật, chỉ đồng bộ UX.
+  if (role === "QUAN_LY") return true;
+
   // Chặn Kế toán truy cập trang Tốc độ luân chuyển theo TC20
   if (role === "KE_TOAN" && (pathname === "/outbound/turnover" || pathname.startsWith("/outbound/turnover/"))) {
     return false;
