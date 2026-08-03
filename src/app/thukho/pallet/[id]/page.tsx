@@ -41,6 +41,10 @@ type PalletDetail = {
   supplier: { id: string; code: string; name: string } | null;
   inbound_request_id: string | null;
   inbound_request: { id: string; code: string } | null;
+  // Nhập đột xuất: pallet gắn phiếu tạm (INBOUND_TEMP) thay vì PHN.
+  source_type?: string | null;
+  inbound_temp_id?: string | null;
+  inbound_temp?: { id: string; code: string } | null;
   lines: PalletLine[];
 };
 
@@ -188,7 +192,11 @@ export default function ThukhoPalletDetailPage() {
   useEffect(() => { fetchPallet(); }, [fetchPallet]);
   useEffect(() => { if (activeTab === "history") fetchHistory(); }, [activeTab]);
 
-  // Hướng A: chỉ tìm mã thuộc CÁC PHIẾU ĐANG MỞ (tránh nhập sai), kèm phiếu nào chứa mã.
+  // Nhập đột xuất: pallet gắn phiếu TẠM (INBOUND_TEMP) → thêm mọi mã, KHÔNG buộc chọn PHN.
+  const isAdhoc = pallet?.source_type === "INBOUND_TEMP" || !!pallet?.inbound_temp_id;
+
+  // Pallet PHN (Hướng A): chỉ tìm mã thuộc CÁC PHIẾU ĐANG MỞ (tránh nhập sai), kèm phiếu chứa mã.
+  // Pallet đột xuất: tìm TOÀN BỘ mã hàng (không giới hạn phiếu).
   useEffect(() => {
     const q = itemSearch.trim();
     // Gợi ý ngay từ ký tự ĐẦU TIÊN; khi bấm vào ô mà chưa gõ → hiện TOÀN BỘ mã thuộc
@@ -196,7 +204,8 @@ export default function ThukhoPalletDetailPage() {
     if (!searchFocused && q.length === 0) { setSearchResults([]); return; }
     const t = setTimeout(async () => {
       try {
-        const params = new URLSearchParams({ inbound_scope: "open", limit: "50" });
+        const params = new URLSearchParams({ limit: "50" });
+        if (!isAdhoc) params.set("inbound_scope", "open"); // đột xuất → tìm toàn bộ mã
         if (q) params.set("q", q);
         const res = await fetch(`${basePath}/api/item-codes?${params.toString()}`);
         const json = await res.json();
@@ -204,7 +213,7 @@ export default function ThukhoPalletDetailPage() {
       } catch (err) { console.error(err); }
     }, q ? 250 : 0);
     return () => clearTimeout(t);
-  }, [itemSearch, basePath, searchFocused]);
+  }, [itemSearch, basePath, searchFocused, isAdhoc]);
 
   // Tập PHN hiện có trên pallet = phiếu của các dòng + phiếu gốc (nếu có).
   const currentPhnIds = new Set<string>();
@@ -233,6 +242,15 @@ export default function ThukhoPalletDetailPage() {
 
   // Điểm vào khi bấm 1 mã (từ tìm kiếm hoặc quét).
   const chooseItem = (item: ItemCode) => {
+    // Nhập đột xuất: chọn thẳng mã, KHÔNG buộc gán phiếu (dòng thuộc phiếu tạm của pallet).
+    if (isAdhoc) {
+      setSelectedItem(item);
+      setSelectedPhn(null);
+      setItemSearch("");
+      setSearchResults([]);
+      setSearchFocused(false);
+      return;
+    }
     const phns = item.open_phns || [];
     if (phns.length === 0) {
       // scope=open đã lọc nên hầu như không xảy ra; báo nhẹ.
@@ -248,8 +266,9 @@ export default function ThukhoPalletDetailPage() {
   const handleScanResult = async (scannedCode: string) => {
     setScannerOpen(false);
     try {
-      // Thử lookup theo barcode hoặc code — trong phạm vi phiếu đang mở (hướng A).
-      const res = await fetch(`${basePath}/api/item-codes?q=${encodeURIComponent(scannedCode)}&inbound_scope=open`);
+      // PHN: lookup trong phạm vi phiếu đang mở (hướng A). Đột xuất: lookup mọi mã.
+      const scopeParam = isAdhoc ? "" : "&inbound_scope=open";
+      const res = await fetch(`${basePath}/api/item-codes?q=${encodeURIComponent(scannedCode)}${scopeParam}`);
       const json = await res.json();
       const items: ItemCode[] = (json.success && Array.isArray(json.data) ? json.data : []) as ItemCode[];
       // Ưu tiên exact match (code hoặc barcode)
@@ -474,8 +493,13 @@ export default function ThukhoPalletDetailPage() {
             <div className="industrial-card p-md rounded-xl bg-surface-low flex flex-col gap-sm">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-[11px] md:text-xs font-bold text-on-surface-variant uppercase tracking-wider">Thêm hàng vào pallet</span>
-                {/* Hướng A: pallet có thể ghép nhiều phiếu — hiện số phiếu đang có trên pallet. */}
-                {currentPhnIds.size > 0 && (
+                {/* Đột xuất → badge phiếu tạm; PHN → số phiếu đang ghép trên pallet. */}
+                {isAdhoc ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    <span className="material-symbols-outlined text-[12px]">bolt</span>
+                    Đột xuất{pallet.inbound_temp?.code ? ` · ${pallet.inbound_temp.code}` : ""}
+                  </span>
+                ) : currentPhnIds.size > 0 && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                     <span className="material-symbols-outlined text-[12px]">receipt_long</span>
                     {currentPhnIds.size === 1 ? (pallet.inbound_request?.code || "1 phiếu") : `${currentPhnIds.size} phiếu`}
@@ -483,10 +507,17 @@ export default function ThukhoPalletDetailPage() {
                 )}
               </div>
 
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-[11px] text-emerald-800 flex items-start gap-1.5">
-                <span className="material-symbols-outlined text-[14px] mt-0.5">check_circle</span>
-                <span>Chỉ tìm mã thuộc <b>các phiếu đang mở</b> — tránh nhập sai. Pallet có thể chứa hàng của nhiều phiếu; mỗi mã gán về phiếu của nó.</span>
-              </div>
+              {isAdhoc ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[11px] text-amber-800 flex items-start gap-1.5">
+                  <span className="material-symbols-outlined text-[14px] mt-0.5">bolt</span>
+                  <span><b>Nhập đột xuất</b> — thêm mọi mã hàng, không cần chọn phiếu. Hàng gán về phiếu tạm{pallet.inbound_temp?.code ? ` ${pallet.inbound_temp.code}` : ""}; Kế toán chuẩn hóa sau.</span>
+                </div>
+              ) : (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-[11px] text-emerald-800 flex items-start gap-1.5">
+                  <span className="material-symbols-outlined text-[14px] mt-0.5">check_circle</span>
+                  <span>Chỉ tìm mã thuộc <b>các phiếu đang mở</b> — tránh nhập sai. Pallet có thể chứa hàng của nhiều phiếu; mỗi mã gán về phiếu của nó.</span>
+                </div>
+              )}
 
               {!selectedItem ? (
                 <>

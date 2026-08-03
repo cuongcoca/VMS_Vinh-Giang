@@ -19,6 +19,7 @@ export async function GET(
         supplier: { select: { id: true, code: true, name: true } },
         location: { select: { id: true, code: true, zone: true, rack: true, level: true, status: true } },
         inbound_request: { select: { id: true, code: true } },  // UC-PAL-01: link PHN
+        inbound_temp: { select: { id: true, code: true } },      // Nhập đột xuất: pallet gắn phiếu tạm (không PHN)
         lines: {
           include: {
             item_code: {
