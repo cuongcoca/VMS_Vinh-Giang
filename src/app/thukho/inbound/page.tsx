@@ -1,6 +1,6 @@
 "use client";
 import { mobileHref } from "@/lib/mobile-href";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useClientPagination, ListPageFooter } from "@/components/ui/ListPagination";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
@@ -32,24 +32,38 @@ export default function ThukhoInboundPage() {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
   const [items, setItems] = useState<InboundItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(""); // phân biệt LỖI TẢI vs không có phiếu
   const [tab, setTab] = useState<Tab>("PENDING");
   // Tìm chung theo số hóa đơn HOẶC mã PHN. Gõ xong hỏi lại API (không giới hạn
   // số phiếu như lọc tại máy). API `/api/inbound?q=` đã tìm cả code lẫn invoice_no.
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
 
-  useEffect(() => {
+  const fetchInbound = useCallback(() => {
     setLoading(true);
+    setLoadError("");
     const params = new URLSearchParams();
     if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
     fetch(`${basePath}/api/inbound?${params}`)
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.success) setItems(j.data || []);
+      .then(async (r) => {
+        if (r.status === 401) { window.location.href = "/wms/auth"; return; }
+        const j = await r.json();
+        if (j?.success) {
+          setItems(j.data || []);
+        } else {
+          // Lỗi/deny từ API KHÔNG được hiển thị thành "không có phiếu".
+          setItems([]);
+          setLoadError(j?.error || "Không tải được danh sách phiếu.");
+        }
       })
-      .catch(console.error)
+      .catch(() => {
+        setItems([]);
+        setLoadError("Không tải được dữ liệu. Kiểm tra kết nối mạng và thử lại.");
+      })
       .finally(() => setLoading(false));
   }, [basePath, debouncedSearch]);
+
+  useEffect(() => { fetchInbound(); }, [fetchInbound]);
 
   const currentTab = TABS.find((t) => t.key === tab)!;
   const filteredItems = items.filter((it) => currentTab.statuses.includes(it.status));
@@ -135,6 +149,18 @@ export default function ThukhoInboundPage() {
         {loading ? (
           <div className="py-16 text-center">
             <span className="material-symbols-outlined animate-spin text-3xl text-primary">progress_activity</span>
+          </div>
+        ) : loadError ? (
+          /* Lỗi tải → KHÔNG hiển thị thành "không có phiếu" (tránh hiểu nhầm mất phiếu) */
+          <div className="py-14 text-center px-4">
+            <span className="material-symbols-outlined text-[40px] text-error/70 block">cloud_off</span>
+            <p className="mt-2 text-sm font-semibold text-on-surface">{loadError}</p>
+            <button
+              onClick={() => fetchInbound()}
+              className="mt-3 px-4 py-2 text-sm border border-outline-variant rounded-lg hover:bg-surface-low inline-flex items-center gap-1.5 active:scale-95 transition-all"
+            >
+              <span className="material-symbols-outlined text-[18px]">refresh</span> Thử lại
+            </button>
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="py-16 text-center text-sm text-on-surface-variant">
