@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { QrCodeImg } from "@/components/ui/QrCodeImg";
 
 type PalletRow = { id: string; code: string; status: string; total_lines: number };
 
@@ -78,9 +79,9 @@ function PalletsQRPrintContent() {
               key={p.id}
               className="border border-outline-variant rounded-lg p-3 text-center break-inside-avoid print:border-2 print:border-black"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`${basePath}/api/pallets/${p.id}/qr-png?size=400`}
+              <QrCodeImg
+                value={p.code}
+                size={400}
                 alt={`QR ${p.code}`}
                 className="w-full aspect-square mb-2"
               />

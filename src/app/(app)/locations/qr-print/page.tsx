@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { QrCodeImg } from "@/components/ui/QrCodeImg";
 
 type LocationRow = { id: string; code: string; zone: string; rack: string; level: string };
 
@@ -85,9 +86,9 @@ function LocationsQRPrintContent() {
               key={loc.id}
               className="border border-outline-variant rounded-lg p-3 text-center break-inside-avoid print:border-2 print:border-black"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`${basePath}/api/locations/${loc.id}/qr-png?size=300`}
+              <QrCodeImg
+                value={loc.code}
+                size={300}
                 alt={`QR ${loc.code}`}
                 className="w-full aspect-square mb-2"
               />
