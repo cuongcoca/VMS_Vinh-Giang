@@ -4,7 +4,9 @@ import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
 import { getJwtSecret } from "@/lib/jwt";
 
-const MAX_FAILED_ATTEMPTS = 5;
+// Theo yêu cầu nghiệp vụ: KHÔNG tự khóa tài khoản khi nhập sai mật khẩu nhiều lần
+// (không giới hạn số lần thử). Vẫn đếm `failed_login_attempts` + ghi audit LOGIN_FAILED
+// để Admin nhận biết dấu hiệu dò mật khẩu và chủ động khóa thủ công (is_locked) nếu cần.
 
 function parseDeviceInfo(userAgent: string): string {
   let browser = "Unknown Browser";
@@ -102,27 +104,15 @@ export async function POST(req: Request) {
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
+      // KHÔNG tự khóa tài khoản dù sai bao nhiêu lần (theo yêu cầu nghiệp vụ).
+      // Vẫn đếm số lần sai để Admin theo dõi/khóa thủ công; reset về 0 khi đăng nhập thành công.
       const newAttempts = user.failed_login_attempts + 1;
-      const willLock = newAttempts >= MAX_FAILED_ATTEMPTS;
-      let errorMsg = "Mật khẩu không chính xác. Vui lòng thử lại.";
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failed_login_attempts: newAttempts },
+      });
 
-      if (willLock) {
-        // Khóa tài khoản
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { is_locked: true, failed_login_attempts: newAttempts },
-        });
-        errorMsg = "Tài khoản của bạn đã bị khóa do nhập sai quá 5 lần.";
-      } else {
-        // Cập nhật số lần sai
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { failed_login_attempts: newAttempts },
-        });
-        errorMsg = `Mật khẩu không chính xác. Bạn còn ${MAX_FAILED_ATTEMPTS - newAttempts} lượt nhập. Nếu sai ${MAX_FAILED_ATTEMPTS} lần tài khoản sẽ bị khóa.`;
-      }
-
-      // WVG-19/G2: audit đăng nhập THẤT BẠI + KHOÁ tài khoản (phát hiện brute-force).
+      // WVG-19/G2: audit đăng nhập THẤT BẠI (phát hiện dò mật khẩu).
       // Best-effort — không chặn response nếu ghi log lỗi.
       try {
         const ua = req.headers.get("user-agent") || "Unknown";
@@ -132,10 +122,10 @@ export async function POST(req: Request) {
           data: {
             entity_type: "user",
             entity_id: user.id,
-            action: willLock ? "ACCOUNT_LOCKED" : "LOGIN_FAILED",
+            action: "LOGIN_FAILED",
             old_value: { failed_login_attempts: user.failed_login_attempts },
-            new_value: { failed_login_attempts: newAttempts, is_locked: willLock },
-            reason: willLock ? "Khoá tài khoản do sai mật khẩu 5 lần" : "Đăng nhập thất bại (sai mật khẩu)",
+            new_value: { failed_login_attempts: newAttempts, is_locked: false },
+            reason: "Đăng nhập thất bại (sai mật khẩu)",
             performed_by: user.id,
             performed_by_role: user.role,
             ip_address: ip,
@@ -147,7 +137,7 @@ export async function POST(req: Request) {
       }
 
       return NextResponse.json(
-        { success: false, error: errorMsg },
+        { success: false, error: "Mật khẩu không chính xác. Vui lòng thử lại." },
         { status: 401 }
       );
     }
